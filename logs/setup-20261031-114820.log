@@ -1,0 +1,110 @@
+﻿2026-10-31 11:48:20.360   Log opened. (Time zone: UTC+07:00)
+2026-10-31 11:48:20.360   Setup version: Inno Setup version 5.5.5 (u)
+2026-10-31 11:48:20.360   Original Setup EXE: Z:\setup.exe
+2026-10-31 11:48:20.360   Setup command line: /SL5="$2A1128,2795101,695808,Z:\setup.exe" "/LOG=D:\bussiness\black product\EnhancedExtract\logs\setup-20261031-114820.log"
+2026-10-31 11:48:20.360   Windows version: 6.3.9600  (NT platform: Yes)
+2026-10-31 11:48:20.360   64-bit Windows: Yes
+2026-10-31 11:48:20.360   Processor architecture: x64
+2026-10-31 11:48:20.360   User privileges: Administrative
+2026-10-31 11:48:20.368   64-bit install mode: No
+2026-10-31 11:48:21.338   Created temporary directory: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp
+2026-10-31 11:48:21.346   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\ISDone.dll
+2026-10-31 11:48:21.427   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\wintb.dll
+2026-10-31 11:48:21.454   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\callbackctrl.dll
+2026-10-31 11:48:21.454   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\1.ico
+2026-10-31 11:48:21.482   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\2.ico
+2026-10-31 11:48:21.483   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\3.ico
+2026-10-31 11:48:21.483   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\4.ico
+2026-10-31 11:48:25.755   Message box (Yes/No):
+                          Setup requires at least 97,864,802 KB of free space to install, but the selected drive only has 52,389,216 KB available.
+                          
+                          Do you want to continue anyway?
+2026-10-31 11:48:27.247   User chose Yes.
+2026-10-31 11:48:27.247   Message box (Yes/No):
+                          The folder:
+                          
+                          E:\games\CP\OG16663A-CYPK277E\install
+                          
+                          already exists. Would you like to install to that folder anyway?
+2026-10-31 11:48:29.055   User chose Yes.
+2026-10-31 11:48:37.247   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\unarc.dll
+2026-10-31 11:48:37.258   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\CLS-MSC.dll
+2026-10-31 11:48:37.285   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\facompress.dll
+2026-10-31 11:48:37.299   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\arc.ini
+2026-10-31 11:48:37.300   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\English.ini
+2026-10-31 11:48:37.300   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\facompress_mt.dll
+2026-10-31 11:48:37.344   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\cls-lolz.dll
+2026-10-31 11:48:37.351   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\cls-lolz_x64.exe
+2026-10-31 11:48:37.362   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\cls-lolz_x86.exe
+2026-10-31 11:48:37.371   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\cls-bpk.dll
+2026-10-31 11:48:37.423   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\CLS-srep.dll
+2026-10-31 11:48:37.441   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\CLS.ini
+2026-10-31 11:48:37.507   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-NQRNN.tmp\srep64.exe
+2026-10-31 12:17:49.114   Starting the installation process.
+2026-10-31 12:17:49.135   Directory for uninstall files: E:\games\CP\OG16663A-CYPK277E\install
+2026-10-31 12:17:49.135   Creating new uninstall log: E:\games\CP\OG16663A-CYPK277E\install\unins000.dat
+2026-10-31 12:17:49.136   -- File entry --
+2026-10-31 12:17:49.136   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\unins000.exe
+2026-10-31 12:17:49.189   Time stamp of our file: 2026-10-31 11:48:20.250
+2026-10-31 12:17:49.189   Installing the file.
+2026-10-31 12:17:49.236   Uninstaller requires administrator: Yes
+2026-10-31 12:17:49.237   Successfully installed the file.
+2026-10-31 12:17:49.237   -- File entry --
+2026-10-31 12:17:49.237   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\bin\x64\steam_api64.dll
+2026-10-31 12:17:49.237   Time stamp of our file: 2025-06-04 07:59:36.000
+2026-10-31 12:17:49.237   Installing the file.
+2026-10-31 12:17:49.288   Successfully installed the file.
+2026-10-31 12:17:49.288   -- File entry --
+2026-10-31 12:17:49.288   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\bin\x64\steam_api64.rne
+2026-10-31 12:17:49.288   Time stamp of our file: 2025-06-04 07:59:36.000
+2026-10-31 12:17:49.288   Installing the file.
+2026-10-31 12:17:49.297   Successfully installed the file.
+2026-10-31 12:17:49.297   -- File entry --
+2026-10-31 12:17:49.297   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\bin\x64\steam_emu.ini
+2026-10-31 12:17:49.298   Time stamp of our file: 2023-12-05 16:38:10.000
+2026-10-31 12:17:49.298   Installing the file.
+2026-10-31 12:17:49.298   Successfully installed the file.
+2026-10-31 12:17:49.298   -- File entry --
+2026-10-31 12:17:49.298   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\_ElAmigos Releases and Updates.url
+2026-10-31 12:17:49.298   Time stamp of our file: 2023-07-21 16:43:22.000
+2026-10-31 12:17:49.298   Installing the file.
+2026-10-31 12:17:49.299   Successfully installed the file.
+2026-10-31 12:17:49.299   -- Icon entry --
+2026-10-31 12:17:49.299   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\Cyberpunk 2077.lnk
+2026-10-31 12:17:49.300   Creating directory: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077
+2026-10-31 12:17:49.341   Creating the icon.
+2026-10-31 12:17:49.648   Successfully created the icon.
+2026-10-31 12:17:49.655   -- Icon entry --
+2026-10-31 12:17:49.656   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\== ElAmigos Releases and Updates @ official site ==.lnk
+2026-10-31 12:17:49.656   Creating the icon.
+2026-10-31 12:17:49.657   Successfully created the icon.
+2026-10-31 12:17:49.663   -- Icon entry --
+2026-10-31 12:17:49.663   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\Uninstall Cyberpunk 2077.lnk
+2026-10-31 12:17:49.664   Creating the icon.
+2026-10-31 12:17:49.670   Successfully created the icon.
+2026-10-31 12:17:49.676   -- Icon entry --
+2026-10-31 12:17:49.676   Dest filename: C:\Users\Public\Desktop\Cyberpunk 2077.lnk
+2026-10-31 12:17:49.676   Creating the icon.
+2026-10-31 12:17:49.678   Successfully created the icon.
+2026-10-31 12:17:49.724   -- INI entry --
+2026-10-31 12:17:49.724   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\bin\x64\steam_emu.ini
+2026-10-31 12:17:49.724   Section: Settings
+2026-10-31 12:17:49.724   Entry: UserName
+2026-10-31 12:17:49.724   Value: bill
+2026-10-31 12:17:49.724   Updating the .INI file.
+2026-10-31 12:17:49.739   Successfully updated the .INI file.
+2026-10-31 12:17:49.739   -- INI entry --
+2026-10-31 12:17:49.739   Dest filename: E:\games\CP\OG16663A-CYPK277E\install\bin\x64\steam_emu.ini
+2026-10-31 12:17:49.739   Section: Settings
+2026-10-31 12:17:49.739   Entry: Language
+2026-10-31 12:17:49.739   Value: english
+2026-10-31 12:17:49.739   Updating the .INI file.
+2026-10-31 12:17:49.739   Successfully updated the .INI file.
+2026-10-31 12:17:49.905   Installation process succeeded.
+2026-10-31 12:17:49.909   -- Run entry --
+2026-10-31 12:17:49.909   Run as: Original user
+2026-10-31 12:17:49.909   Type: ShellExec
+2026-10-31 12:17:49.909   Filename: https://elamigos.site
+2026-10-31 12:17:52.512   Need to restart Windows? No
+2026-10-31 12:18:09.648   Deinitializing Setup.
+2026-10-31 12:18:09.831   Log closed.

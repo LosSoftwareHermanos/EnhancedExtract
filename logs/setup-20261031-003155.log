@@ -1,0 +1,110 @@
+﻿2026-10-31 00:31:55.482   Log opened. (Time zone: UTC+07:00)
+2026-10-31 00:31:55.482   Setup version: Inno Setup version 5.5.5 (u)
+2026-10-31 00:31:55.482   Original Setup EXE: Z:\setup.exe
+2026-10-31 00:31:55.482   Setup command line: /SL5="$1140972,2795101,695808,Z:\setup.exe" "/LOG=D:\bussiness\black product\EnhancedExtract\logs\setup-20261031-003155.log"
+2026-10-31 00:31:55.482   Windows version: 6.3.9600  (NT platform: Yes)
+2026-10-31 00:31:55.482   64-bit Windows: Yes
+2026-10-31 00:31:55.482   Processor architecture: x64
+2026-10-31 00:31:55.483   User privileges: Administrative
+2026-10-31 00:31:55.491   64-bit install mode: No
+2026-10-31 00:32:00.372   Created temporary directory: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp
+2026-10-31 00:32:00.378   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\ISDone.dll
+2026-10-31 00:32:00.459   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\wintb.dll
+2026-10-31 00:32:00.486   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\callbackctrl.dll
+2026-10-31 00:32:00.487   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\1.ico
+2026-10-31 00:32:00.513   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\2.ico
+2026-10-31 00:32:00.514   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\3.ico
+2026-10-31 00:32:00.514   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\4.ico
+2026-10-31 00:32:03.084   Message box (Yes/No):
+                          Setup requires at least 97,864,802 KB of free space to install, but the selected drive only has 28,028,104 KB available.
+                          
+                          Do you want to continue anyway?
+2026-10-31 00:32:03.896   User chose Yes.
+2026-10-31 00:32:03.896   Message box (Yes/No):
+                          The folder:
+                          
+                          E:\games\CP\install
+                          
+                          already exists. Would you like to install to that folder anyway?
+2026-10-31 00:32:05.968   User chose Yes.
+2026-10-31 00:32:15.156   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\unarc.dll
+2026-10-31 00:32:15.168   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\CLS-MSC.dll
+2026-10-31 00:32:15.196   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\facompress.dll
+2026-10-31 00:32:15.207   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\arc.ini
+2026-10-31 00:32:15.208   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\English.ini
+2026-10-31 00:32:15.208   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\facompress_mt.dll
+2026-10-31 00:32:15.253   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\cls-lolz.dll
+2026-10-31 00:32:15.270   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\cls-lolz_x64.exe
+2026-10-31 00:32:15.282   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\cls-lolz_x86.exe
+2026-10-31 00:32:15.290   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\cls-bpk.dll
+2026-10-31 00:32:15.341   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\CLS-srep.dll
+2026-10-31 00:32:15.358   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\CLS.ini
+2026-10-31 00:32:15.423   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-KMKTV.tmp\srep64.exe
+2026-10-31 01:08:50.784   Starting the installation process.
+2026-10-31 01:08:50.855   Directory for uninstall files: E:\games\CP\install
+2026-10-31 01:08:50.855   Creating new uninstall log: E:\games\CP\install\unins000.dat
+2026-10-31 01:08:50.856   -- File entry --
+2026-10-31 01:08:50.856   Dest filename: E:\games\CP\install\unins000.exe
+2026-10-31 01:08:51.063   Time stamp of our file: 2026-10-31 00:31:55.426
+2026-10-31 01:08:51.063   Installing the file.
+2026-10-31 01:08:51.467   Uninstaller requires administrator: Yes
+2026-10-31 01:08:51.467   Successfully installed the file.
+2026-10-31 01:08:51.467   -- File entry --
+2026-10-31 01:08:51.468   Dest filename: E:\games\CP\install\bin\x64\steam_api64.dll
+2026-10-31 01:08:51.468   Time stamp of our file: 2025-06-04 07:59:36.000
+2026-10-31 01:08:51.468   Installing the file.
+2026-10-31 01:08:51.549   Successfully installed the file.
+2026-10-31 01:08:51.550   -- File entry --
+2026-10-31 01:08:51.550   Dest filename: E:\games\CP\install\bin\x64\steam_api64.rne
+2026-10-31 01:08:51.550   Time stamp of our file: 2025-06-04 07:59:36.000
+2026-10-31 01:08:51.550   Installing the file.
+2026-10-31 01:08:51.559   Successfully installed the file.
+2026-10-31 01:08:51.559   -- File entry --
+2026-10-31 01:08:51.559   Dest filename: E:\games\CP\install\bin\x64\steam_emu.ini
+2026-10-31 01:08:51.559   Time stamp of our file: 2023-12-05 16:38:10.000
+2026-10-31 01:08:51.559   Installing the file.
+2026-10-31 01:08:51.559   Successfully installed the file.
+2026-10-31 01:08:51.559   -- File entry --
+2026-10-31 01:08:51.559   Dest filename: E:\games\CP\install\_ElAmigos Releases and Updates.url
+2026-10-31 01:08:51.559   Time stamp of our file: 2023-07-21 16:43:22.000
+2026-10-31 01:08:51.559   Installing the file.
+2026-10-31 01:08:51.560   Successfully installed the file.
+2026-10-31 01:08:51.560   -- Icon entry --
+2026-10-31 01:08:51.560   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\Cyberpunk 2077.lnk
+2026-10-31 01:08:51.579   Creating directory: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077
+2026-10-31 01:08:51.601   Creating the icon.
+2026-10-31 01:08:52.219   Successfully created the icon.
+2026-10-31 01:08:52.223   -- Icon entry --
+2026-10-31 01:08:52.223   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\== ElAmigos Releases and Updates @ official site ==.lnk
+2026-10-31 01:08:52.223   Creating the icon.
+2026-10-31 01:08:52.225   Successfully created the icon.
+2026-10-31 01:08:52.230   -- Icon entry --
+2026-10-31 01:08:52.230   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Cyberpunk 2077\Uninstall Cyberpunk 2077.lnk
+2026-10-31 01:08:52.230   Creating the icon.
+2026-10-31 01:08:52.236   Successfully created the icon.
+2026-10-31 01:08:52.241   -- Icon entry --
+2026-10-31 01:08:52.241   Dest filename: C:\Users\Public\Desktop\Cyberpunk 2077.lnk
+2026-10-31 01:08:52.241   Creating the icon.
+2026-10-31 01:08:52.243   Successfully created the icon.
+2026-10-31 01:08:52.254   -- INI entry --
+2026-10-31 01:08:52.254   Dest filename: E:\games\CP\install\bin\x64\steam_emu.ini
+2026-10-31 01:08:52.254   Section: Settings
+2026-10-31 01:08:52.254   Entry: UserName
+2026-10-31 01:08:52.254   Value: bill
+2026-10-31 01:08:52.254   Updating the .INI file.
+2026-10-31 01:08:52.267   Successfully updated the .INI file.
+2026-10-31 01:08:52.267   -- INI entry --
+2026-10-31 01:08:52.267   Dest filename: E:\games\CP\install\bin\x64\steam_emu.ini
+2026-10-31 01:08:52.267   Section: Settings
+2026-10-31 01:08:52.267   Entry: Language
+2026-10-31 01:08:52.267   Value: english
+2026-10-31 01:08:52.267   Updating the .INI file.
+2026-10-31 01:08:52.267   Successfully updated the .INI file.
+2026-10-31 01:08:52.777   Installation process succeeded.
+2026-10-31 01:08:52.781   -- Run entry --
+2026-10-31 01:08:52.781   Run as: Original user
+2026-10-31 01:08:52.781   Type: ShellExec
+2026-10-31 01:08:52.781   Filename: https://elamigos.site
+2026-10-31 01:08:56.272   Need to restart Windows? No
+2026-10-31 01:09:40.759   Deinitializing Setup.
+2026-10-31 01:09:40.821   Log closed.

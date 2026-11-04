@@ -1,0 +1,12 @@
+udio utk button biasa : glass_001.ogg
+audio utk button minimize :toggle_001.ogg
+audio tuk button exit :back_001.ogg
+audio utk typing nya jadi setiap ketikan keyboard keluar suara : click_003.ogg
+audio kalo cheklist di turn on : select_007.ogg
+audio kalo cheklist turn off : select_008.ogg
+audio utk loadin bar nya as it load up : kuzu420-sci-fi-radar-beeping-571479.mp3
+audio klo tombol atas di kolom safety buffer di naikin : select_007.ogg
+audio klo tombol atas di kolom safety buffer di turunin : select_008.ogg
+audio kalo button ganti tab di pencet ke tab iso : forceField_000.ogg
+audio kalo button ganti tab di pencet ke tab rar:forceField_001.ogg
+audio utk pop up : soundshelfstudio-cyber-ui-click-527091.mp3

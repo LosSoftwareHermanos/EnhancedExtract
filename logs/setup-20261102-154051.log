@@ -1,0 +1,103 @@
+﻿2026-11-02 15:40:52.316   Log opened. (Time zone: UTC+07:00)
+2026-11-02 15:40:52.317   Setup version: Inno Setup version 5.5.5 (u)
+2026-11-02 15:40:52.317   Original Setup EXE: Z:\setup.exe
+2026-11-02 15:40:52.317   Setup command line: /SL5="$86311FA,2892994,677376,Z:\setup.exe" "/LOG=D:\bussiness\black product\EnhancedExtract\logs\setup-20261102-154051.log"
+2026-11-02 15:40:52.317   Windows version: 6.3.9600  (NT platform: Yes)
+2026-11-02 15:40:52.317   64-bit Windows: Yes
+2026-11-02 15:40:52.317   Processor architecture: x64
+2026-11-02 15:40:52.317   User privileges: Administrative
+2026-11-02 15:40:52.329   64-bit install mode: No
+2026-11-02 15:40:54.291   Created temporary directory: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp
+2026-11-02 15:40:54.416   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\ISDone.dll
+2026-11-02 15:40:54.695   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\wintb.dll
+2026-11-02 15:40:54.722   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\callbackctrl.dll
+2026-11-02 15:40:54.882   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\1.ico
+2026-11-02 15:40:54.923   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\2.ico
+2026-11-02 15:40:54.938   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\3.ico
+2026-11-02 15:40:54.939   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\4.ico
+2026-11-02 15:40:58.054   Message box (Yes/No):
+                          The folder:
+                          
+                          E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install
+                          
+                          already exists. Would you like to install to that folder anyway?
+2026-11-02 15:41:00.176   User chose Yes.
+2026-11-02 15:41:04.155   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\unarc.dll
+2026-11-02 15:41:04.166   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\CLS-MSC.dll
+2026-11-02 15:41:04.193   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\facompress.dll
+2026-11-02 15:41:04.203   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\arc.ini
+2026-11-02 15:41:04.204   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\English.ini
+2026-11-02 15:41:04.204   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\facompress_mt.dll
+2026-11-02 15:41:04.267   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\cls-lolz.dll
+2026-11-02 15:41:04.274   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\cls-lolz_x64.exe
+2026-11-02 15:41:04.285   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\cls-lolz_x86.exe
+2026-11-02 15:41:04.294   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\cls-bpk.dll
+2026-11-02 15:41:04.448   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\CLS-srep.dll
+2026-11-02 15:41:04.467   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\CLS.ini
+2026-11-02 15:41:04.468   Extracting temporary file: C:\Users\user\AppData\Local\Temp\is-7UQBM.tmp\srep64.exe
+2026-11-02 15:44:49.915   Starting the installation process.
+2026-11-02 15:44:50.124   Directory for uninstall files: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install
+2026-11-02 15:44:50.124   Creating new uninstall log: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\unins000.dat
+2026-11-02 15:44:50.125   -- File entry --
+2026-11-02 15:44:50.125   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\unins000.exe
+2026-11-02 15:44:50.298   Time stamp of our file: 2026-11-02 15:40:52.194
+2026-11-02 15:44:50.298   Installing the file.
+2026-11-02 15:44:50.664   Uninstaller requires administrator: Yes
+2026-11-02 15:44:50.665   Successfully installed the file.
+2026-11-02 15:44:50.665   -- File entry --
+2026-11-02 15:44:50.665   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\ZeroParades_Data\Plugins\x86_64\steam_api64.dll
+2026-11-02 15:44:50.665   Time stamp of our file: 2026-10-01 18:23:22.000
+2026-11-02 15:44:50.665   Dest file exists.
+2026-11-02 15:44:50.665   Time stamp of existing file: 2026-10-02 14:40:02.000
+2026-11-02 15:44:50.665   Installing the file.
+2026-11-02 15:44:50.736   Successfully installed the file.
+2026-11-02 15:44:50.736   -- File entry --
+2026-11-02 15:44:50.736   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\ZeroParades_Data\Plugins\x86_64\steam_api64.rne
+2026-11-02 15:44:50.736   Time stamp of our file: 2026-10-01 18:23:22.000
+2026-11-02 15:44:50.736   Installing the file.
+2026-11-02 15:44:50.746   Successfully installed the file.
+2026-11-02 15:44:50.746   -- File entry --
+2026-11-02 15:44:50.746   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\ZeroParades_Data\Plugins\x86_64\steam_emu.ini
+2026-11-02 15:44:50.746   Time stamp of our file: 2026-10-01 18:23:22.000
+2026-11-02 15:44:50.746   Installing the file.
+2026-11-02 15:44:50.747   Successfully installed the file.
+2026-11-02 15:44:50.747   -- File entry --
+2026-11-02 15:44:50.747   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\_ElAmigos Releases and Updates.url
+2026-11-02 15:44:50.747   Time stamp of our file: 2023-07-21 16:43:22.000
+2026-11-02 15:44:50.747   Installing the file.
+2026-11-02 15:44:50.787   Successfully installed the file.
+2026-11-02 15:44:50.788   -- Icon entry --
+2026-11-02 15:44:50.788   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Zero Parades For Dead Spies\Zero Parades For Dead Spies.lnk
+2026-11-02 15:44:50.788   Creating directory: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Zero Parades For Dead Spies
+2026-11-02 15:44:50.881   Creating the icon.
+2026-11-02 15:44:52.342   Successfully created the icon.
+2026-11-02 15:44:52.351   -- Icon entry --
+2026-11-02 15:44:52.351   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Zero Parades For Dead Spies\== ElAmigos Releases and Updates @ official site ==.lnk
+2026-11-02 15:44:52.351   Creating the icon.
+2026-11-02 15:44:52.353   Successfully created the icon.
+2026-11-02 15:44:52.370   -- Icon entry --
+2026-11-02 15:44:52.370   Dest filename: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Zero Parades For Dead Spies\Uninstall Zero Parades For Dead Spies.lnk
+2026-11-02 15:44:52.370   Creating the icon.
+2026-11-02 15:44:52.376   Successfully created the icon.
+2026-11-02 15:44:52.385   -- Icon entry --
+2026-11-02 15:44:52.385   Dest filename: C:\Users\Public\Desktop\Zero Parades For Dead Spies.lnk
+2026-11-02 15:44:52.385   Creating the icon.
+2026-11-02 15:44:52.410   Successfully created the icon.
+2026-11-02 15:44:52.429   -- INI entry --
+2026-11-02 15:44:52.429   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\ZeroParades_Data\Plugins\x86_64\steam_emu.ini
+2026-11-02 15:44:52.429   Section: Settings
+2026-11-02 15:44:52.429   Entry: UserName
+2026-11-02 15:44:52.429   Value: elamigos
+2026-11-02 15:44:52.429   Updating the .INI file.
+2026-11-02 15:44:52.472   Successfully updated the .INI file.
+2026-11-02 15:44:52.472   -- INI entry --
+2026-11-02 15:44:52.472   Dest filename: E:\games\1 - Copy - Copy\OG20031-ZPFDSM5\OG20031-ZPFDSM5\Zero.Parades.For.Dead.Spies.MULTi5-ElAmigos\install\ZeroParades_Data\Plugins\x86_64\steam_emu.ini
+2026-11-02 15:44:52.472   Section: Settings
+2026-11-02 15:44:52.472   Entry: Language
+2026-11-02 15:44:52.472   Value: english
+2026-11-02 15:44:52.472   Updating the .INI file.
+2026-11-02 15:44:52.472   Successfully updated the .INI file.
+2026-11-02 15:44:52.574   Installation process succeeded.
+2026-11-02 15:44:52.577   Need to restart Windows? No
+2026-11-02 15:44:57.119   Deinitializing Setup.
+2026-11-02 15:44:57.297   Log closed.

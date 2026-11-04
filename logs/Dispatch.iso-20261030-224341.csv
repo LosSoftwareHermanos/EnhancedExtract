@@ -1,0 +1,16 @@
+t,file,offset,size
+15.208,/setup.exe,0,4096
+15.208,/setup.exe,73728,16384
+15.209,/setup.exe,249856,12800
+44.939,/setup.exe,0,4096
+44.939,/setup.exe,73728,16384
+44.939,/setup.exe,249856,12800
+123.897,/Dispatch_00.ico,0,4096
+123.897,/setup.exe,0,4096
+123.898,/Dispatch_00.ico,0,32768
+123.899,/Dispatch_00.ico,0,12
+123.899,/setup.exe,73728,16384
+123.899,/setup.exe,249856,12800
+123.899,/Dispatch_00.ico,0,32768
+123.900,/setup.exe,217088,16384
+123.900,/Dispatch_00.ico,118784,29492
