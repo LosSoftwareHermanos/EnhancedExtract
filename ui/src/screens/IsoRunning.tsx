@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
 import { EngineError, call, diskSpace, jobLogs, jobStatus, type Ev } from "../engine";
 import { GiB, MiB, drive, dur, flag, gb, jobStarted, setName, shortId } from "../format";
@@ -70,12 +71,12 @@ export function IsoRunning({ id }: { id: string }) {
 
       <section className="hero brand" aria-label="Progress">
         <div className="strip">
-          <div><span className="l">Setup has read</span><span className="v lead">{s ? `${Math.floor(pct)}%` : <span className="skel" />}</span><span className="s">{p?.bytes_read != null ? `${gb(p.bytes_read)} of ${gb(total)} GB` : " "}</span></div>
+          <div><span className="l">Setup has read</span><span className="v lead">{s ? <Num value={pct} format={(n) => `${Math.floor(n)}%`} /> : <span className="skel" />}</span><span className="s">{p?.bytes_read != null ? `${gb(p.bytes_read)} of ${gb(total)} GB` : " "}</span></div>
           <div><span className="l">Freed</span><span className="v">{p?.freed != null ? <>{gb(p.freed)}<span className="unit"> GB</span></> : "—"}</span><span className="s">given back to {drive(path)}</span></div>
           <div><span className="l">Installed</span><span className="v">{p?.installed != null ? <>{gb(p.installed)}<span className="unit"> GB</span></> : "—"}</span><span className="s">{installMb ? `of about ${gb(installMb * MiB)} GB` : " "}</span></div>
           <div><span className="l">Free on {drive(dir || path)}</span><span className="v">{free ? <>{gb(free.now)}<span className="unit"> GB</span></> : "—"}</span><span className="s">{free ? `lowest ${gb(free.low)} GB` : " "}</span></div>
         </div>
-        <div className="track big" style={{ marginTop: 22 }} role="progressbar" aria-valuenow={Math.floor(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Setup has read"><div className="fill" style={{ width: `${pct}%` }} /></div>
+        <div className="track big" style={{ marginTop: 22 }} role="progressbar" aria-valuenow={Math.floor(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Setup has read"><div className="fill" style={{ transform: `scaleX(${pct / 100})` }} /></div>
       </section>
 
       <section className="card" aria-labelledby="bn">

@@ -244,3 +244,84 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .radio { position: relative; display: inline-block; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 2px currentColor; margin-right: 10px; vertical-align: -2px; }
 .cmp.choice[aria-checked="true"] .radio::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: currentColor; }
 .cmp.choice[aria-checked="true"] .top2 > span:first-child { font-weight: 700; }
+
+/* =====================================================================================
+   Motion layer. Rare moments (start-up, screen change, a job's yellow panel) are expressive;
+   frequent ones (hover, press, rows, tabs) are short and quiet. Only transform, opacity and
+   clip-path animate. .fx-off (the rail's Effects switch) drops the decorative parts, and the
+   reduced-motion rule above cuts everything to an instant change.
+   ===================================================================================== */
+:root { --ease-out: cubic-bezier(.16, 1, .3, 1); --ease-io: cubic-bezier(.77, 0, .175, 1); }
+
+/* backdrop shader sits under everything; the rail stays readable over it */
+.backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
+.app { position: relative; z-index: 1; }
+.rail { background: rgba(11, 12, 18, .9); position: relative; }
+.top { background: rgba(11, 12, 18, .55); }
+
+/* screen change: the parts arrive in reading order */
+.canvas > * { animation: screen-in .42s var(--ease-out) both; }
+.canvas > *:nth-child(2) { animation-delay: 45ms; }
+.canvas > *:nth-child(3) { animation-delay: 90ms; }
+.canvas > *:nth-child(4) { animation-delay: 135ms; }
+.canvas > *:nth-child(5) { animation-delay: 180ms; }
+.canvas > *:nth-child(n+6) { animation-delay: 220ms; }
+@keyframes screen-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* the yellow panel wipes open along its cut corners, then a scan line runs down it once */
+.canvas > .hero.brand { animation: hero-wipe .6s var(--ease-io) 60ms both; }
+@keyframes hero-wipe {
+  from { clip-path: polygon(0 0, 0 0, 0 calc(100% - 16px), 0 100%, 0 100%, 0 16px); }
+  to { clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+}
+.hero.brand::before { content: ""; position: absolute; inset: 0; border-top: 2px solid rgba(255, 255, 255, .85); pointer-events: none; opacity: 0; animation: scan .9s var(--ease-io) .45s both; }
+@keyframes scan { 0% { opacity: 1; transform: translateY(0); } 85% { opacity: .9; } 100% { opacity: 0; transform: translateY(100%); } }
+
+/* progress: transform, not width */
+.fill { width: 100%; transform-origin: left center; transition: transform .6s var(--ease-out); }
+
+/* rail: one indicator that slides to the current item */
+.ri[aria-current="page"]::before { display: none; }
+.rail-ind { position: absolute; left: 0; top: 0; width: 2px; height: 24px; background: var(--accent); transition: transform .32s var(--ease-out), opacity .2s; pointer-events: none; }
+.mark:hover img { animation: jitter .32s steps(4) 1; }
+
+/* buttons: press feedback for all, a short RGB-split glitch on the yellow one */
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn { transition: background .12s, color .12s, transform .12s var(--ease-out); }
+.btn-primary:hover:not(:disabled) { animation: glitch .26s steps(3) 1; }
+@keyframes glitch {
+  0% { transform: translate(0); text-shadow: none; }
+  33% { transform: translate(-2px, 1px); text-shadow: 2px 0 var(--now), -2px 0 var(--negative); }
+  66% { transform: translate(2px, -1px); text-shadow: -2px 0 var(--now), 2px 0 var(--negative); }
+  100% { transform: translate(0); text-shadow: none; }
+}
+@keyframes jitter { 0% { transform: translate(0); } 25% { transform: translate(-2px, 1px); } 50% { transform: translate(2px, -1px); } 75% { transform: translate(-1px, -1px); } 100% { transform: translate(0); } }
+
+/* lists and the parts strip fill in one after another */
+.stagger > * { animation: row-in .34s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 32ms + 140ms); }
+@keyframes row-in { from { opacity: 0; transform: translateX(-8px); } }
+.tape i { animation: seg-in .3s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 12ms + 220ms); transform-origin: bottom; }
+@keyframes seg-in { from { opacity: 0; transform: scaleY(.25); } }
+.tab[aria-selected="true"]::after, .tab[aria-pressed="true"]::after, .tab[aria-current="step"]::after { animation: underline .26s var(--ease-out) both; transform-origin: left; }
+@keyframes underline { from { transform: scaleX(0); } }
+.notice { animation: screen-in .3s var(--ease-out) both; }
+
+/* dialogs switch on like a CRT */
+.dialog { animation: crt-on .26s var(--ease-out) both; }
+@keyframes crt-on { 0% { opacity: .3; transform: scale(.7, .02); } 55% { opacity: 1; transform: scale(1.01, 1.02); } 100% { transform: scale(1); } }
+
+/* start-up */
+.boot { position: fixed; inset: 0; z-index: 100; background: var(--ground); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; animation: boot-out .22s ease-in .95s forwards; cursor: pointer; }
+.boot-logo { width: 96px; height: 96px; animation: boot-logo .5s steps(6) both; }
+.boot-word { height: 22px; width: auto; animation: word-wipe .45s var(--ease-io) .32s both; }
+.boot-bar { width: 180px; height: 2px; background: var(--raised); overflow: hidden; }
+.boot-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; animation: bar-fill .75s var(--ease-io) .15s both; }
+@keyframes boot-logo { 0% { opacity: 0; transform: translate(-6px, 2px) scale(.94); } 40% { opacity: 1; transform: translate(4px, -2px); } 70% { transform: translate(-2px, 1px); } 100% { opacity: 1; transform: none; } }
+@keyframes word-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes boot-out { to { opacity: 0; visibility: hidden; } }
+
+/* Effects off: keep the feedback, drop the show */
+.fx-off .btn-primary:hover:not(:disabled), .fx-off .mark:hover img { animation: none; }
+.fx-off .hero.brand::before { display: none; }
+.fx-off .canvas > .hero.brand, .fx-off .tape i, .fx-off .stagger > * { animation: none; }

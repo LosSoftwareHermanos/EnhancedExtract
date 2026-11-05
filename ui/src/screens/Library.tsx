@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Num } from "../fx/motion";
 import { Page, jobRoute, useApp } from "../App";
 import { call, diskSpace, inTauri, ofType, pickFolder, type FoundIso, type JobSnap, type RarSet } from "../engine";
 import { basename, drive, gb, setName } from "../format";
@@ -70,12 +71,12 @@ export function Library() {
     </>}>
       <section className="hero brand" aria-label="Summary">
         <div className="strip" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
-          <div><span className="l">Ready to unpack</span><span className="v lead">{rows ? Math.max(0, ready) : "…"}</span></div>
+          <div><span className="l">Ready to unpack</span><span className="v lead">{rows ? <Num value={Math.max(0, ready)} format={(n) => String(Math.round(n))} /> : "…"}</span></div>
           <div><span className="l">Running</span><span className="v">{busy}</span>
             <span className="s">{busy ? <button className="tlink" onClick={() => nav({ name: "jobs" })}>See jobs</button> : "nothing running"}</span></div>
           <div><span className="l">Need you</span><span className="v">{rows ? need : "…"}</span><span className="s">{need ? "missing or freed parts" : "every set complete"}</span></div>
-          <div><span className="l">In this folder</span><span className="v">{gb(total)}<span className="unit">GB</span></span><span className="s">{rows ? `${rows.length} ${rows.length === 1 ? "set" : "sets"}` : " "}</span></div>
-          <div><span className="l">Free on {drive(folder)}</span><span className="v">{disk ? <>{gb(disk.free)}<span className="unit">GB</span></> : "—"}</span><span className="s">{disk ? `of ${gb(disk.total)} GB` : " "}</span></div>
+          <div><span className="l">In this folder</span><span className="v"><Num value={total} format={gb} /><span className="unit">GB</span></span><span className="s">{rows ? `${rows.length} ${rows.length === 1 ? "set" : "sets"}` : " "}</span></div>
+          <div><span className="l">Free on {drive(folder)}</span><span className="v">{disk ? <><Num value={disk.free} format={gb} /><span className="unit">GB</span></> : "—"}</span><span className="s">{disk ? `of ${gb(disk.total)} GB` : " "}</span></div>
         </div>
       </section>
       {system && (!system.unrar || !system.winfsp || !system.fusepy) && (
@@ -103,8 +104,8 @@ function SetTable({ rows, jobFor }: { rows: Row[] | null; jobFor: (p: string) =>
   return (
     <>
       <div className="lib-row small muted" style={{ paddingBottom: 10 }}><span>Set</span><span>Parts</span><span style={{ textAlign: "right" }}>Packed</span><span>State</span><span /></div>
-      <div className="rows">
-        {rows.map((r) => {
+      <div className="rows stagger">
+        {rows.map((r, ri) => {
           const job = jobFor(r.key);
           const pct = job?.progress?.overall;
           const [cls, text] = job ? ["neu live", `${r.kind === "ISO" ? "Installing" : job.progress?.phase === "verifying" ? "Verifying" : "Extracting"}${pct != null ? ` ${Math.floor(pct)}%` : ""}`]
@@ -115,7 +116,7 @@ function SetTable({ rows, jobFor }: { rows: Row[] | null; jobFor: (p: string) =>
             : [r.kind === "ISO" ? "Install" : "Extract", () => nav(r.kind === "ISO" ? { name: "iso", path: r.key } : { name: "rar", path: r.key })];
           const usedParts = job && r.kind === "RAR" ? Math.max(0, (job.progress?.part ?? 1) - 1) : 0;
           return (
-            <div key={r.key} className="lib-row row-link" style={{ height: 72, margin: "0 -12px", padding: "0 12px" }} onClick={go}>
+            <div key={r.key} className="lib-row row-link" style={{ height: 72, margin: "0 -12px", padding: "0 12px", ["--i" as string]: ri }} onClick={go}>
               <div style={{ minWidth: 0 }}>
                 <div className="set-name ellipsis">{r.name}</div>
                 <div className="muted small ellipsis">{r.kind} · {r.detail} · {r.file}</div>
@@ -123,7 +124,7 @@ function SetTable({ rows, jobFor }: { rows: Row[] | null; jobFor: (p: string) =>
               {r.kind === "RAR" ? (
                 <div className="tape mini" role="img" aria-label={r.missing.length ? `${r.count} parts, part ${r.missing.join(", ")} missing` : `${r.count} parts, all present`}>
                   {Array.from({ length: Math.min(r.count, 40) }, (_, i) => i + 1).map((n) =>
-                    <i key={n} className={r.missing.includes(n) ? "missing" : n <= usedParts ? "done" : ""} />)}
+                    <i key={n} style={{ ["--i" as string]: ri * 3 + n }} className={r.missing.includes(n) ? "missing" : n <= usedParts ? "done" : ""} />)}
                 </div>
               ) : <span className="muted small">single image</span>}
               <span className="num" style={{ textAlign: "right", fontSize: 15 }}>{gb(r.size)}<span className="unit">GB</span></span>

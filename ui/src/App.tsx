@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { inTauri, jobsList, pickArchive, systemCheck, type JobSnap, type SystemCheck } from "./engine";
-import { usePoll } from "./hooks";
+import { usePoll, useStored } from "./hooks";
+import { Backdrop } from "./fx/Backdrop";
+import { Boot, Decode, FxContext } from "./fx/motion";
 import { Icon } from "./components/ui";
 import { Library } from "./screens/Library";
 import { RarSetup } from "./screens/RarSetup";
@@ -28,6 +30,8 @@ interface Ctx {
   recheck: () => void;
   announce: (msg: string) => void;
   openPath: (path: string) => void;
+  fx: boolean;
+  setFx: (on: boolean) => void;
 }
 const AppCtx = createContext<Ctx>(null!);
 export const useApp = () => useContext(AppCtx);
@@ -41,6 +45,12 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const jobs = usePoll(() => jobsList(30), 4000);
   const sys = usePoll(systemCheck, 600000);
+  const [fx, setFx] = useStored("ee.fx", true);
+  // The start-up sequence plays once per launch, and never with reduced motion or effects off.
+  const [booting, setBooting] = useState(() => {
+    try { return fx && !sessionStorage.getItem("ee.booted") && !matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+  });
+  const bootDone = useCallback(() => { setBooting(false); try { sessionStorage.setItem("ee.booted", "1"); } catch { /* private mode */ } }, []);
 
   const nav = useCallback((r: Route) => { setRoute(r); document.querySelector<HTMLElement>(".canvas")?.scrollTo(0, 0); }, []);
   const announce = useCallback((m: string) => { setLive(""); setTimeout(() => setLive(m), 50); }, []);
@@ -84,18 +94,23 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [openPath]);
 
-  const ctx: Ctx = { route, nav, jobs: jobs.data, refreshJobs: jobs.refresh, system: sys.data, recheck: sys.refresh, announce, openPath };
+  const ctx: Ctx = { route, nav, jobs: jobs.data, refreshJobs: jobs.refresh, system: sys.data, recheck: sys.refresh, announce, openPath, fx, setFx };
   const running = (jobs.data ?? []).filter((j) => j.state === "running").length;
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className="app">
-        <Rail running={running} />
-        <TitleBar />
-        <main className="canvas" id="main">{screen(route)}</main>
-      </div>
-      <div className="sr-only" aria-live="polite">{live}</div>
-      {dragging && <div className="drop">Drop a .rar part or an .iso to set it up</div>}
+      <FxContext.Provider value={fx}>
+        <Backdrop energy={running ? 1 : 0} enabled={fx} />
+        <div className={`app${fx ? "" : " fx-off"}`}>
+          <Rail running={running} />
+          <TitleBar />
+          {/* keyed by screen, so each screen change replays the entrance */}
+          <main className="canvas" id="main" key={JSON.stringify(route)}>{screen(route)}</main>
+        </div>
+        <div className="sr-only" aria-live="polite">{live}</div>
+        {dragging && <div className="drop"><img src={logo} alt="" style={{ width: 64, height: 64 }} />Drop a .rar part or an .iso to set it up</div>}
+        {booting && <Boot onDone={bootDone} />}
+      </FxContext.Provider>
     </AppCtx.Provider>
   );
 }
@@ -125,8 +140,10 @@ function screen(r: Route): ReactNode {
 const SECTION: Record<Route["name"], string> = { library: "library", rar: "extract", rarJob: "jobs", iso: "disc", isoJob: "jobs", jobs: "jobs" };
 
 function Rail({ running }: { running: number }) {
-  const { route, nav, system } = useApp();
+  const { route, nav, system, fx, setFx } = useApp();
   const here = SECTION[route.name];
+  const order = ["library", "extract", "disc", "jobs"];
+  const idx = order.indexOf(here);
   const item = (id: string, label: string, to: Route, badge: "" | "now" | "bad" = "") => (
     <button className="ri" aria-current={here === id ? "page" : undefined} aria-label={label} onClick={() => nav(to)}>
       <Icon name={id} />{badge && <span className={`badge ${badge === "bad" ? "bad" : ""}`} aria-hidden="true" />}<span className="tip">{label}</span>
@@ -140,7 +157,11 @@ function Rail({ running }: { running: number }) {
       {item("extract", "Extract RAR", { name: "rar" })}
       {item("disc", "Install from ISO", { name: "iso" })}
       {item("jobs", running ? `Jobs, ${running} running` : "Jobs", { name: "jobs" }, running > 0 ? "now" : "")}
+      <span className="rail-ind" aria-hidden="true" style={{ transform: `translateY(${64 + Math.max(0, idx) * 48 + 12}px)`, opacity: idx < 0 ? 0 : 1 }} />
       <span className="grow" />
+      <button className="ri" aria-pressed={fx} aria-label={fx ? "Effects on" : "Effects off"} onClick={() => setFx(!fx)}>
+        <Icon name={fx ? "fx" : "fxoff"} /><span className="tip">{fx ? "Effects on: click for a still, lighter look" : "Effects off: click to turn them on"}</span>
+      </button>
       {item("system", sysBad ? "System check: something is missing" : "System check", { name: "library" }, sysBad ? "bad" : "")}
       <span style={{ height: 8 }} />
     </nav>
@@ -180,7 +201,7 @@ export function Page({ title, sub, actions, children }: { title: ReactNode; sub?
   return (
     <>
       <div className="title">
-        <div style={{ minWidth: 0 }}><h1 className="ellipsis">{title}</h1>{sub && <p className="sub">{sub}</p>}</div>
+        <div style={{ minWidth: 0 }}><h1 className="ellipsis">{typeof title === "string" ? <Decode text={title} /> : title}</h1>{sub && <p className="sub">{sub}</p>}</div>
         {actions && <div className="acts">{actions}</div>}
       </div>
       {children}
