@@ -89,6 +89,22 @@ export function RarSetup({ path }: { path?: string }) {
       </>}>
       <ErrorNote error={loadError} onRetry={() => inspect(dest, pw)} />
       <ErrorNote error={start.error || verifyOnly.error} />
+      <section className="hero brand" aria-labelledby="sp">
+        <div className="decision">
+          <div>
+            <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(dest || path)}</h2>
+            <div className="big-figure">{space ? gb(del ? space.del.needed : space.keep.needed) : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>
+            <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>{space ? <>of <span className="num">{gb(free)}</span> GB free{fits ? `, ${gb(free - (del ? space.del.needed : space.keep.needed))} GB to spare` : ", not enough"}</> : "Working it out…"}</p>
+          </div>
+          <div>
+            {space ? <SpaceCompare free={free} label="How to extract" onChoose={(i) => setDel(i === 0)} rows={[
+              { label: "Delete each part once it's used", needed: space.del.needed, chosen: del, note: "Peak: the growth beyond the packed size, plus one part in flight. You'll confirm before it starts." },
+              { label: "Keep every part", needed: space.keep.needed, chosen: !del, note: "Nothing is deleted; needs room for the whole game." },
+            ]} /> : <p>Reading the set…</p>}
+            {del && <div style={{ marginTop: 16 }}><Warn>If extraction stops halfway, the parts already deleted are gone and must be downloaded again.</Warn></div>}
+          </div>
+        </div>
+      </section>
       <div className="cols">
         <div className="stack">
           <section className="card" aria-labelledby="src">
@@ -108,27 +124,14 @@ export function RarSetup({ path }: { path?: string }) {
               </div>
             </div>
           </section>
-          <section className="card" aria-labelledby="opt">
-            <div className="ch"><h2 id="opt">Options</h2></div>
-            <Toggle label="Verify every part first" checked={verify} onChange={setVerify}
-              desc={`Reads all ${info?.volumes.length ?? ""} parts and writes nothing. A corrupt part stops the job before anything is deleted.`} />
-            <Toggle label="Delete each part once it's used" checked={del} onChange={setDel}
-              desc={space ? <>Needs <span className="num">{gb(space.del.needed)}</span> GB instead of <span className="num">{gb(space.keep.needed)}</span> GB. You'll confirm this before it starts.</> : "Needs far less free space."} />
-            {del && !verify && <Warn>Verification is off: a corrupt part would only be found after earlier parts were deleted.</Warn>}
-          </section>
         </div>
         <div className="stack">
-          <section className="card" aria-labelledby="sp">
-            <div className="ch"><h2 id="sp">Space on {drive(dest || path)}</h2><span className="meta">{space ? <><span className="num">{gb(free)}</span> GB free now</> : "…"}</span></div>
-            {space ? <SpaceCompare free={free} rows={[
-              { label: "Delete as you go", needed: space.del.needed, chosen: del, note: "Peak: the growth beyond the packed size, plus one part in flight" },
-              { label: "Keep every part", needed: space.keep.needed, chosen: !del },
-            ]} /> : <p className="muted">Working out how much space this needs…</p>}
-          </section>
           <section className="card" aria-labelledby="plan">
             <div className="ch"><h2 id="plan">What happens</h2>{info && <span className="meta">about {dur(estimate(info, verify))}</span>}</div>
-            <div className="rows">{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
-            {del && <div style={{ marginTop: 12 }}><Warn>If extraction stops halfway, the parts already deleted are gone and must be downloaded again.</Warn></div>}
+            <Toggle label="Verify every part first" checked={verify} onChange={setVerify}
+              desc="Reads every part and writes nothing, so a corrupt part stops the job before anything is deleted." />
+            {del && !verify && <div style={{ margin: "4px 0 12px" }}><Warn>Verification is off: a corrupt part would only be found after earlier parts were deleted.</Warn></div>}
+            <div className="rows" style={{ borderTop: "1px solid var(--rule)", marginTop: 4 }}>{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
           </section>
         </div>
       </div>

@@ -58,3 +58,16 @@ In the browser preview, `#rar`, `#rarJob`, `#iso`, `#isoJob` and `#jobs` open a 
   set-up offers "Restart as admin" when it's needed.
 - Choices are remembered (folder, verify/delete, buffer, silent setup).
 - Fonts are bundled; the app makes no network requests.
+
+## Look
+
+The brand comes from the logo: black Σ on yellow with two cut corners.
+
+- One yellow field per screen, black type on it (the Library summary, the space decision on set-up,
+  the progress on running screens); the primary action is a yellow cut-corner button.
+- Type: Oxanium (squared and chamfered like the Σ, equal-width digits) for titles and every number;
+  Bai Jamjuree for running text. Both OFL, bundled through Fontsource.
+- The real logo (`src/assets/logo.png`, from `icon.png`) sits at the top of the rail and the real
+  wordmark (`src/assets/wordmark.png`, cropped from `EE/title/title2.png`) in the title bar.
+- Parts are drawn as a strip, one segment per archive part: missing parts are outlined in red,
+  used parts fill in, deleted parts are struck through.
