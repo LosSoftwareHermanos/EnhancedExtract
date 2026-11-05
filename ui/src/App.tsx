@@ -1,0 +1,186 @@
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { inTauri, jobsList, pickArchive, systemCheck, type JobSnap, type SystemCheck } from "./engine";
+import { usePoll } from "./hooks";
+import { Icon } from "./components/ui";
+import { Library } from "./screens/Library";
+import { RarSetup } from "./screens/RarSetup";
+import { RarRunning } from "./screens/RarRunning";
+import { IsoSetup } from "./screens/IsoSetup";
+import { IsoRunning } from "./screens/IsoRunning";
+import { Jobs } from "./screens/Jobs";
+
+export type Route =
+  | { name: "library" }
+  | { name: "rar"; path?: string }
+  | { name: "rarJob"; id: string }
+  | { name: "iso"; path?: string }
+  | { name: "isoJob"; id: string }
+  | { name: "jobs"; id?: string };
+
+interface Ctx {
+  route: Route;
+  nav: (r: Route) => void;
+  jobs: JobSnap[] | null;
+  refreshJobs: () => void;
+  system: SystemCheck | null;
+  recheck: () => void;
+  announce: (msg: string) => void;
+  openPath: (path: string) => void;
+}
+const AppCtx = createContext<Ctx>(null!);
+export const useApp = () => useContext(AppCtx);
+
+/** Where a job's screen lives: RAR jobs on the extract screen, ISO jobs on the install screen. */
+export const jobRoute = (j: JobSnap): Route => ((j.argv?.[0] ?? j.command.split(" ")[0]) === "iso" ? { name: "isoJob", id: j.id } : { name: "rarJob", id: j.id });
+
+export function App() {
+  const [route, setRoute] = useState<Route>(previewRoute);
+  const [live, setLive] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const jobs = usePoll(() => jobsList(30), 4000);
+  const sys = usePoll(systemCheck, 600000);
+
+  const nav = useCallback((r: Route) => { setRoute(r); document.querySelector<HTMLElement>(".canvas")?.scrollTo(0, 0); }, []);
+  const announce = useCallback((m: string) => { setLive(""); setTimeout(() => setLive(m), 50); }, []);
+  const openPath = useCallback((p: string) => {
+    if (/\.iso$/i.test(p)) nav({ name: "iso", path: p });
+    else if (/\.(rar|r\d\d)$/i.test(p)) nav({ name: "rar", path: p });
+    else announce("Drop a .rar part or an .iso file.");
+  }, [nav, announce]);
+
+  // A job that finishes while you look elsewhere is announced once.
+  const [seen, setSeen] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!jobs.data) return;
+    const next: Record<string, string> = {};
+    for (const j of jobs.data) {
+      next[j.id] = j.state;
+      if (seen[j.id] === "running" && j.state !== "running") announce(`${j.state === "done" ? "Finished" : "Failed"}: ${j.command}`);
+    }
+    setSeen(next);
+  }, [jobs.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Drag and drop from Explorer: a .rar part or .iso opens its set-up screen.
+  useEffect(() => {
+    if (!inTauri) return;
+    let unlisten: (() => void) | undefined;
+    import("@tauri-apps/api/webview").then(({ getCurrentWebview }) =>
+      getCurrentWebview().onDragDropEvent((e) => {
+        if (e.payload.type === "over" || e.payload.type === "enter") setDragging(true);
+        else setDragging(false);
+        if (e.payload.type === "drop" && e.payload.paths[0]) openPath(e.payload.paths[0]);
+      }).then((u) => (unlisten = u)));
+    return () => unlisten?.();
+  }, [openPath]);
+
+  // Ctrl+O opens a set from anywhere.
+  useEffect(() => {
+    const onKey = async (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key.toLowerCase() === "o") { e.preventDefault(); const p = await pickArchive(); if (p) openPath(p); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openPath]);
+
+  const ctx: Ctx = { route, nav, jobs: jobs.data, refreshJobs: jobs.refresh, system: sys.data, recheck: sys.refresh, announce, openPath };
+  const running = (jobs.data ?? []).filter((j) => j.state === "running").length;
+
+  return (
+    <AppCtx.Provider value={ctx}>
+      <div className="app">
+        <Rail running={running} />
+        <TitleBar />
+        <main className="canvas" id="main">{screen(route)}</main>
+      </div>
+      <div className="sr-only" aria-live="polite">{live}</div>
+      {dragging && <div className="drop">Drop a .rar part or an .iso to set it up</div>}
+    </AppCtx.Provider>
+  );
+}
+
+/** Browser preview only (mock engine): open a screen straight from the URL, e.g. #rar or #isoJob. */
+function previewRoute(): Route {
+  if (inTauri) return { name: "library" };
+  const h = location.hash.slice(1);
+  const routes: Record<string, Route> = {
+    rar: { name: "rar", path: "D:\\Downloads\\Ashen.Tide.v1.4.2.part01.rar" }, rarJob: { name: "rarJob", id: "3f9a" },
+    iso: { name: "iso", path: "E:\\Downloads\\Vigil.of.Ostra.iso" }, isoJob: { name: "isoJob", id: "c9f3" }, jobs: { name: "jobs" },
+  };
+  return routes[h] ?? { name: "library" };
+}
+
+function screen(r: Route): ReactNode {
+  switch (r.name) {
+    case "library": return <Library />;
+    case "rar": return <RarSetup key={r.path} path={r.path} />;
+    case "rarJob": return <RarRunning key={r.id} id={r.id} />;
+    case "iso": return <IsoSetup key={r.path} path={r.path} />;
+    case "isoJob": return <IsoRunning key={r.id} id={r.id} />;
+    case "jobs": return <Jobs initial={r.id} />;
+  }
+}
+
+const SECTION: Record<Route["name"], string> = { library: "library", rar: "extract", rarJob: "jobs", iso: "disc", isoJob: "jobs", jobs: "jobs" };
+
+function Rail({ running }: { running: number }) {
+  const { route, nav, system } = useApp();
+  const here = SECTION[route.name];
+  const item = (id: string, label: string, to: Route, badge = false) => (
+    <button className="ri" aria-current={here === id ? "page" : undefined} aria-label={label} onClick={() => nav(to)}>
+      <Icon name={id} />{badge && <span className="badge" aria-hidden="true" />}<span className="tip">{label}</span>
+    </button>
+  );
+  const sysBad = system && (!system.unrar || !system.winfsp || !system.fusepy);
+  return (
+    <nav className="rail" aria-label="Main">
+      <button className="mark ri" aria-label="EnhancedExtract, Library" onClick={() => nav({ name: "library" })}><i /></button>
+      {item("library", "Library", { name: "library" })}
+      {item("extract", "Extract RAR", { name: "rar" })}
+      {item("disc", "Install from ISO", { name: "iso" })}
+      {item("jobs", running ? `Jobs, ${running} running` : "Jobs", { name: "jobs" }, running > 0)}
+      <span className="grow" /><hr />
+      {item("system", sysBad ? "System check: something is missing" : "System check", { name: "library" }, !!sysBad)}
+      <span style={{ height: 8 }} />
+    </nav>
+  );
+}
+
+const CRUMB: Record<Route["name"], [string, string?]> = {
+  library: ["Library"], rar: ["Extract"], rarJob: ["Jobs", "Extract"], iso: ["Install"], isoJob: ["Jobs", "Install"], jobs: ["Jobs"],
+};
+
+function TitleBar() {
+  const { route } = useApp();
+  const [a, b] = CRUMB[route.name];
+  const win = async (op: "minimize" | "toggleMaximize" | "close") => {
+    if (!inTauri) return;
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow()[op]();
+  };
+  return (
+    <header className="top" data-tauri-drag-region>
+      <div className="crumb" data-tauri-drag-region>
+        <b data-tauri-drag-region>EnhancedExtract</b><span>/</span><span className={b ? "" : "here"}>{a}</span>
+        {b && <><span>/</span><span className="here">{b}</span></>}
+      </div>
+      <div className="win">
+        <button aria-label="Minimize" onClick={() => win("minimize")}><svg viewBox="0 0 12 12"><path d="M1 6h10" /></svg></button>
+        <button aria-label="Maximize" onClick={() => win("toggleMaximize")}><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" /></svg></button>
+        <button className="x" aria-label="Close. Running jobs keep going." title="Close. Running jobs keep going." onClick={() => win("close")}>
+          <svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" /></svg></button>
+      </div>
+    </header>
+  );
+}
+
+export function Page({ title, sub, actions, children }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+  return (
+    <>
+      <div className="title">
+        <div style={{ minWidth: 0 }}><h1 className="ellipsis">{title}</h1>{sub && <p className="sub">{sub}</p>}</div>
+        {actions && <div className="acts">{actions}</div>}
+      </div>
+      {children}
+    </>
+  );
+}

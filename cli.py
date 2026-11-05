@@ -666,11 +666,14 @@ def report_drive(drive, out, msgs, status_every, last):
     key = (overall, st["bytes_read"], freed, st["installed"], st["paused"], st["violations"])
     if key == last["key"] and since < STATUS_HEARTBEAT and status_every:
         return ended, last
+    # The big files, for a per-file view (read position, freed bytes); small files are left out.
+    bins = [{"path": p, "size": f["size"], "read": min(f["hwm"], f["size"]), "freed": f["freed"]}
+            for p, f in sorted(st["files"].items()) if f["size"] >= 256 * iso.MB]
     out("status", f"{overall:.0f}% of the ISO read by setup: read {iso.human(st['bytes_read'])}, freed "
                   f"{iso.human(freed)}, installed {iso.human(st['installed'])}"
                   + (", FREEING STOPPED" if st["paused"] else ""),
         overall=overall, bytes_read=st["bytes_read"], freed=freed, installed=st["installed"],
-        paused=st["paused"], violations=st["violations"], max_back=st["max_back"])
+        paused=st["paused"], violations=st["violations"], max_back=st["max_back"], bins=bins)
     return ended, {"t": time.time(), "key": key}
 
 
