@@ -1,10 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-// Fonts ship with the app (no network): Public Sans for text, JetBrains Mono for figures.
-import "@fontsource/public-sans/400.css";
-import "@fontsource/public-sans/500.css";
-import "@fontsource/public-sans/600.css";
-import "@fontsource/jetbrains-mono/400.css";
+// Fonts ship with the app (no network). Oxanium: squared and chamfered like the Σ logo, with
+// equal-width digits, for titles and every figure. Bai Jamjuree: a clean technical text face.
+import "@fontsource/oxanium/500.css";
+import "@fontsource/oxanium/600.css";
+import "@fontsource/oxanium/700.css";
+import "@fontsource/bai-jamjuree/400.css";
+import "@fontsource/bai-jamjuree/500.css";
+import "@fontsource/bai-jamjuree/600.css";
 import "./styles.css";
 import { App } from "./App";
 

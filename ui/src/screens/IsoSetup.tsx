@@ -73,6 +73,29 @@ export function IsoSetup({ path }: { path?: string }) {
       <ErrorNote error={loadError} />
       <ErrorNote error={start.error} />
       {why && data && <p className="muted" role="status">Mount and install is off: {why.toLowerCase()}.</p>}
+      <section className="hero brand" aria-labelledby="sp">
+        <div className="decision">
+          <div>
+            <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(path)}</h2>
+            {space && <div className="big-figure">{gb(space.needed)}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>}
+            {space && <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>of <span className="num">{gb(space.free)}</span> GB free{space.enough ? `, ${gb(space.free - space.needed)} GB to spare` : ", not enough"}</p>}
+            <label className="lab" style={{ color: "var(--accent-ink)", marginTop: space ? 18 : 4, maxWidth: 300 }}>Install size, from setup
+              <span className="join"><input className="field" inputMode="numeric" style={{ textAlign: "right", fontSize: 18, height: 44, background: "#fffbd0", color: "var(--accent-ink)", borderColor: "var(--accent-ink)" }}
+                value={sizeMb} placeholder="52,000" onChange={(e) => setSizeMb(e.target.value)} aria-invalid={!!sizeMb && !sizeOk} aria-describedby="size-hint" autoFocus={!sizeMb} />
+                <span style={{ fontWeight: 700 }}>MB</span></span>
+              <span className="hint" id="size-hint" style={{ color: "#3d3a06" }}>Setup says "at least … MB of free disk space is required"</span>
+            </label>
+          </div>
+          <div>
+            {space ? <SpaceCompare free={space.free} rows={[
+              { label: "Install while freeing", needed: space.needed, chosen: true, note: `${buffer} GB buffer + 2 GB margin${space.growth ? ` + ${gb(space.growth)} GB game bigger than the ISO` : ""}` },
+              { label: "Normal install, ISO kept", needed: size * MiB, chosen: false },
+            ]} /> : <p style={{ fontWeight: 600 }}>Type the install size and this shows how much free space the install needs, with and without freeing the ISO.</p>}
+            <div style={{ marginTop: 16 }}><Warn>The ISO is freed while setup reads it. If setup fails or the PC crashes, the ISO is gone: keep a copy or be ready to download it again.</Warn></div>
+            {data?.wasFreed && <div style={{ marginTop: 12 }}><Warn>This ISO was already partly freed in an earlier run; those parts are gone.</Warn></div>}
+          </div>
+        </div>
+      </section>
       <div className="cols">
         <div className="stack">
           <section className="card" aria-labelledby="ins">
@@ -83,12 +106,7 @@ export function IsoSetup({ path }: { path?: string }) {
                   <button className="btn" type="button" onClick={async () => { const f = await pickFolder(dir || undefined); if (f) setDir(f); }}>Browse</button></span>
                 {dir && drive(dir) !== drive(path) && <span className="hint" style={{ color: "var(--warning)" }}>Different drive from the ISO: freeing the ISO won't make room on {drive(dir)}</span>}
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <label className="lab">Install size
-                  <span className="join"><input className="field" inputMode="numeric" style={{ textAlign: "right" }} value={sizeMb} placeholder="52,000"
-                    onChange={(e) => setSizeMb(e.target.value)} aria-invalid={!!sizeMb && !sizeOk} aria-describedby="size-hint" /><span className="muted">MB</span></span>
-                  <span className="hint" id="size-hint">From setup's "free disk space required"</span>
-                </label>
+              <div>
                 <label className="lab"><span style={{ display: "flex", justifyContent: "space-between" }}>Safety buffer<span className="num" style={{ fontWeight: 400 }}>{buffer} GB</span></span>
                   <input type="range" min={1} max={20} value={buffer} onChange={(e) => setBuffer(Number(e.target.value))} aria-describedby="buf-hint" />
                   <span className="hint" id="buf-hint">Kept behind setup in case it reads back</span>
@@ -100,6 +118,16 @@ export function IsoSetup({ path }: { path?: string }) {
               </div>
             </div>
           </section>
+        </div>
+        <div className="stack">
+          <section className="card" aria-labelledby="fl">
+            <div className="ch"><h2 id="fl">In the ISO</h2><span className="meta">{data ? `${int(data.iso.files)} files` : "…"}</span></div>
+            <div className="small muted" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 72px", paddingBottom: 6 }}><span>File</span><span style={{ textAlign: "right" }}>Size</span><span style={{ textAlign: "right" }}>Freed</span></div>
+            <div className="rows">
+              {big.map((f) => <FileRow key={f.path} name={f.path.replace(/^\//, "")} size={f.size} freed />)}
+              {rest.length > 0 && <FileRow name={`${rest.length} other ${rest.length === 1 ? "file" : "files"}`} size={rest.reduce((a, f) => a + f.size, 0)} freed={false} />}
+            </div>
+          </section>
           <section className="card" aria-labelledby="chk">
             <div className="ch"><h2 id="chk">Before mounting</h2></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 24 }}>
@@ -108,25 +136,6 @@ export function IsoSetup({ path }: { path?: string }) {
                 action={system && !system.admin ? <button className="tlink" onClick={() => relaunchAsAdmin()}>Restart as admin</button> : undefined} />
               <Check ok={data ? !data.windowsMounted : null} label="Not mounted by Windows" />
               <Check ok={data ? data.iso.has_setup : null} label="setup.exe in the root" value={data?.iso.has_setup ? "found" : undefined} />
-            </div>
-          </section>
-        </div>
-        <div className="stack">
-          <section className="card" aria-labelledby="sp">
-            <div className="ch"><h2 id="sp">Space on {drive(path)}</h2><span className="meta">{space ? <><span className="num">{gb(space.free)}</span> GB free now</> : sizeOk ? "…" : "enter the install size"}</span></div>
-            {space ? <SpaceCompare free={space.free} rows={[
-              { label: "Install while freeing", needed: space.needed, chosen: true, note: `${buffer} GB buffer + 2 GB margin${space.growth ? ` + ${gb(space.growth)} GB game bigger than the ISO` : ""}` },
-              { label: "Normal install, ISO kept", needed: size * MiB, chosen: false },
-            ]} /> : <p className="muted">The install size decides how much space this needs.</p>}
-            <div style={{ marginTop: 16 }}><Warn>The ISO is freed while setup reads it. If setup fails or the PC crashes, the ISO is gone: keep a copy or be ready to download it again.</Warn></div>
-            {data?.wasFreed && <div style={{ marginTop: 12 }}><Warn>This ISO was already partly freed in an earlier run; those parts are gone.</Warn></div>}
-          </section>
-          <section className="card" aria-labelledby="fl">
-            <div className="ch"><h2 id="fl">In the ISO</h2><span className="meta">{data ? `${int(data.iso.files)} files` : "…"}</span></div>
-            <div className="small muted" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 72px", paddingBottom: 6 }}><span>File</span><span style={{ textAlign: "right" }}>Size</span><span style={{ textAlign: "right" }}>Freed</span></div>
-            <div className="rows">
-              {big.map((f) => <FileRow key={f.path} name={f.path.replace(/^\//, "")} size={f.size} freed />)}
-              {rest.length > 0 && <FileRow name={`${rest.length} other ${rest.length === 1 ? "file" : "files"}`} size={rest.reduce((a, f) => a + f.size, 0)} freed={false} />}
             </div>
           </section>
         </div>

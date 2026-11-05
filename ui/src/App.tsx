@@ -8,6 +8,8 @@ import { RarRunning } from "./screens/RarRunning";
 import { IsoSetup } from "./screens/IsoSetup";
 import { IsoRunning } from "./screens/IsoRunning";
 import { Jobs } from "./screens/Jobs";
+import logo from "./assets/logo-64.png";
+import wordmark from "./assets/wordmark.png";
 
 export type Route =
   | { name: "library" }
@@ -125,21 +127,21 @@ const SECTION: Record<Route["name"], string> = { library: "library", rar: "extra
 function Rail({ running }: { running: number }) {
   const { route, nav, system } = useApp();
   const here = SECTION[route.name];
-  const item = (id: string, label: string, to: Route, badge = false) => (
+  const item = (id: string, label: string, to: Route, badge: "" | "now" | "bad" = "") => (
     <button className="ri" aria-current={here === id ? "page" : undefined} aria-label={label} onClick={() => nav(to)}>
-      <Icon name={id} />{badge && <span className="badge" aria-hidden="true" />}<span className="tip">{label}</span>
+      <Icon name={id} />{badge && <span className={`badge ${badge === "bad" ? "bad" : ""}`} aria-hidden="true" />}<span className="tip">{label}</span>
     </button>
   );
   const sysBad = system && (!system.unrar || !system.winfsp || !system.fusepy);
   return (
     <nav className="rail" aria-label="Main">
-      <button className="mark ri" aria-label="EnhancedExtract, Library" onClick={() => nav({ name: "library" })}><i /></button>
+      <button className="mark" aria-label="EnhancedExtract, Library" onClick={() => nav({ name: "library" })}><img src={logo} alt="" /></button>
       {item("library", "Library", { name: "library" })}
       {item("extract", "Extract RAR", { name: "rar" })}
       {item("disc", "Install from ISO", { name: "iso" })}
-      {item("jobs", running ? `Jobs, ${running} running` : "Jobs", { name: "jobs" }, running > 0)}
-      <span className="grow" /><hr />
-      {item("system", sysBad ? "System check: something is missing" : "System check", { name: "library" }, !!sysBad)}
+      {item("jobs", running ? `Jobs, ${running} running` : "Jobs", { name: "jobs" }, running > 0 ? "now" : "")}
+      <span className="grow" />
+      {item("system", sysBad ? "System check: something is missing" : "System check", { name: "library" }, sysBad ? "bad" : "")}
       <span style={{ height: 8 }} />
     </nav>
   );
@@ -160,8 +162,9 @@ function TitleBar() {
   return (
     <header className="top" data-tauri-drag-region>
       <div className="crumb" data-tauri-drag-region>
-        <b data-tauri-drag-region>EnhancedExtract</b><span>/</span><span className={b ? "" : "here"}>{a}</span>
-        {b && <><span>/</span><span className="here">{b}</span></>}
+        <img className="wordmark" src={wordmark} alt="EnhancedExtract" data-tauri-drag-region /><span className="sep" aria-hidden="true" />
+        <span className={b ? "" : "here"} data-tauri-drag-region>{a}</span>
+        {b && <><span aria-hidden="true">/</span><span className="here" data-tauri-drag-region>{b}</span></>}
       </div>
       <div className="win">
         <button aria-label="Minimize" onClick={() => win("minimize")}><svg viewBox="0 0 12 12"><path d="M1 6h10" /></svg></button>

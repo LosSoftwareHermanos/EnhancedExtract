@@ -117,22 +117,24 @@ export function PasswordDialog({ name, wrong, onSubmit, onClose }: { name: strin
 }
 
 /** Two bars on one scale (the drive's free space): what this plan needs against the alternative. */
-export function SpaceCompare({ free, rows }: { free: number; rows: { label: string; needed: number; chosen: boolean; note?: ReactNode }[] }) {
+/** With `onChoose`, the rows are the choice itself (a radio group): pick a plan by its space. */
+export function SpaceCompare({ free, rows, onChoose, label }: { free: number; rows: { label: string; needed: number; chosen: boolean; note?: ReactNode }[]; onChoose?: (i: number) => void; label?: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {rows.map((r) => {
+    <div style={{ display: "flex", flexDirection: "column", gap: onChoose ? 6 : 16 }} role={onChoose ? "radiogroup" : undefined} aria-label={label}>
+      {rows.map((r, i) => {
         const pct = Math.min(100, (r.needed / Math.max(free, 1)) * 100);
         const over = r.needed > free;
+        const Tag = onChoose ? "button" : "div";
         return (
-          <div className="cmp" key={r.label}>
-            <div className="top2"><span className={r.chosen ? "" : "soft"}>{r.label}</span>
+          <Tag className={`cmp${onChoose ? " choice" : ""}`} key={r.label} {...(onChoose ? { type: "button" as const, role: "radio", "aria-checked": r.chosen, onClick: () => onChoose(i) } : {})}>
+            <div className="top2"><span className={r.chosen ? "" : "soft"}>{onChoose && <span className="radio" aria-hidden="true" />}{r.label}</span>
               <span className="num">{(r.needed / 1024 ** 3).toFixed(2)}<span className="muted"> GB needed</span></span></div>
             <div className="cmpbar" role="img" aria-label={`${r.label}: needs ${(r.needed / 1024 ** 3).toFixed(2)} GB, ${(free / 1024 ** 3).toFixed(2)} GB free`}>
-              <span style={{ width: `${pct}%`, background: over ? "var(--negative)" : r.chosen ? "var(--accent)" : "var(--control)" }} />
+              <span data-chosen={over ? undefined : String(r.chosen)} style={{ width: `${pct}%`, background: over ? "var(--negative)" : r.chosen ? "var(--accent)" : "var(--control)" }} />
             </div>
             {over ? <span className="small" style={{ color: "var(--negative)" }}>Doesn't fit: <span className="num">{((r.needed - free) / 1024 ** 3).toFixed(2)}</span> GB short</span>
               : r.note && <span className="small muted">{r.note}</span>}
-          </div>
+          </Tag>
         );
       })}
     </div>

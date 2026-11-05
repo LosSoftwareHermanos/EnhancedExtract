@@ -52,7 +52,7 @@ export function Jobs({ initial }: { initial?: string }) {
               <button className="tab" aria-pressed={problemsOnly} onClick={() => setProblemsOnly(true)}>Warnings and errors</button>
             </span></div>
           <ErrorNote error={logs.error} />
-          <LogLines events={logs.data} withTime />
+          <div style={{ maxHeight: 280, overflowY: "auto" }} tabIndex={0} aria-label="Log lines"><LogLines events={logs.data} withTime /></div>
         </section>
       )}
     </Page>
@@ -91,9 +91,12 @@ export function LogLines({ events, withTime }: { events: Ev[] | null; withTime?:
       {events.map((e, i) => (
         <div key={i} className={e.type === "warning" || e.type === "error" ? e.type : ""}>
           {e.ts && <span className="t">{new Date(e.ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(withTime ? { second: "2-digit" } : {}) })}</span>}
-          {e.type === "result" ? (e.ok ? "Finished." : `Stopped: ${e.error ?? `exit code ${e.exit_code}`}`) : e.msg}
+          {e.type === "result" ? (e.ok ? "Finished." : `Stopped: ${e.error ?? `exit code ${e.exit_code}`}`) : shortPaths(e.msg)}
         </div>
       ))}
     </div>
   );
 }
+
+/** Engine lines carry full paths; the file name is what people read. */
+const shortPaths = (m?: string) => (m ?? "").replace(/[A-Za-z]:\\(?:[^\\\s]+\\)+/g, "");
