@@ -5,80 +5,25 @@ A safety buffer of ISO data behind setup is always kept. Pages are only freed on
 setup is a whole buffer past them; if setup goes back further than half the buffer,
 freeing stops for good and setup simply continues as a normal install.
 """
-import json
 import os
 import queue
-import shutil
-import string
 import subprocess
-import sys
 import threading
 import time
 import tkinter as tk
 from tkinter import filedialog, ttk
 
 import dialogs as messagebox
-import paths
 import requirements
-import sparse
 import theme
 import udf
 import sounds
+from isocore import (DEFAULT_BUFFER_GB, EXTRA_NEEDED_GB, GB, LOG_DIR, MB, MIN_BUFFER_GB, VDrive,
+                     delete_iso, drive_free, free_drive_letter, human, is_admin, iso_attached, setup_result,
+                     space_needed, was_freed)
 from theme import CheckBox, CutButton, Panel
 
-APP_DIR = paths.APP_DIR
-LOG_DIR = os.path.join(paths.DATA_DIR, "logs")
-NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-GB = 1024**3
-MB = 1024**2
-DEFAULT_BUFFER_GB = 5
-MIN_BUFFER_GB = 1
-EXTRA_NEEDED_GB = 2   # free space needed on top of the buffer (install margin + freeing step)
-BIN_END_SLACK = 128 * MB  # a .bin counts as read to the end if setup got this close
-
-# Inno Setup exit codes (game repack setups are built with Inno Setup).
-SETUP_EXIT_CODES = {
-    0: "success",
-    1: "setup failed to initialize",
-    2: "cancelled before installing started",
-    3: "fatal error while preparing to install",
-    4: "fatal error during installation",
-    5: "cancelled during installation",
-    6: "setup was terminated",
-    7: "preparing to install failed",
-    8: "preparing to install failed, restart needed",
-}
-
-
-def human(n):
-    return f"{n / GB:.2f} GB" if n >= 0.1 * GB else f"{n / MB:.0f} MB"
-
-
-def free_drive_letter():
-    used = {d[0].upper() for d in os.listdrives()} if hasattr(os, "listdrives") else set()
-    for letter in reversed(string.ascii_uppercase[12:]):  # Z..M
-        if letter not in used and not os.path.exists(f"{letter}:\\"):
-            return f"{letter}:"
-    return None
-
-
-def iso_attached(path):
-    """True if Windows itself has this ISO mounted."""
-    cmd = f"(Get-DiskImage -ImagePath '{path.replace(chr(39), chr(39) * 2)}').Attached"
-    try:
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", cmd], capture_output=True,
-                             text=True, timeout=20, creationflags=NO_WINDOW).stdout.strip()
-        return out.lower() == "true"
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-
-
-def is_admin():
-    import ctypes
-    try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
-    except OSError:
-        return False
+UNMOUNT_TIMEOUT_MS = 10000
 
 
 SHCNE_DRIVEREMOVED = 0x00000080
@@ -95,30 +40,11 @@ def announce_drive(letter, event=SHCNE_DRIVEADD):
         pass
 
 
-def state_path(iso):
-    return iso + ".enhancedextract.json"
-
-
-def was_freed(iso):
-    try:
-        with open(state_path(iso), encoding="utf-8") as f:
-            return any(json.load(f).get("freed", {}).values())
-    except (OSError, ValueError):
-        return False
-
-
-def drive_free(path):
-    d = path
-    while d and not os.path.exists(d):
-        d = os.path.dirname(d)
-    return shutil.disk_usage(d).free if d else 0
-
-
 class InstallTab(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.events = queue.Queue()
-        self.proc = None
+        self.drive = None
         self.letter = None
         self.files = []
         self.warned = set()
@@ -293,22 +219,17 @@ class InstallTab(ttk.Frame):
         return int(mb * MB) if mb > 0 else None
 
     def _space_needed(self):
-        """(needed bytes, growth bytes) before mounting, or None if inputs are missing.
-
-        The installed game can be bigger than the archive it comes from (it gets
-        decompressed). That growth can't be covered by freeing the ISO, so it must be free
-        up front, on top of the buffer and margin."""
+        """(needed bytes, growth bytes) before mounting, or None if inputs are missing."""
         buf = self._buffer_gb()
         size = self._install_size()
         if buf is None or buf < MIN_BUFFER_GB or size is None:
             return None
-        growth = max(0, size - sum(e.size for e in self.files))
-        return int((buf + EXTRA_NEEDED_GB) * GB) + growth, growth
+        return space_needed(buf, size, self.files)
 
     def _refresh_space_periodically(self):
         # While mounted, status messages refresh the line; before that, free space can change
         # because the user is clearing room, so poll it.
-        if not self.proc:
+        if not self.drive:
             self._update_space()
         self.after(2000, self._refresh_space_periodically)
 
@@ -320,7 +241,7 @@ class InstallTab(ttk.Frame):
             return
         free = drive_free(iso)
         drive = os.path.splitdrive(iso)[0]
-        if self.proc:
+        if self.drive:
             # Installing: free space is expected to drop; just report it.
             self.min_free = free if self.min_free is None else min(self.min_free, free)
             self.space_var.set(f"Free on {drive} {human(free)}    (lowest so far {human(self.min_free)})")
@@ -420,13 +341,7 @@ class InstallTab(ttk.Frame):
         os.makedirs(LOG_DIR, exist_ok=True)
         stamp = time.strftime("%Y%m%d-%H%M%S")
         log = os.path.join(LOG_DIR, f"{os.path.basename(iso)}-{stamp}.csv")
-        args = paths.vdrive_command() + ["--iso", iso, "--mount", letter,
-                "--mode", "free", "--install-dir", install, "--buffer-gb", f"{buf:g}",
-                "--log", log, "--state", state_path(iso),
-                "--label", os.path.splitext(os.path.basename(iso))[0][:30]]
-        self.proc = subprocess.Popen(args, cwd=APP_DIR, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT, text=True, creationflags=NO_WINDOW)
-        threading.Thread(target=self._reader, args=(self.proc,), daemon=True).start()
+        self.drive = VDrive(iso, letter, "free", buf, install_dir=install, log=log)
         self.letter = letter
         self.warned.clear()
         self.min_free = None
@@ -435,16 +350,6 @@ class InstallTab(ttk.Frame):
         self._log(f"Mounting as {letter} with a {buf:g} GB safety buffer...")
         self._log(f"Read log: {log}")
         self._refresh_buttons()
-
-    def _reader(self, proc):
-        for line in proc.stdout:
-            try:
-                self.events.put(("msg", json.loads(line)))
-            except ValueError:
-                # WinFsp's own "The service <exe name> has been started/stopped." lines
-                if line.strip() and not (line.startswith("The service ") and " has been " in line):
-                    self.events.put(("msg", {"type": "event", "msg": line.strip()}))
-        self.events.put(("ended", proc.wait()))
 
     def _run_setup(self):
         if not self.letter:
@@ -476,19 +381,7 @@ class InstallTab(ttk.Frame):
     def _setup_finished(self, code, setup_log):
         """Decide whether the install succeeded; on success optionally unmount and delete the ISO."""
         self._refresh_buttons()
-        try:
-            with open(setup_log, encoding="utf-8", errors="ignore") as f:
-                log_ok = "Installation process succeeded" in f.read()
-        except OSError:
-            log_ok = False
-        st = self.last_status or {"files": {}}
-        unread = [p for p, f in st["files"].items()
-                  if f["eligible"] and f["hwm"] < f["size"] - BIN_END_SLACK]
-        problems = []
-        if code != 0:
-            problems.append(f"setup exit code {code}: {SETUP_EXIT_CODES.get(code, 'unknown')}")
-        if not log_ok:
-            problems.append("setup's log has no 'Installation process succeeded' line")
+        problems, unread = setup_result(code, setup_log, (self.last_status or {"files": {}})["files"])
         if problems:
             self._log("Setup may not have finished: " + "; ".join(problems))
             messagebox.showwarning("EnhancedExtract",
@@ -513,36 +406,26 @@ class InstallTab(ttk.Frame):
         self._unmount(ask=False)
 
     def _unmount(self, ask=True):
-        if not self.proc:
+        if not self.drive:
             return
         if ask and not messagebox.askyesno("Unmount", "Make sure setup has FINISHED (or was closed).\n\nUnmount now?"):
             return
-        try:
-            self.proc.stdin.write("quit\n")
-            self.proc.stdin.flush()
-        except OSError:
-            pass
-        try:
-            self.proc.wait(10)
-        except subprocess.TimeoutExpired:
-            self.proc.kill()
+        # Don't wait here: that would freeze the window. The drive reports "ended" when it
+        # is gone; if it hasn't gone after a while, it is killed.
+        drive = self.drive
+        drive.quit()
+        self.after(UNMOUNT_TIMEOUT_MS, drive.kill)
 
     def _delete_iso(self, confirm=True):
         iso = self.iso_var.get()
-        if not iso or self.proc:
+        if not iso or self.drive:
             return
         if confirm and not messagebox.askyesno("Delete ISO", f"Delete this ISO permanently?\n\n{iso}\n\n"
                                                "Only do this after the game is installed and launches.",
                                                icon="warning"):
             return
         try:
-            on_disk = sparse.size_on_disk(iso)
-        except OSError:
-            on_disk = 0
-        try:
-            os.remove(iso)
-            if os.path.exists(state_path(iso)):
-                os.remove(state_path(iso))
+            on_disk = delete_iso(iso)
         except OSError as e:
             messagebox.showerror("EnhancedExtract", f"Could not delete: {e}")
             return
@@ -562,35 +445,38 @@ class InstallTab(ttk.Frame):
         try:
             while True:
                 kind, data = self.events.get_nowait()
-                if kind == "ended":
-                    if self.letter:
-                        announce_drive(self.letter, SHCNE_DRIVEREMOVED)
-                    self._log(f"Virtual drive {self.letter} unmounted.")
-                    self.proc = None
-                    self.letter = None
-                    self._refresh_buttons()
-                    self._update_space()
-                    if self.pending_delete:
-                        self.pending_delete = False
-                        self._delete_iso(confirm=False)
-                    continue
                 if kind == "setup_done":
                     self._setup_finished(*data)
-                    continue
-                t = data.get("type")
-                if t == "status":
-                    self._apply_status(data)
-                elif t == "event":
-                    self._log(data["msg"])
-                    self._maybe_alert(data["msg"])
-                elif t == "fatal":
-                    self._log("ERROR: " + data["msg"])
-                    messagebox.showerror("EnhancedExtract", data["msg"])
-                elif t == "mounted":
-                    self._wait_for_drive(self.letter, time.time() + 20)
         except queue.Empty:
             pass
+        for msg in self.drive.poll() if self.drive else []:
+            t = msg.get("type")
+            if t == "ended":
+                self._drive_ended()
+                break
+            if t == "status":
+                self._apply_status(msg)
+            elif t == "event":
+                self._log(msg["msg"])
+                self._maybe_alert(msg["msg"])
+            elif t == "fatal":
+                self._log("ERROR: " + msg["msg"])
+                messagebox.showerror("EnhancedExtract", msg["msg"])
+            elif t == "mounted":
+                self._wait_for_drive(self.letter, time.time() + 20)
         self.after(200, self._pump)
+
+    def _drive_ended(self):
+        if self.letter:
+            announce_drive(self.letter, SHCNE_DRIVEREMOVED)
+        self._log(f"Virtual drive {self.letter} unmounted.")
+        self.drive = None
+        self.letter = None
+        self._refresh_buttons()
+        self._update_space()
+        if self.pending_delete:
+            self.pending_delete = False
+            self._delete_iso(confirm=False)
 
     def _wait_for_drive(self, letter, deadline):
         """The drive appears a moment after vdrive starts; open it in Explorer once it does."""
@@ -651,7 +537,7 @@ class InstallTab(ttk.Frame):
                 messagebox.showwarning("EnhancedExtract", f"{title}:\n\n{msg}")
 
     def _refresh_buttons(self):
-        mounted = self.proc is not None
+        mounted = self.drive is not None
         has_iso = bool(self.iso_var.get())
         self.btn_mount.configure(state="normal" if has_iso and not mounted else "disabled")
         self.btn_setup.configure(state="normal" if mounted else "disabled")
@@ -671,7 +557,7 @@ class InstallTab(ttk.Frame):
         self.log_box.configure(state="disabled")
 
     def busy(self):
-        return self.proc is not None
+        return self.drive is not None
 
     def shutdown(self):
         self._unmount(ask=False)

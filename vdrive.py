@@ -80,6 +80,7 @@ class FileState:
         self.hwm = 0            # furthest byte read
         self.freed_upto = 0     # bytes [0, freed_upto) of the file are gone
         self.eligible = entry.path.lower().endswith(".bin") and entry.size >= MIN_FREE_FILE
+        self.reported = None    # (hwm, freed_upto) last sent in a status message
 
 
 class IsoFS(Operations):
@@ -206,12 +207,14 @@ class IsoFS(Operations):
                 target = min(fs.hwm - self.lag, fs.entry.size - TAIL_KEEP, start + budget)
                 if target - start < FREE_STEP:
                     continue
-                for a, b in udf.iso_ranges(fs.entry, start, target - start):
-                    sparse.free_range(self.f, a, b)
                 if fs.freed_upto == 0:
                     event(f"Started freeing {fs.entry.path}")
                 budget -= target - fs.freed_upto
+                # Marked freed before freeing: if freeing fails halfway, reads of the range
+                # fail loudly instead of silently returning zeros to setup.
                 fs.freed_upto = target
+                for a, b in udf.iso_ranges(fs.entry, start, target - start):
+                    sparse.free_range(self.f, a, b)
             self.save_state()
 
     def save_state(self):
@@ -224,7 +227,16 @@ class IsoFS(Operations):
         os.replace(tmp, self.state_path)
 
     def status(self):
+        """Status message. "files" only holds files that changed since the last one, so an
+        ISO with thousands of files doesn't send them all every second."""
         with self.lock:
+            changed = {}
+            for fs in self.files.values():
+                now = (fs.hwm, fs.freed_upto)
+                if now != fs.reported:
+                    fs.reported = now
+                    changed[fs.entry.path] = {"size": fs.entry.size, "hwm": fs.hwm, "freed": fs.freed_upto,
+                                              "eligible": fs.eligible}
             return {
                 "type": "status",
                 "mode": self.mode,
@@ -236,10 +248,16 @@ class IsoFS(Operations):
                 "buffer": self.lag,
                 "paused": self.paused,
                 "installed": self.installed,
-                "files": {fs.entry.path: {"size": fs.entry.size, "hwm": fs.hwm, "freed": fs.freed_upto,
-                                          "eligible": fs.eligible}
-                          for fs in self.files.values()},
+                "files": changed,
             }
+
+    def close(self):
+        """Flush the read log and save what was freed. Safe to call more than once."""
+        with self.lock:
+            if self.log:
+                self.log.flush()
+            if self.mode == "free":
+                self.save_state()
 
 
 def main():
@@ -273,22 +291,23 @@ def main():
             except Exception as e:  # keep serving even if a free step fails
                 event(f"Freeing error: {e!r} - freeing paused.")
                 fs.paused = True
+                fs.close()      # record the range that was being freed
 
     def stdin_watch():
         for line in sys.stdin:
             if line.strip() == "quit":
                 break
-        with fs.lock:
-            if fs.log:
-                fs.log.flush()
-            fs.save_state() if fs.mode == "free" else None
+        fs.close()
         emit({"type": "exit"})
         os._exit(0)
 
     threading.Thread(target=ticker, daemon=True).start()
     threading.Thread(target=stdin_watch, daemon=True).start()
     emit({"type": "mounted", "mount": args.mount})
-    FUSE(fs, args.mount, foreground=True, ro=True, volname=args.label)
+    try:
+        FUSE(fs, args.mount, foreground=True, ro=True, volname=args.label)
+    finally:
+        fs.close()      # unmounted from outside (not via "quit"): keep the log and freeing record
 
 
 if __name__ == "__main__":
