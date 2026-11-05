@@ -65,7 +65,7 @@ p { margin: 0; }
 /* Layout */
 .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
 .cols.stretch { align-items: stretch; }
-.main-rail { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--gap); align-items: stretch; }
+.main-rail { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--gap); align-items: start; }
 .stack { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
 .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 24px; min-width: 0; }
 .ch { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }

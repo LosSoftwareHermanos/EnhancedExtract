@@ -52,8 +52,10 @@ export function Library() {
 
   const need = (rows ?? []).filter((r) => r.missing.length || r.wasFreed).length;
   const ready = (rows ?? []).length - need - (rows ?? []).filter((r) => jobFor(r.key)).length;
-  const summary = rows == null ? "Scanning…" : rows.length === 0 ? `Nothing to unpack in ${folder}.`
-    : `${rows.length} ${rows.length === 1 ? "set" : "sets"} in ${folder}. ${running.length} running, ${Math.max(0, ready)} ready${need ? `, ${need} ${need === 1 ? "needs" : "need"} you` : ""}.`;
+  const summary = rows == null ? "Scanning…" : rows.length === 0 ? "Nothing to unpack in this folder."
+    : `${rows.length} ${rows.length === 1 ? "set" : "sets"} found: ` + [
+        running.length && `${running.length} running`, ready > 0 && `${ready} ready`, need && `${need} ${need === 1 ? "needs" : "need"} you`,
+      ].filter(Boolean).join(", ") + ".";
 
   return (
     <Page title="Library" sub={summary} actions={<>
@@ -63,12 +65,12 @@ export function Library() {
     </>}>
       <div className="main-rail">
         <section className="card" style={{ display: "flex", flexDirection: "column" }} aria-labelledby="lib">
-          <div className="ch"><h2 id="lib" className="ellipsis">Found in {folder}</h2><span className="meta">Drop a .rar or .iso on the window</span></div>
+          <div className="ch"><h2 id="lib" className="ellipsis" title={folder}>Found in {folder}</h2><span className="meta" style={{ flex: "none" }}>Drop a .rar or .iso on the window</span></div>
           <ErrorNote error={scan.error} onRetry={() => scan.run()} />
           {!scan.error && <SetTable rows={rows} jobFor={jobFor} />}
           {rows && rows.length > 0 && (
             <div className="lib-row" style={{ marginTop: "auto", height: 44, borderTop: "1px solid var(--border)" }}>
-              <span className="muted">{rows.length} sets</span>
+              <span className="muted">{rows.length} {rows.length === 1 ? "set" : "sets"}</span>
               <span className="num" style={{ textAlign: "right" }}>{gb(rows.reduce((a, r) => a + r.size, 0))}<span className="muted"> GB</span></span><span /><span />
             </div>
           )}

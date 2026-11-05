@@ -563,7 +563,7 @@ def cmd_rar_extract(args, out):
             json.dump({"archive": os.path.basename(info.first), "files": info.files,
                        "unpacked": info.unpacked}, f)
     return {"ok": True, "dest": dest, "files": info.files, "unpacked": info.unpacked,
-            "parts_left": len(ex.remaining_parts(info))}
+            "parts": len(info.volumes), "parts_left": len(ex.remaining_parts(info))}
 
 
 # ---------- iso ----------

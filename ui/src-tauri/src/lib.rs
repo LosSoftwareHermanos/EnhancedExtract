@@ -153,6 +153,34 @@ fn relaunch_as_admin(app: tauri::AppHandle) -> Result<(), String> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // These run the real engine (python ../../app.py), so they also check the bridge's contract.
+    #[test]
+    fn system_check_returns_a_result_line() {
+        let out = run_engine(vec!["system".into(), "check".into()], None).unwrap();
+        let r = out.result.expect("a result line");
+        assert_eq!(r["schema"], 2);
+        assert!(r.get("unrar").is_some());
+        assert!(out.events.iter().any(|e| e["type"] == "check"));
+    }
+
+    #[test]
+    fn bad_input_keeps_the_error_and_exit_code() {
+        let out = run_engine(vec!["scan".into(), "Z:\\no\\such\\folder".into()], None).unwrap();
+        assert_eq!(out.code, 2);
+        assert!(out.result.unwrap()["error"].as_str().unwrap().contains("Folder not found"));
+    }
+
+    #[test]
+    fn disk_space_reads_the_system_drive() {
+        let d = disk_space("C:\\".into()).unwrap();
+        assert!(d.total > 0 && d.free <= d.total);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
