@@ -85,7 +85,47 @@ def free_drive_letter():
 
 
 def iso_attached(path):
-    """True if Windows itself has this ISO mounted."""
+    """True if Windows itself has this ISO mounted. Asks the virtual disk API (about 1 ms);
+    PowerShell (about 1 s) is only the fallback if that API can't answer."""
+    try:
+        return _attached_virtdisk(path)
+    except OSError:
+        return _attached_powershell(path)
+
+
+def _attached_virtdisk(path):
+    import ctypes
+    from ctypes import wintypes
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("Data1", ctypes.c_ulong), ("Data2", ctypes.c_ushort), ("Data3", ctypes.c_ushort),
+                    ("Data4", ctypes.c_ubyte * 8)]
+
+    class StorageType(ctypes.Structure):
+        _fields_ = [("DeviceId", ctypes.c_ulong), ("VendorId", GUID)]
+
+    microsoft = GUID(0xEC984AEC, 0xA0F9, 0x47E9, (ctypes.c_ubyte * 8)(0x90, 0x1F, 0x71, 0x41, 0x5A, 0x66, 0x34, 0x5B))
+    iso_type = StorageType(1, microsoft)            # VIRTUAL_STORAGE_TYPE_DEVICE_ISO
+    vd = ctypes.WinDLL("virtdisk")
+    handle = wintypes.HANDLE()
+    rc = vd.OpenVirtualDisk(ctypes.byref(iso_type), ctypes.c_wchar_p(path), 0x000D0000, 0, None,
+                            ctypes.byref(handle))   # VIRTUAL_DISK_ACCESS_READ
+    if rc:
+        raise OSError(rc, "OpenVirtualDisk failed")
+    try:
+        size = wintypes.ULONG(1024)
+        buf = ctypes.create_unicode_buffer(512)
+        rc = vd.GetVirtualDiskPhysicalPath(handle, ctypes.byref(size), buf)
+    finally:
+        ctypes.windll.kernel32.CloseHandle(handle)
+    if rc == 0:
+        return True                 # it has a physical drive, so it is mounted
+    if rc == 55:                    # ERROR_DEV_NOT_EXIST: not attached
+        return False
+    raise OSError(rc, "GetVirtualDiskPhysicalPath failed")
+
+
+def _attached_powershell(path):
     cmd = f"(Get-DiskImage -ImagePath '{path.replace(chr(39), chr(39) * 2)}').Attached"
     try:
         out = subprocess.run(["powershell", "-NoProfile", "-Command", cmd], capture_output=True,

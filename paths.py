@@ -9,8 +9,9 @@ import sys
 
 FROZEN = getattr(sys, "frozen", False)
 APP_DIR = sys._MEIPASS if FROZEN else os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = (os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "EnhancedExtract")
-            if FROZEN else APP_DIR)
+DATA_DIR = os.environ.get("EE_DATA_DIR") or (
+    os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "EnhancedExtract")
+    if FROZEN else APP_DIR)
 
 
 def vdrive_command():

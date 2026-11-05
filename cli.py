@@ -8,6 +8,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -15,11 +16,12 @@ import time
 
 import extractor as ex
 import isocore as iso
+import jobs
 import paths
 import udf
 
-VERSION = "1.2"
-SCHEMA = 1          # bumped when JSON event fields change incompatibly
+VERSION = "1.3"
+SCHEMA = 2          # bumped when JSON event fields change incompatibly
 
 EXIT = {
     0: "success (or already done)",
@@ -29,6 +31,7 @@ EXIT = {
     4: "not enough free space",
     5: "something the PC needs is missing (UnRAR, WinFsp, fusepy, admin rights)",
     6: "a destructive step needs --yes",
+    7: "the job is still running (jobs wait timed out); wait again",
     130: "stopped with Ctrl+C",
 }
 SETUP_SILENT = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
@@ -37,7 +40,7 @@ PROG = "EnhancedExtract.exe --cli" if paths.FROZEN else "python cli.py"
 
 # Text mode: these event types are the command's data and go to stdout; everything else
 # (progress, logs, warnings, errors) goes to stderr so stdout can be piped.
-DATA_TYPES = {"archive", "space", "iso", "file", "check", "plan"}
+DATA_TYPES = {"archive", "space", "iso", "file", "check", "plan", "job", "job_event", "rar_set", "found_iso"}
 CHATTY_TYPES = {"log", "progress", "status", "event"}      # hidden by --quiet
 
 
@@ -89,6 +92,200 @@ def command_line(argv, *extra):
 def with_yes(args):
     """The command the user ran, with --yes added: what to rerun once they agree."""
     return command_line(args.argv, *([] if "--yes" in args.argv else ["--yes"]))
+
+
+# ---------- background jobs ----------
+def start_background(args, out):
+    """Re-run this command detached; return its job id at once."""
+    argv, skip = [], False
+    for a in args.argv:
+        if skip:
+            skip = False
+        elif a == "--password":
+            skip = True
+        elif a not in ("--background", "--json", "--password-stdin", "-q", "--quiet") \
+                and not a.startswith("--password="):
+            argv.append(a)
+    job_id = jobs.start(argv, password=getattr(args, "pw", None))
+    out("event", f"Started background job {job_id}.", job=job_id)
+    return {"ok": True, "job": job_id, "state": "running",
+            "next": command_line(["jobs", "wait", job_id, "--timeout", "60"])}
+
+
+def find_job(args):
+    job_id = jobs.resolve(args.id)
+    if not job_id:
+        raise Stop(2, f"No job matches {args.id!r}." if args.id else "There are no jobs yet.",
+                   fix=f"{PROG} jobs list")
+    return job_id
+
+
+def job_result(snap):
+    """A job snapshot as this command's result; exit code 7 while it is still running."""
+    code = {"running": 7, "done": 0, "died": 1}.get(snap["state"], snap.get("job_exit_code") or 1)
+    if snap["state"] == "running":
+        snap["next"] = command_line(["jobs", "wait", snap["id"], "--timeout", "60"])
+    return code, dict(snap, ok=snap["state"] in ("running", "done"))
+
+
+def job_line(snap):
+    p = snap.get("progress", {})
+    where = (p.get("msg") or "") if p else ""
+    return f"{snap['id']}  {snap['state']:<7} {snap['elapsed_s']:>7}s  {snap['command']}" + (f"  [{where}]" if where else "")
+
+
+def cmd_jobs_list(args, out):
+    snaps = [jobs.snapshot(i) for i in jobs.ids()[:args.limit]]
+    for s in snaps:
+        out("job", job_line(s), **s)
+    return {"ok": True, "jobs": len(snaps), "running": sum(s["state"] == "running" for s in snaps)}
+
+
+def cmd_jobs_status(args, out):
+    snap = jobs.snapshot(find_job(args))
+    out("job", job_line(snap))
+    return job_result(snap)
+
+
+def cmd_jobs_wait(args, out):
+    job_id = find_job(args)
+    deadline = time.time() + args.timeout
+    while True:
+        snap = jobs.snapshot(job_id)
+        if snap["state"] != "running" or time.time() >= deadline:
+            break
+        time.sleep(0.5)
+    out("job", job_line(snap))
+    return job_result(snap)
+
+
+def cmd_jobs_logs(args, out):
+    job_id = find_job(args)
+    evs = [e for e in jobs.events(job_id) if not args.type or e.get("type") in args.type]
+    for e in evs[-args.tail:] if args.tail else evs:
+        text = e.get("msg") or (f"ok={e.get('ok')} exit_code={e.get('exit_code')}" + (
+            f" error={e['error']}" if e.get("error") else "") if e.get("type") == "result" else "")
+        out("job_event", f"[{e.get('type')}] {text}".rstrip(), event=e)
+    return {"ok": True, "id": job_id, "shown": min(len(evs), args.tail or len(evs)), "total": len(evs)}
+
+
+def cmd_jobs_stop(args, out):
+    job_id = find_job(args)
+    if jobs.snapshot(job_id)["state"] != "running":
+        out("event", f"Job {job_id} is not running.")
+        return job_result(jobs.snapshot(job_id))[1] | {"already_done": True}
+    jobs.request_stop(job_id)
+    if args.force:      # a second Ctrl+C: unmount even while setup still runs
+        time.sleep(1.5)
+        jobs.request_stop(job_id)
+    deadline = time.time() + 20
+    while jobs.snapshot(job_id)["state"] == "running" and time.time() < deadline:
+        time.sleep(0.5)
+    snap = jobs.snapshot(job_id)
+    out("job", job_line(snap))
+    if snap["state"] == "running":
+        raise Stop(1, f"Job {job_id} is still running (setup may be holding it).",
+                   fix=command_line(["jobs", "stop", job_id, "--force"]))
+    return dict(snap, ok=True)
+
+
+# ---------- scan ----------
+RAR_PART = re.compile(r"^(?P<base>.+)\.part(?P<n>\d+)\.rar$", re.I)
+OLD_PART = re.compile(r"^(?P<base>.+)\.r(?P<n>\d\d)$", re.I)
+
+
+def cmd_scan(args, out):
+    root = os.path.abspath(args.folder)
+    if not os.path.isdir(root):
+        raise Stop(2, f"Folder not found: {root}")
+    sets, isos = {}, []
+    base_depth = root.rstrip(os.sep).count(os.sep)
+    for folder, dirs, names in os.walk(root):
+        if folder.count(os.sep) - base_depth >= args.depth:
+            dirs[:] = []
+        for name in names:
+            path = os.path.join(folder, name)
+            m = RAR_PART.match(name)
+            o = OLD_PART.match(name)
+            if m:
+                sets.setdefault((folder, m["base"]), []).append((int(m["n"]), path))
+            elif name.lower().endswith(".rar"):
+                sets.setdefault((folder, name[:-4]), []).append((0, path))
+            elif o:
+                sets.setdefault((folder, o["base"]), []).append((int(o["n"]) + 1, path))
+            elif name.lower().endswith(".iso"):
+                isos.append(path)
+    found_sets = []
+    for (folder, base), parts in sorted(sets.items()):
+        parts.sort()
+        numbers = [n for n, _ in parts]
+        first = parts[0][1]
+        new_style = any(RAR_PART.match(os.path.basename(p)) for _, p in parts)
+        expected = range(1, max(numbers) + 1) if new_style else range(0, max(numbers) + 1)
+        missing = [n for n in expected if n not in numbers]
+        size = sum(os.path.getsize(p) for _, p in parts)
+        found_sets.append(first)
+        out("rar_set", f"RAR set: {first} ({len(parts)} parts, {ex.human(size)})"
+                       + (f" - MISSING parts {missing}" if missing else ""),
+            first=first, parts=len(parts), size=size, missing=missing,
+            next=command_line(["rar", "inspect", first]))
+    for path in sorted(isos):
+        size = os.path.getsize(path)
+        freed = iso.was_freed(path)
+        out("found_iso", f"ISO: {path} ({ex.human(size)})" + (" - already partly freed" if freed else ""),
+            path=path, size=size, was_freed=freed, next=command_line(["iso", "inspect", path]))
+    return {"ok": True, "folder": root, "rar_sets": len(found_sets), "isos": len(isos)}
+
+
+# ---------- schema ----------
+def command_spec(parser, path):
+    """Every leaf command under `parser`, with its arguments and examples."""
+    out = []
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            for name, sub in action.choices.items():
+                out += command_spec(sub, path + [name])
+    if out or not path:
+        return out
+    examples = [line.strip() for line in (parser.epilog or "").splitlines() if line.strip().startswith(PROG)]
+    return [{"command": " ".join(path), "help": parser.description,
+             "args": [arg_spec(a) for a in parser._actions if arg_spec(a)["name"] not in GLOBAL_FLAGS
+                      and not isinstance(a, (argparse._HelpAction, argparse._VersionAction))],
+             "examples": examples}]
+
+
+GLOBAL_FLAGS = ("--json", "--quiet", "--verbose", "--progress-every")
+
+
+def arg_spec(a):
+    """One argument, keeping only fields that say something."""
+    spec = {"name": a.option_strings[-1] if a.option_strings else a.dest}
+    if not a.option_strings:
+        spec["positional"] = True
+    if a.required or (not a.option_strings and a.nargs is None):
+        spec["required"] = True
+    if a.nargs != 0:
+        spec["value"] = a.metavar or a.dest.upper()
+    if isinstance(a, argparse._AppendAction):
+        spec["repeatable"] = True
+    if a.default not in (None, argparse.SUPPRESS, False, []):
+        spec["default"] = a.default
+    spec["help"] = a.help
+    return spec
+
+
+def cmd_schema(args, out):
+    parser = build_parser()
+    spec = {"program": PROG, "version": VERSION, "schema": SCHEMA,
+            "exit_codes": {str(k): v for k, v in EXIT.items()},
+            "global_flags": [arg_spec(a) for a in parser._actions if a.option_strings
+                             and a.option_strings[-1] in GLOBAL_FLAGS],
+            "commands": command_spec(parser, [])}
+    if out.as_json:
+        out("schema", None, **spec)
+    else:
+        print(json.dumps(spec, indent=2, ensure_ascii=False))
+    return {"ok": True, "commands": len(spec["commands"])}
 
 
 # ---------- system ----------
@@ -191,27 +388,81 @@ def cmd_rar_inspect(args, out):
     out("space", f"Extract to {dest}: free {ex.human(space['free'])}, needed {ex.human(space['needed'])} "
                  f"({'OK' if space['enough'] else 'NOT ENOUGH'})", **space)
     return {"ok": True, "parts": len(info.volumes), "unpacked": info.unpacked, "dest": dest,
-            "space_ok": space["enough"]}
+            "space_ok": space["enough"],
+            "next": command_line(["rar", "extract", info.first, "--dest", dest]
+                                 + (["--delete"] if args.delete else []) + ["--dry-run"])}
 
 
 class Progress:
-    """Turns Runner callbacks into events without flooding: every percent in JSON mode,
-    every 10 % or new part in text mode."""
+    """Turns Runner callbacks into a few progress events: one when a phase starts, then at
+    most one every `every` seconds, then one at the end. Each carries the whole job's
+    percent (weighted by part size), an ETA and how many files are done, so one event
+    says where things stand."""
 
-    def __init__(self, out):
+    def __init__(self, out, info, every):
         self.out = out
+        self.every = every
+        sizes = [os.path.getsize(v) if os.path.exists(v) else 0 for v in info.volumes]
+        total = sum(sizes) or 1
+        self.before = [sum(sizes[:i]) / total for i in range(len(sizes))]   # share done before part i
+        self.share = [s / total for s in sizes]
+        self.files = info.files
         self.phase = ""
-        self.last = None
+        self.started = time.time()
+        self.last_emit = 0
+        self.state = (1, 0)
+        self.files_done = 0
+
+    def start(self, phase):
+        self.phase, self.started, self.last_emit, self.files_done = phase, time.time(), 0, 0
+        self.state = (1, 0)
+        self.emit(force=True)
 
     def __call__(self, pct, part, total):
         part = min(part, total)
-        step = pct if self.out.as_json or pct is None else pct // 10 * 10
-        key = (self.phase, part, step)
-        if key == self.last:
+        self.state = (part, pct if pct is not None else (0 if part != self.state[0] else self.state[1]))
+        self.emit()
+
+    def file_done(self):
+        self.files_done += 1
+
+    def overall(self):
+        part, pct = self.state
+        i = part - 1
+        return min(100.0, 100 * (self.before[i] + self.share[i] * pct / 100)) if i < len(self.share) else 100.0
+
+    def emit(self, force=False, done=False):
+        now = time.time()
+        if not force and not done and now - self.last_emit < self.every:
             return
-        self.last = key
-        text = f"{self.phase}: part {part} of {total}" + (f" - {pct}%" if pct is not None else "")
-        self.out("progress", text, phase=self.phase.lower(), part=part, parts=total, percent=pct)
+        self.last_emit = now
+        overall = 100.0 if done else self.overall()
+        elapsed = now - self.started
+        eta = round(elapsed * (100 - overall) / overall) if 1 <= overall < 100 else None
+        part, pct = self.state
+        text = (f"{self.phase}: {overall:.0f}% (part {part} of {len(self.share)}"
+                + (f", {self.files_done} of {self.files} files" if self.files_done else "") + ")"
+                + (f", about {eta} s left" if eta is not None else ""))
+        self.out("progress", text, phase=self.phase.lower(), overall=round(overall, 1), part=part,
+                 parts=len(self.share), part_percent=pct, files_done=self.files_done, files=self.files,
+                 elapsed_s=round(elapsed, 1), eta_s=eta)
+
+
+# UnRAR lines worth showing without --verbose; the rest are one line per file.
+# Per-part lines ("Extracting from ...") are left out too: progress events already say the part.
+IMPORTANT_LINE = re.compile(r"^(Deleted|Could not|Verif|Extraction|Total errors)|error|corrupt|password|"
+                            r"Cannot|No files", re.I)
+FILE_LINE = re.compile(r"^(Extracting|Testing|\.\.\.)\s+.*\s(OK|\d{1,3}%)?\s*$")
+
+
+def unrar_log(out, progress, verbose):
+    """Log callback for the Runner: counts finished files, passes on what matters."""
+    def log(text):
+        if text.rstrip().endswith(" OK") and FILE_LINE.match(text):
+            progress.file_done()
+        if verbose or IMPORTANT_LINE.search(text) and not FILE_LINE.match(text):
+            out("log", " ".join(text.split()))
+    return log
 
 
 def run_job(runner, job):
@@ -228,11 +479,19 @@ def run_job(runner, job):
 
 def cmd_rar_verify(args, out):
     info = load_archive(args)
-    progress = Progress(out)
-    progress.phase = "Verifying"
-    runner = ex.Runner(log=lambda t: out("log", t), progress=progress, password=args.pw)
-    run_job(runner, lambda: runner.verify(info))
-    return {"ok": True, "parts": len(info.volumes), "files": info.files}
+    if args.background:
+        return start_background(args, out)
+    progress = Progress(out, info, args.progress_every)
+    runner = ex.Runner(log=unrar_log(out, progress, args.verbose), progress=progress, password=args.pw)
+
+    def job():
+        progress.start("Verifying")
+        runner.verify(info)
+        progress.emit(done=True)
+
+    run_job(runner, job)
+    return {"ok": True, "parts": len(info.volumes), "files": info.files,
+            "next": command_line(["rar", "extract", info.first, "--dry-run"])}
 
 
 def already_extracted(args):
@@ -271,22 +530,28 @@ def cmd_rar_extract(args, out):
             steps.append(f"delete the {len(info.volumes)} parts as they are used")
         out("plan", "Would " + ", then ".join(steps) + ".", steps=steps,
             deletes=info.volumes if args.delete else [])
-        return {"ok": True, "dry_run": True, "dest": dest, "needs_yes": args.delete}
+        real = [a for a in args.argv if a != "--dry-run"] + ["--background"]
+        return {"ok": True, "dry_run": True, "dest": dest, "needs_yes": args.delete,
+                "next": command_line(real, *(["--yes"] if args.delete else []))}
     if args.delete and not args.yes:
         raise Stop(6, "--delete removes each part once it is extracted; if extraction fails midway, the "
                       "deleted parts are gone.", fix=with_yes(args))
     if args.delete and args.no_verify:
         out("warning", "Verification is off: a corrupt part would only be found after earlier parts "
                        "were deleted.")
-    progress = Progress(out)
-    runner = ex.Runner(log=lambda t: out("log", t), progress=progress, password=args.pw)
+    if args.background:
+        return start_background(args, out)
+    progress = Progress(out, info, args.progress_every)
+    runner = ex.Runner(log=unrar_log(out, progress, args.verbose), progress=progress, password=args.pw)
 
     def job():
         if not args.no_verify:
-            progress.phase = "Verifying"
+            progress.start("Verifying")
             runner.verify(info)
-        progress.phase = "Extracting"
+            progress.emit(done=True)
+        progress.start("Extracting")
         runner.extract(info, dest, args.delete)
+        progress.emit(done=True)
 
     try:
         run_job(runner, job)
@@ -346,6 +611,9 @@ def cmd_iso_inspect(args, out):
                      f"{'OK' if free >= need else 'NOT ENOUGH'}", free=free, needed=need, growth=growth,
             enough=free >= need)
         result["space_ok"] = free >= need
+    result["next"] = command_line(["iso", "install", path, "--install-dir", "<folder>", "--install-size-mb",
+                                   f"{args.install_size_mb:g}" if size else "<MB from setup>", "--silent",
+                                   "--dry-run"])
     return result
 
 
@@ -369,8 +637,13 @@ def wait_for_drive(drive, out, timeout=30):
     raise Stop(1, f"Drive {drive.letter} did not appear within {timeout} seconds.")
 
 
+STATUS_HEARTBEAT = 60      # an unchanged status is still repeated this often, so a reader sees it's alive
+
+
 def report_drive(drive, out, msgs, status_every, last):
-    """Pass drive messages on. Returns (ended, time of the last status line)."""
+    """Pass drive messages on, and a status line when it changed (at most every
+    `status_every` s) or once a minute as a heartbeat. `last` is {"t": time, "key": ...}
+    from the previous call. Returns (ended, last)."""
     ended = False
     for msg in msgs:
         t = msg.get("type")
@@ -382,14 +655,23 @@ def report_drive(drive, out, msgs, status_every, last):
         elif t == "ended":
             ended = True
     st = drive.status
-    if st and time.time() - last >= status_every:
-        last = time.time()
-        freed = sum(f["freed"] for f in st["files"].values())
-        out("status", f"read {iso.human(st['bytes_read'])}, freed {iso.human(freed)}, installed "
-                      f"{iso.human(st['installed'])}" + (", FREEING STOPPED" if st["paused"] else ""),
-            bytes_read=st["bytes_read"], freed=freed, installed=st["installed"], paused=st["paused"],
-            violations=st["violations"], max_back=st["max_back"])
-    return ended, last
+    since = time.time() - last["t"]
+    if not st or since < status_every:
+        return ended, last
+    files = st["files"].values()
+    freed = sum(f["freed"] for f in files)
+    # How far setup is through the ISO's data: a fair stand-in for install progress.
+    total = sum(f["size"] for f in files) or 1
+    overall = round(100 * sum(min(f["hwm"], f["size"]) for f in files) / total, 1)
+    key = (overall, st["bytes_read"], freed, st["installed"], st["paused"], st["violations"])
+    if key == last["key"] and since < STATUS_HEARTBEAT and status_every:
+        return ended, last
+    out("status", f"{overall:.0f}% of the ISO read by setup: read {iso.human(st['bytes_read'])}, freed "
+                  f"{iso.human(freed)}, installed {iso.human(st['installed'])}"
+                  + (", FREEING STOPPED" if st["paused"] else ""),
+        overall=overall, bytes_read=st["bytes_read"], freed=freed, installed=st["installed"],
+        paused=st["paused"], violations=st["violations"], max_back=st["max_back"])
+    return ended, {"t": time.time(), "key": key}
 
 
 def unmount(drive, out, timeout=15):
@@ -471,8 +753,12 @@ def cmd_iso_install(args, out):
         else:
             steps.append("serve the drive until 'quit' on stdin or Ctrl+C")
         out("plan", "Would " + ", then ".join(steps) + ".", steps=steps, mode=mode)
-        return {"ok": True, "dry_run": True, "mode": mode,
-                "needs_yes": not args.no_free or args.delete_iso}
+        needs_yes = not args.no_free or args.delete_iso
+        real = [a for a in args.argv if a != "--dry-run"] + ["--background"]
+        return {"ok": True, "dry_run": True, "mode": mode, "needs_yes": needs_yes,
+                "next": command_line(real, *(["--yes"] if needs_yes and "--yes" not in real else []))}
+    if args.background:
+        return start_background(args, out)
     if install_dir:
         os.makedirs(install_dir, exist_ok=True)
     letter = iso.free_drive_letter()
@@ -506,7 +792,7 @@ def serve_until_quit(drive, out, args):
                 return
 
     threading.Thread(target=watch_stdin, daemon=True).start()
-    last = 0
+    last = {"t": 0, "key": None}
     try:
         while not quit_typed.is_set():
             ended, last = report_drive(drive, out, drive.poll(timeout=0.5), args.status_every, last)
@@ -533,7 +819,7 @@ def run_setup(drive, out, args, path, install_dir, stamp):
         command=cmd, setup_log=setup_log)
     if not args.silent:
         out("event", f"Choose this install folder in setup: {install_dir}")
-    last = 0
+    last = {"t": 0, "key": None}
     interrupted = False
     while True:
         try:
@@ -549,7 +835,7 @@ def run_setup(drive, out, args, path, install_dir, stamp):
             interrupted = True
             out("warning", "Setup is still running and reads from the drive. Press Ctrl+C again to "
                            "unmount anyway (setup will fail; when freeing, the ISO is lost).")
-    report_drive(drive, out, drive.poll(timeout=1.5), 0, 0)    # pick up the final status
+    report_drive(drive, out, drive.poll(timeout=1.5), 0, {"t": 0, "key": None})    # pick up the final status
     st = drive.status or {"files": {}, "violations": 0, "paused": False}
     problems, unread = iso.setup_result(code, setup_log, st["files"])
     unmount(drive, out)
@@ -592,7 +878,12 @@ def cmd_iso_delete(args, out):
 
 # ---------- arguments ----------
 class Parser(argparse.ArgumentParser):
-    """argparse that reports bad arguments in the requested format (JSON or text)."""
+    """argparse that reports bad arguments in the requested format (JSON or text), and
+    takes only full flag names, so a command means the same thing in every version."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("allow_abbrev", False)
+        super().__init__(*args, **kwargs)
 
     def error(self, message):
         sample = next((line.strip() for line in (self.epilog or "").splitlines()
@@ -610,7 +901,12 @@ def build_parser():
                         help="one JSON object per line on stdout (or set EE_JSON=1)")
     common.add_argument("-q", "--quiet", action="store_true", default=argparse.SUPPRESS,
                         help="text mode: only data, warnings and errors")
+    common.add_argument("-v", "--verbose", action="store_true", default=argparse.SUPPRESS,
+                        help="also log every file UnRAR handles (normally only counted)")
+    common.add_argument("--progress-every", type=float, default=argparse.SUPPRESS, metavar="S",
+                        help="seconds between progress lines (default 2; 0 = every change)")
     fmt = argparse.RawDescriptionHelpFormatter
+    background_help = "start detached and return a job id at once; follow it with `jobs wait`"
 
     def add(sub, name, func, text, epilog):
         p = sub.add_parser(name, parents=[common], help=text, description=text, epilog=epilog,
@@ -626,8 +922,15 @@ def build_parser():
     ap = Parser(prog=PROG, parents=[common], formatter_class=fmt,
                 description="EnhancedExtract in the terminal: extract RAR sets and install games from "
                             "ISOs while freeing space as you go. Never prompts; everything is a flag.",
-                epilog=examples("system check", "rar extract Game.part1.rar --dry-run",
-                                "--json iso inspect Game.iso --install-size-mb 52000")
+                epilog="Typical agent flow:\n" + "\n".join(f"  {PROG} {line}" for line in (
+                    "--json scan D:\\Downloads                       # find RAR sets and ISOs",
+                    "--json rar inspect D:\\Downloads\\Game.part1.rar  # sizes, space, next command",
+                    "--json rar extract D:\\Downloads\\Game.part1.rar --delete --dry-run",
+                    "--json rar extract D:\\Downloads\\Game.part1.rar --delete --yes --background",
+                    "--json jobs wait --timeout 60                   # repeat until state is done",
+                    "--json schema                                   # every command and flag, as JSON"))
+                + "\n\n" + examples("system check", "rar extract Game.part1.rar --dry-run",
+                                    "--json iso inspect Game.iso --install-size-mb 52000")
                 + "\n\nExit codes:\n" + "\n".join(f"  {k:<4} {v}" for k, v in EXIT.items()))
     ap.add_argument("--version", action="version", version=f"EnhancedExtract CLI {VERSION}")
     ap.set_defaults(func=None, parser=ap)
@@ -640,6 +943,37 @@ def build_parser():
             "install the bundled WinFsp driver (needs admin; no-op if installed)",
             examples("system install-winfsp", "system install-winfsp --dry-run"))
     p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
+
+    p = add(sub, "scan", cmd_scan, "find RAR sets (first parts) and ISOs in a folder; reads no archive",
+            examples("scan D:\\Downloads", "--json scan D:\\Downloads --depth 3"))
+    p.add_argument("folder", help="folder to look in")
+    p.add_argument("--depth", type=int, default=2, help="how many folder levels down to look (default 2)")
+
+    add(sub, "schema", cmd_schema, "every command, flag, example and exit code as one JSON document",
+        examples("--json schema", "schema"))
+
+    jobs_group = group("jobs", "follow commands started with --background")
+    p = add(jobs_group, "list", cmd_jobs_list, "recent jobs, newest first", examples("jobs list", "--json jobs list"))
+    p.add_argument("--limit", type=int, default=10, help="how many (default 10)")
+    for name, func, text, ex_lines in (
+            ("status", cmd_jobs_status, "where a job stands now (exit code 7 while running)",
+             ["jobs status", "jobs status 20261105-221500-ab12"]),
+            ("wait", cmd_jobs_wait, "wait until the job ends or --timeout passes (exit code 7 = still running)",
+             ["jobs wait --timeout 60", "jobs wait ab12 --timeout 300"]),
+            ("logs", cmd_jobs_logs, "the job's events (last 20 by default)",
+             ["jobs logs", "jobs logs ab12 --type warning error", "jobs logs ab12 --tail 0"]),
+            ("stop", cmd_jobs_stop, "stop a job cleanly, like Ctrl+C (kills UnRAR / unmounts the drive)",
+             ["jobs stop ab12", "jobs stop ab12 --force"])):
+        p = add(jobs_group, name, func, text, examples(*ex_lines))
+        p.add_argument("id", nargs="?", help="job id, or a unique part of it (default: newest job)")
+        if name == "wait":
+            p.add_argument("--timeout", type=float, default=60, help="seconds to wait at most (default 60)")
+        if name == "logs":
+            p.add_argument("--tail", type=int, default=20, help="last N events (0 = all; default 20)")
+            p.add_argument("--type", nargs="+", help="only these event types, e.g. warning error progress")
+        if name == "stop":
+            p.add_argument("--force", action="store_true",
+                           help="stop even while setup is still running (setup fails; when freeing, the ISO is lost)")
 
     rar = group("rar", "multi-part RAR sets")
     for name, func, text, ex_lines in (
@@ -667,6 +1001,8 @@ def build_parser():
             p.add_argument("--ignore-space", action="store_true", help="start even if free space looks too low")
             p.add_argument("--dry-run", action="store_true", help="check everything and print the plan; change nothing")
             p.add_argument("--yes", action="store_true", help="confirm --delete")
+        if name != "inspect":
+            p.add_argument("--background", action="store_true", help=background_help)
 
     isos = group("iso", "install a game from an ISO while freeing the ISO behind setup")
     p = add(isos, "inspect", cmd_iso_inspect, "files in the ISO and the free space an install needs",
@@ -699,6 +1035,7 @@ def build_parser():
     p.add_argument("--status-every", type=float, default=10, help="seconds between status lines (default 10)")
     p.add_argument("--dry-run", action="store_true", help="run every check and print the plan; mount nothing")
     p.add_argument("--yes", action="store_true", help="confirm freeing the ISO and --delete-iso")
+    p.add_argument("--background", action="store_true", help=background_help)
 
     p = add(isos, "delete", cmd_iso_delete, "delete an ISO and its freeing record (no-op if already gone)",
             examples("iso delete Game.iso --dry-run", "iso delete Game.iso --yes"))
@@ -723,20 +1060,26 @@ def main(argv=None):
                 raise Stop(2, "Missing command.", fix=f"{args.parser.prog} --help")
             args.parser.print_help()
             return 0
+        for name, default in (("verbose", False), ("progress_every", 2.0), ("background", False)):
+            if not hasattr(args, name):
+                setattr(args, name, default)
         args.argv = argv
         args.pw = read_password(args) if args.group == "rar" else None
+        jobs.watch_for_stop()
         result = args.func(args, out)
-        code = 0 if result.get("ok") else 1
+        code, result = result if isinstance(result, tuple) else (0 if result.get("ok") else 1, result)
+        failed = False
     except Stop as e:
+        failed = True
         out("error", e.msg, **({"fix": e.fix} if e.fix else {}))
         if e.fix and not out.as_json:
             print(f"  {e.fix}", file=sys.stderr)
         result, code = dict(e.extra, ok=False, error=e.msg, **({"fix": e.fix} if e.fix else {})), e.code
     except KeyboardInterrupt:
         out("error", "Stopped with Ctrl+C.")
-        result, code = {"ok": False, "error": "interrupted"}, 130
+        result, code, failed = {"ok": False, "error": "interrupted"}, 130, True
     result["duration_s"] = round(time.time() - started, 2)
-    if out.as_json or code == 0:
+    if out.as_json or not failed:
         out.result(code, result)
     return code
 

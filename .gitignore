@@ -4,3 +4,4 @@ logs/
 settings.json
 *.enhancedextract.json
 build/work/
+jobs/
