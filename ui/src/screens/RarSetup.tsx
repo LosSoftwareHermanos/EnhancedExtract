@@ -127,7 +127,7 @@ export function RarSetup({ path }: { path?: string }) {
           </section>
           <section className="card" aria-labelledby="plan">
             <div className="ch"><h2 id="plan">What happens</h2>{info && <span className="meta">about {dur(estimate(info, verify))}</span>}</div>
-            <div className="rows">{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span>{s.t}</span><span className="muted small">{s.m}</span></div>)}</div>
+            <div className="rows">{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
             {del && <div style={{ marginTop: 12 }}><Warn>If extraction stops halfway, the parts already deleted are gone and must be downloaded again.</Warn></div>}
           </section>
         </div>

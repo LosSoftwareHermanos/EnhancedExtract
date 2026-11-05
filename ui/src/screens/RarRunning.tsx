@@ -42,7 +42,8 @@ export function RarRunning({ id }: { id: string }) {
   const name = path ? setName(path) : "…";
   const pct = s?.state === "done" ? 100 : p?.overall ?? 0;
   const phase = s?.state === "done" ? "done" : p?.phase ?? (verifyJob ? "verifying" : "extracting");
-  const parts = p?.parts ?? 0, part = p?.part ?? 0;
+  // Progress only exists while running; a finished job reports its totals in the result.
+  const parts = p?.parts ?? (s?.result?.parts as number | undefined) ?? 0, part = p?.part ?? 0;
 
   return (
     <Page title={name}
@@ -66,7 +67,7 @@ export function RarRunning({ id }: { id: string }) {
         <div className="strip">
           <div><span className="l">{verifyJob || phase === "verifying" ? "Verified" : "Extracted"}</span><span className="v lead">{s ? `${Math.floor(pct)}%` : <span className="skel" />}</span></div>
           <div><span className="l">Time left</span><span className="v">{running ? (p?.eta_s != null ? dur(p.eta_s) : "—") : "—"}</span><span className="s">{running ? "at the pace so far" : " "}</span></div>
-          <div><span className="l">Files</span><span className="v">{p?.files ? <>{int(p.files_done ?? 0)}<span className="unit"> / {int(p.files)}</span></> : "—"}</span></div>
+          <div><span className="l">Files</span><span className="v">{p?.files ? <>{int(p.files_done ?? 0)}<span className="unit"> / {int(p.files)}</span></> : s?.result?.files != null ? int(s.result.files) : "—"}</span></div>
           <div><span className="l">Running for</span><span className="v">{s ? dur(p?.elapsed_s ?? s.elapsed_s) : "—"}</span></div>
         </div>
         <div className="track" style={{ marginTop: 18 }} role="progressbar" aria-valuenow={Math.floor(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Progress">
