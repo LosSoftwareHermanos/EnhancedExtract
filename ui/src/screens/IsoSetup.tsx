@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
 import { call, first, ofType, pickArchive, pickFolder, relaunchAsAdmin, type IsoInfo, type Space } from "../engine";
 import { MiB, basename, drive, gb, int, setName } from "../format";
@@ -77,7 +78,7 @@ export function IsoSetup({ path }: { path?: string }) {
         <div className="decision">
           <div>
             <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(path)}</h2>
-            {space && <div className="big-figure">{gb(space.needed)}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>}
+            {space && <div className="big-figure"><Num value={space.needed} format={gb} /><span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>}
             {space && <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>of <span className="num">{gb(space.free)}</span> GB free{space.enough ? `, ${gb(space.free - space.needed)} GB to spare` : ", not enough"}</p>}
             <label className="lab" style={{ color: "var(--accent-ink)", marginTop: space ? 18 : 4, maxWidth: 300 }}>Install size, from setup
               <span className="join"><input className="field" inputMode="numeric" style={{ textAlign: "right", fontSize: 18, height: 44, background: "#fffbd0", color: "var(--accent-ink)", borderColor: "var(--accent-ink)" }}

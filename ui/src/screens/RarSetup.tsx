@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
 import { EXIT, EngineError, call, first, pickArchive, pickFolder, type Archive, type Space } from "../engine";
 import { basename, drive, dur, gb, int, setName } from "../format";
@@ -93,7 +94,7 @@ export function RarSetup({ path }: { path?: string }) {
         <div className="decision">
           <div>
             <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(dest || path)}</h2>
-            <div className="big-figure">{space ? gb(del ? space.del.needed : space.keep.needed) : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>
+            <div className="big-figure">{space ? <Num value={del ? space.del.needed : space.keep.needed} format={gb} /> : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>
             <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>{space ? <>of <span className="num">{gb(free)}</span> GB free{fits ? `, ${gb(free - (del ? space.del.needed : space.keep.needed))} GB to spare` : ", not enough"}</> : "Working it out…"}</p>
           </div>
           <div>

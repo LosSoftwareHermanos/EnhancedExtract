@@ -42,7 +42,7 @@ export function Jobs({ initial }: { initial?: string }) {
         <div className="job-row small muted" style={{ height: 32 }}><span>Job</span><span>Kind</span><span>State</span><span>Progress or result</span><span style={{ textAlign: "right" }}>Took</span><span style={{ textAlign: "right" }}>Started</span><span /></div>
         {jobs == null ? <p className="muted" style={{ padding: "12px 0" }}>Loading…</p>
           : shown.length === 0 ? <div className="empty" style={{ margin: "8px 0" }}>{list.length ? "No jobs match." : "No jobs yet. Start an extract or an install and it shows up here."}</div>
-          : shown.map((j) => <JobRow key={j.id} j={j} selected={j.id === selected?.id} onSelect={() => setSel(j.id)} onOpen={() => nav(jobRoute(j))} />)}
+          : shown.map((j, i) => <JobRow key={j.id} i={i} j={j} selected={j.id === selected?.id} onSelect={() => setSel(j.id)} onOpen={() => nav(jobRoute(j))} />)}
       </section>
       {selected && (
         <section className="card" aria-labelledby="lg">
@@ -59,7 +59,7 @@ export function Jobs({ initial }: { initial?: string }) {
   );
 }
 
-function JobRow({ j, selected, onSelect, onOpen }: { j: JobSnap; selected: boolean; onSelect: () => void; onOpen: () => void }) {
+function JobRow({ j, i, selected, onSelect, onOpen }: { j: JobSnap; i: number; selected: boolean; onSelect: () => void; onOpen: () => void }) {
   const argv = j.argv ?? j.command.split(" ");
   const kind = KIND[`${argv[0]} ${argv[1]}`] ?? argv.slice(0, 2).join(" ");
   const state = { running: ["neu", "Running"], done: ["pos", "Finished"], failed: j.job_exit_code === 130 ? ["neu", "Stopped"] : ["neg", "Failed"], died: ["neg", "Ended unexpectedly"] }[j.state];
@@ -69,12 +69,12 @@ function JobRow({ j, selected, onSelect, onOpen }: { j: JobSnap; selected: boole
     : (r.error ?? j.stderr?.trim().split("\n").pop() ?? "");
   return (
     <div className="job-row" onClick={onSelect} aria-selected={selected}
-      style={{ height: 52, margin: "0 -12px", padding: "0 12px", borderRadius: 6, cursor: "pointer", background: selected ? "var(--raised)" : undefined }}>
+      style={{ height: 52, margin: "0 -12px", padding: "0 12px", borderRadius: 4, cursor: "pointer", background: selected ? "var(--raised)" : undefined, animation: "row-in .34s var(--ease-out) both", animationDelay: `${140 + i * 32}ms` }}>
       <div style={{ minWidth: 0 }}><div className="ellipsis" style={{ fontWeight: 600 }}>{setName(argv[2] ?? "") || kind}</div><div className="mono muted small">{shortId(j.id)}</div></div>
       <span className="soft">{kind}</span>
       <span><span className={`pill ${state[0]}`}>{state[1]}</span></span>
       {j.state === "running"
-        ? <span style={{ display: "flex", alignItems: "center", gap: 12 }}><span className="track" style={{ flex: 1 }}><span className="fill" style={{ display: "block", width: `${j.progress?.overall ?? 0}%` }} /></span><span className="num">{Math.floor(j.progress?.overall ?? 0)}%</span></span>
+        ? <span style={{ display: "flex", alignItems: "center", gap: 12 }}><span className="track" style={{ flex: 1 }}><span className="fill" style={{ display: "block", transform: `scaleX(${(j.progress?.overall ?? 0) / 100})` }} /></span><span className="num">{Math.floor(j.progress?.overall ?? 0)}%</span></span>
         : <span className="soft ellipsis" title={outcome}>{outcome}</span>}
       <span className="num" style={{ textAlign: "right" }}>{dur(j.elapsed_s)}</span>
       <span className="num muted" style={{ textAlign: "right" }}>{jobStarted(j.id)}</span>

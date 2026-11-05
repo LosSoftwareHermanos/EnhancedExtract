@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
 import { EngineError, call, diskSpace, jobLogs, jobStatus } from "../engine";
 import { GiB, drive, dur, flag, gb, int, setName, shortId, jobStarted } from "../format";
@@ -67,7 +68,7 @@ export function RarRunning({ id }: { id: string }) {
         <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 40, alignItems: "end" }}>
           <div>
             <div className="l" style={{ fontWeight: 600 }}>{verifyJob || phase === "verifying" ? "Verified" : s?.state === "done" ? "Extracted" : "Extracting"}</div>
-            <div className="big-figure">{s ? `${Math.floor(pct)}%` : "…"}</div>
+            <div className="big-figure">{s ? <Num value={pct} format={(n) => `${Math.floor(n)}%`} /> : "…"}</div>
           </div>
           <div className="strip" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", paddingBottom: 6 }}>
             <div><span className="l">Time left</span><span className="v">{running && p?.eta_s != null ? dur(p.eta_s) : "—"}</span></div>
@@ -76,7 +77,7 @@ export function RarRunning({ id }: { id: string }) {
           </div>
         </div>
         <div className="track big" style={{ marginTop: 22 }} role="progressbar" aria-valuenow={Math.floor(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Progress">
-          <div className="fill" style={{ width: `${pct}%` }} />
+          <div className="fill" style={{ transform: `scaleX(${pct / 100})` }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, marginTop: 22 }}>
           {!verifyJob ? (
@@ -92,7 +93,7 @@ export function RarRunning({ id }: { id: string }) {
           <div className="tape" style={{ marginTop: 14 }} role="img" aria-label={`${parts} parts: ${s?.state === "done" ? parts : Math.max(0, part - 1)} used${running ? `, part ${part} reading now` : ""}`}>
             {Array.from({ length: parts }, (_, i) => i + 1).map((n) => {
               const used = s?.state === "done" || n < part, now = running && n === part;
-              return <i key={n} title={`Part ${n}: ${used ? (del && phase !== "verifying" ? "used and deleted" : "used") : now ? "reading now" : "waiting"}`}
+              return <i key={n} style={{ ["--i" as string]: n }} title={`Part ${n}: ${used ? (del && phase !== "verifying" ? "used and deleted" : "used") : now ? "reading now" : "waiting"}`}
                 className={used ? (del && phase !== "verifying" ? "gone" : "used") : now ? "now" : ""} />;
             })}
           </div>

@@ -8,6 +8,8 @@ const PATHS: Record<string, string> = {
   jobs: '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
   system: '<path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/>',
   warn: '<path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5"/>',
+  fx: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5"/>',
+  fxoff: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M4 4l16 16"/>',
 };
 export function Icon({ name }: { name: keyof typeof PATHS | string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: PATHS[name] ?? "" }} />;
