@@ -144,7 +144,7 @@ def snapshot(job_id):
     else:
         state = "died"
     last = lambda t: next((e for e in reversed(evs) if e.get("type") == t), None)
-    snap = {"id": job_id, "state": state, "command": " ".join(meta["argv"]),
+    snap = {"id": job_id, "state": state, "command": " ".join(meta["argv"]), "argv": meta["argv"],
             "elapsed_s": round((result or {}).get("ts", time.time()) - meta["started"], 1)}
     progress = last("progress") or last("status")
     if progress and state == "running":
