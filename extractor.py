@@ -4,6 +4,7 @@ In delete mode UnRAR runs with -vp, which makes it pause before opening each
 next volume. At that pause the previous volume is fully read and closed, so it
 is deleted before UnRAR is told to continue.
 """
+import codecs
 import os
 import re
 import shutil
@@ -22,6 +23,9 @@ UNRAR_CANDIDATES = [
 SAFETY_MARGIN = 1 * 1024**3
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+# UnRAR writes ANSI to pipes by default, which mangles non-ASCII paths; ask for UTF-8.
+UTF8_OUTPUT = "-scfr"
 
 EXIT_CODES = {
     1: "non-fatal warning",
@@ -61,6 +65,17 @@ def find_unrar():
     raise ExtractError("UnRAR.exe not found. Install WinRAR (or put UnRAR.exe on PATH).")
 
 
+def rar_tool():
+    """(where it comes from, path) of the UnRAR the app will use, or None."""
+    try:
+        path = find_unrar()
+    except ExtractError:
+        return None
+    if os.path.normcase(path) == os.path.normcase(BUNDLED_UNRAR):
+        return "built into the app", path
+    return ("WinRAR" if "\\winrar\\" in path.lower() else "on PATH"), path
+
+
 def describe_exit(code):
     return EXIT_CODES.get(code, f"unknown error (exit code {code})")
 
@@ -84,11 +99,13 @@ class ArchiveInfo:
 def inspect(first, password=None):
     """List every volume and the total unpacked size."""
     unrar = find_unrar()
-    proc = subprocess.run([unrar, "l", "-v", password_arg(password), first], capture_output=True,
+    proc = subprocess.run([unrar, "l", "-v", UTF8_OUTPUT, password_arg(password), first], capture_output=True,
                           text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
     out = proc.stdout
-    if proc.returncode == 11:
-        raise PasswordError("This archive's file names are encrypted - a password is needed to open it.")
+    # Encrypted file names: older UnRAR exits with 11, 7.x with 6 plus this message.
+    if proc.returncode == 11 or (proc.returncode and "Incorrect password" in out + proc.stderr):
+        raise PasswordError("This archive's file names are encrypted - a password is needed to open it."
+                            if not password else "Wrong password.")
     if proc.returncode != 0:
         raise ExtractError(f"Cannot read archive: {describe_exit(proc.returncode)}\n{out[-500:]}")
     volumes = []
@@ -125,6 +142,11 @@ def free_space(path):
     return shutil.disk_usage(path).free
 
 
+VOLUME_LINE = re.compile(r"(?:Extracting from|Testing archive) (.+)$")
+PERCENT = re.compile(r"(\d{1,3})%(?=[\b\r\n ]|$)")
+PROMPT = re.compile(r"\[Q\]uit\s*$")
+
+
 class Runner:
     """Runs one UnRAR job and reports through callbacks. Call stop() from another thread to abort."""
 
@@ -141,47 +163,53 @@ class Runner:
             self.proc.kill()
 
     def _start(self, args):
-        self.proc = subprocess.Popen([find_unrar()] + args, stdin=subprocess.PIPE,
+        self.proc = subprocess.Popen([find_unrar(), UTF8_OUTPUT] + args, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      creationflags=NO_WINDOW)
         return self.proc
 
     def _read_loop(self, info, on_prompt=None):
-        """Feed UnRAR output to the log/progress; on_prompt(buf) handles volume pauses."""
+        """Feed UnRAR output to the log/progress; on_prompt(buf) handles volume pauses.
+
+        Output is read in chunks (whatever is available), not byte by byte, and lines are
+        only inspected once complete."""
+        decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        volumes = {os.path.normcase(v): i for i, v in enumerate(info.volumes)}
         buf = ""
         line = ""
         part = 1
         total = len(info.volumes)
-        for raw in iter(lambda: self.proc.stdout.read(1), b""):
-            ch = raw.decode("latin1")
-            buf += ch
-            if ch in "\r\n":
-                if line.strip():
-                    self._log_line(line)
-                line = ""
-            elif ch == "\b":
-                line = line[:-1]
-            else:
-                line += ch
-            m = re.search(r"(\d{1,3})%$", buf[-5:])
-            if m:
-                self.progress(int(m.group(1)), part, total)
-            if buf.endswith("[Q]uit"):
+        while True:
+            chunk = self.proc.stdout.read1(65536)
+            if not chunk:
+                break
+            text = decoder.decode(chunk)
+            buf = (buf + text)[-2000:]
+            for ch in text:
+                if ch in "\r\n":
+                    vm = VOLUME_LINE.match(line.strip())
+                    if vm:
+                        new_part = volumes.get(os.path.normcase(vm.group(1).strip()), part - 1) + 1
+                        if new_part != part:
+                            part = new_part
+                            self.progress(None, part, total)
+                    if line.strip():
+                        self._log_line(line)
+                    line = ""
+                elif ch == "\b":
+                    line = line[:-1]
+                else:
+                    line += ch
+            pct = PERCENT.findall(text)
+            if pct:
+                self.progress(min(100, int(pct[-1])), part, total)
+            if PROMPT.search(buf):
                 if on_prompt is None:
                     raise ExtractError("UnRAR asked for a missing volume.")
                 on_prompt(buf)
                 part += 1
                 self.progress(None, part, total)
                 buf = line = ""
-            elif "Extracting from " in buf[-300:] or "Testing archive " in buf[-300:]:
-                vm = re.search(r"(?:Extracting from|Testing archive) (.+\.rar)\s*$", buf, re.M)
-                if vm and vm.group(1) in info.volumes:
-                    new_part = info.volumes.index(vm.group(1)) + 1
-                    if new_part != part:
-                        part = new_part
-                        self.progress(None, part, total)
-            if len(buf) > 4000:
-                buf = buf[-1000:]
         if line.strip():
             self._log_line(line)
         return self.proc.wait()
@@ -210,21 +238,24 @@ class Runner:
         if delete:
             args.append("-vp")
         self._start(args + [info.first, os.path.join(dest, "")])
-        state = {"prev": info.first}
+        state = {"done": 0}     # index of the part UnRAR just finished
 
         def on_prompt(buf):
-            m = re.search(r"Insert disk with (.+?) \[C\]ontinue", buf)
-            nxt = m.group(1).strip() if m else None
+            # Volumes are taken in listing order rather than parsed back out of the prompt
+            # text, so an unusual file name can't break the hand-over.
+            i = state["done"]
+            prev = info.volumes[i]
+            nxt = info.volumes[i + 1] if i + 1 < len(info.volumes) else None
             if not nxt or not os.path.exists(nxt):
                 self.proc.stdin.write(b"Q\n")
                 self.proc.stdin.flush()
                 raise ExtractError(f"Next part not found: {nxt}. Stopped; the current part was kept.")
             try:
-                os.remove(state["prev"])
-                self.log(f"Deleted {os.path.basename(state['prev'])}")
+                os.remove(prev)
+                self.log(f"Deleted {os.path.basename(prev)}")
             except OSError as e:
-                self.log(f"Could not delete {os.path.basename(state['prev'])} ({e}); will retry at the end.")
-            state["prev"] = nxt
+                self.log(f"Could not delete {os.path.basename(prev)} ({e}); will retry at the end.")
+            state["done"] = i + 1
             self.proc.stdin.write(b"C\n")
             self.proc.stdin.flush()
 
@@ -248,6 +279,14 @@ class Runner:
                     except OSError as e:
                         self.log(f"Could not delete {os.path.basename(v)}: {e}")
         self.log("Extraction finished successfully.")
+
+
+def default_dest(first):
+    """Folder next to the archive, named after it: D:\\x\\Game.part1.rar -> D:\\x\\Game."""
+    base = os.path.basename(first)
+    if base.lower().endswith(".rar"):
+        base = base[:-4]
+    return os.path.join(os.path.dirname(first), base.rsplit(".part", 1)[0])
 
 
 def remaining_parts(info):

@@ -1,2 +1,6 @@
 video/
 __pycache__/
+logs/
+settings.json
+*.enhancedextract.json
+build/work/
