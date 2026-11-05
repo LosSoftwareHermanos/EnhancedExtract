@@ -24,8 +24,10 @@ The Rust side (`src-tauri/src/lib.rs`) has three commands: `engine` (run the CLI
 It finds the engine in this order:
 
 1. `EE_ENGINE`: path to an engine exe.
-2. `ee-engine.exe` next to the app (release layout). Build it with PyInstaller **without** `uac_admin`,
-   or Windows refuses to start it from a normal process.
+2. `engine\ee-engine.exe` next to the app (where the installer puts it), or `ee-engine.exe` beside it.
+   `build\build-engine.bat` builds it from `engine.py` (CLI and virtual drive, no Tk) as a folder, not
+   one file (the UI calls it about once a second), and **without** `uac_admin`, or Windows refuses to
+   start it from a normal process.
 3. Development: `python ../../app.py` (set `EE_PYTHON` to use a venv's python).
 
 ## Run it
@@ -38,8 +40,13 @@ cd ui
 npm install
 npm run tauri dev      # the app, with the real engine
 npm run dev            # browser only, at http://localhost:1420, with a mock engine (no Rust needed)
-npm run tauri build    # installer in src-tauri/target/release/bundle
+..\build\build-engine.bat   # engine first: build\dist\ee-engine (bundled by the next step)
+npm run tauri build    # installer in src-tauri/target/release/bundle/nsis
 ```
+
+The installer installs for the current user (no admin prompt) with a Start menu shortcut, and puts the
+engine in `engine\` beside `EnhancedExtract.exe`. Jobs and logs of the installed app live in
+`%LOCALAPPDATA%\EnhancedExtract`.
 
 In the browser preview, `#rar`, `#rarJob`, `#iso`, `#isoJob` and `#jobs` open a screen directly.
 

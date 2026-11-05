@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
-import { call, first, ofType, pickArchive, pickFolder, relaunchAsAdmin, type IsoInfo, type Space } from "../engine";
+import { call, first, installFusepy, ofType, pickArchive, pickFolder, relaunchAsAdmin, type IsoInfo, type Space } from "../engine";
 import { MiB, basename, drive, gb, int, setName } from "../format";
 import { Busy, Check, ConfirmDelete, ErrorNote, SpaceCompare, Toggle, Warn } from "../components/ui";
 import { useAction, useStored } from "../hooks";
@@ -9,7 +9,8 @@ import { useAction, useStored } from "../hooks";
 interface Inspect { iso: IsoInfo; files: { path: string; size: number }[]; space: Space | null; windowsMounted: boolean; wasFreed: boolean }
 
 export function IsoSetup({ path }: { path?: string }) {
-  const { nav, openPath, system, refreshJobs } = useApp();
+  const { nav, openPath, system, refreshJobs, recheck } = useApp();
+  const fuse = useAction(async () => { await installFusepy(); await recheck(); });
   const name = path ? setName(path) : "";
   const [dir, setDir] = useState(path ? `${drive(path)}\\Games\\${name}` : "");
   const [sizeMb, setSizeMb] = useState("");
@@ -73,6 +74,7 @@ export function IsoSetup({ path }: { path?: string }) {
       </>}>
       <ErrorNote error={loadError} />
       <ErrorNote error={start.error} />
+      <ErrorNote error={fuse.error} onRetry={() => fuse.run()} />
       {why && data && <p className="muted" role="status">Mount and install is off: {why.toLowerCase()}.</p>}
       <section className="hero brand" aria-labelledby="sp">
         <div className="decision">
@@ -132,7 +134,10 @@ export function IsoSetup({ path }: { path?: string }) {
           <section className="card" aria-labelledby="chk">
             <div className="ch"><h2 id="chk">Before mounting</h2></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 24 }}>
-              <Check ok={sysOk} label="WinFsp driver" value={system && !system.fusepy ? "fusepy missing" : undefined} />
+              <Check ok={sysOk} label="WinFsp driver" value={system && !system.fusepy ? "fusepy missing" : undefined}
+                action={system && system.winfsp && !system.fusepy
+                  ? <button className="tlink" onClick={() => fuse.run()} disabled={fuse.busy}><Busy busy={fuse.busy}>{fuse.busy ? "Installing" : "Install fusepy"}</Busy></button>
+                  : undefined} />
               <Check ok={system?.admin ?? null} label="Administrator" value={system?.admin ? "yes" : undefined}
                 action={system && !system.admin ? <button className="tlink" onClick={() => relaunchAsAdmin()}>Restart as admin</button> : undefined} />
               <Check ok={data ? !data.windowsMounted : null} label="Not mounted by Windows" />

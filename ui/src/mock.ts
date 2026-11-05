@@ -85,6 +85,8 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
   if (a === "system" && b === "check")
     return delay(ok({ unrar: true, winfsp: true, fusepy: true, admin: true, missing: [] }, [
       { type: "check", name: "unrar", ok: true, source: "WinRAR", msg: "unrar OK" }]));
+  if (a === "system" && b === "install-fusepy")
+    return delay(ok({ already_installed: true }, [{ type: "event", msg: "fusepy is already installed." }]));
   if (a === "scan")
     return delay(ok({ folder: args[1], rar_sets: SETS.length, isos: ISOS.length }, [
       ...SETS.map((s) => ({ type: "rar_set", ...s })), ...ISOS.map((i) => ({ type: "found_iso", ...i }))]), 400);

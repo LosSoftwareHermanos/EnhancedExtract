@@ -4,6 +4,8 @@ logs/
 settings.json
 *.enhancedextract.json
 build/work/
+build/work-engine/
+build/dist/
 jobs/
 ui/node_modules/
 ui/dist/

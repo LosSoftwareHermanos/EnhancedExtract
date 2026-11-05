@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Num } from "../fx/motion";
 import { Page, jobRoute, useApp } from "../App";
-import { call, diskSpace, inTauri, ofType, pickFolder, type FoundIso, type JobSnap, type RarSet } from "../engine";
+import { call, diskSpace, inTauri, installFusepy, ofType, pickFolder, type FoundIso, type JobSnap, type RarSet } from "../engine";
 import { basename, drive, gb, setName } from "../format";
 import { useAction, useStored } from "../hooks";
 import { Busy, ErrorNote } from "../components/ui";
@@ -10,7 +10,7 @@ import logo from "../assets/logo.png";
 interface Row { key: string; name: string; kind: "RAR" | "ISO"; detail: string; file: string; size: number; count: number; missing: number[]; wasFreed?: boolean }
 
 export function Library() {
-  const { nav, jobs, system, recheck } = useApp();
+  const { nav, jobs } = useApp();
   const [folder, setFolder] = useStored("ee.folder", inTauri ? "" : "D:\\Downloads");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [scannedAt, setScannedAt] = useState<string>("");
@@ -79,19 +79,45 @@ export function Library() {
           <div><span className="l">Free on {drive(folder)}</span><span className="v">{disk ? <><Num value={disk.free} format={gb} /><span className="unit">GB</span></> : "—"}</span><span className="s">{disk ? `of ${gb(disk.total)} GB` : " "}</span></div>
         </div>
       </section>
-      {system && (!system.unrar || !system.winfsp || !system.fusepy) && (
-        <div className="notice err" role="status">
-          <span style={{ flex: 1 }}>{!system.unrar ? "UnRAR wasn't found, so RAR sets can't be opened. Install WinRAR, then check again."
-            : "ISO installs need the virtual drive: " + [!system.winfsp && "WinFsp isn't installed", !system.fusepy && "the fusepy package is missing"].filter(Boolean).join(" and ") + ". RAR extraction works."}</span>
-          <button className="tlink" onClick={recheck}>Check again</button>
-        </div>
-      )}
+      <SystemNotice />
       <section className="card" aria-labelledby="lib">
         <div className="ch"><h2 id="lib">Sets</h2><span className="meta">Drop a .rar or .iso on the window to add one · F5 rescans</span></div>
         <ErrorNote error={scan.error} onRetry={() => scan.run()} />
         {!scan.error && <SetTable rows={rows} jobFor={jobFor} />}
       </section>
     </Page>
+  );
+}
+
+/** What this PC is missing, with a way to fix it from here and a re-check that shows it ran. */
+function SystemNotice() {
+  const { system, recheck, announce } = useApp();
+  const [checkedAt, setCheckedAt] = useState("");
+  const check = useAction(useCallback(async () => {
+    await recheck();
+    setCheckedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  }, [recheck]));
+  const fuse = useAction(useCallback(async () => {
+    await installFusepy();
+    await recheck();
+    announce("fusepy installed.");
+  }, [recheck, announce]));
+
+  if (!system || (system.unrar && system.winfsp && system.fusepy)) return null;
+  const busy = check.busy || fuse.busy;
+  return (
+    <>
+      <div className="notice err" role="status">
+        <span style={{ flex: 1 }}>{!system.unrar ? "UnRAR wasn't found, so RAR sets can't be opened. Install WinRAR, then check again."
+          : "ISO installs need the virtual drive: " + [!system.winfsp && "WinFsp isn't installed", !system.fusepy && "the fusepy package is missing"].filter(Boolean).join(" and ") + ". RAR extraction works."}
+          {checkedAt && !busy && <span className="muted"> Still missing at {checkedAt}.</span>}</span>
+        {system.unrar && !system.fusepy && (
+          <button className="tlink" onClick={() => fuse.run()} disabled={busy}><Busy busy={fuse.busy}>{fuse.busy ? "Installing fusepy" : "Install fusepy"}</Busy></button>
+        )}
+        <button className="tlink" onClick={() => check.run()} disabled={busy}><Busy busy={check.busy}>{check.busy ? "Checking" : "Check again"}</Busy></button>
+      </div>
+      <ErrorNote error={fuse.error} onRetry={() => fuse.run()} />
+    </>
   );
 }
 
