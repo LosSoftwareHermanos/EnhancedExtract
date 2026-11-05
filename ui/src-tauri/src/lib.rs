@@ -25,8 +25,9 @@ pub struct EngineOutput {
 
 /// Finds the engine, in this order:
 /// 1. `EE_ENGINE`: path to an engine exe (run as `<exe> --cli ...`).
-/// 2. `ee-engine.exe` next to this app: the release layout. It must be a PyInstaller build of
-///    app.py WITHOUT `uac_admin`, or Windows refuses to start it from a normal process.
+/// 2. `engine\ee-engine.exe` (where the installer puts it) or `ee-engine.exe` next to this app.
+///    Built by `build\build-engine.bat` from engine.py, WITHOUT `uac_admin`, or Windows refuses
+///    to start it from a normal process.
 /// 3. Development: `python ../../app.py` from this crate (override Python with `EE_PYTHON`).
 fn engine_command() -> Result<Command, String> {
     if let Ok(exe) = std::env::var("EE_ENGINE") {
@@ -35,11 +36,12 @@ fn engine_command() -> Result<Command, String> {
         return Ok(c);
     }
     if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from)) {
-        let exe = dir.join("ee-engine.exe");
-        if exe.is_file() {
-            let mut c = Command::new(exe);
-            c.arg("--cli");
-            return Ok(c);
+        for exe in [dir.join("engine").join("ee-engine.exe"), dir.join("ee-engine.exe")] {
+            if exe.is_file() {
+                let mut c = Command::new(exe);
+                c.arg("--cli");
+                return Ok(c);
+            }
         }
     }
     let app = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("app.py");

@@ -325,3 +325,14 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .fx-off .btn-primary:hover:not(:disabled), .fx-off .mark:hover img { animation: none; }
 .fx-off .hero.brand::before { display: none; }
 .fx-off .canvas > .hero.brand, .fx-off .tape i, .fx-off .stagger > * { animation: none; }
+
+/* System check popover */
+.sys-scrim { position: fixed; inset: 0; z-index: 29; }
+.sys-panel { position: fixed; left: 64px; bottom: 12px; width: 300px; z-index: 30; background: var(--raised); color: var(--text); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); }
+.sys-panel h2 { font: 700 14px var(--brand); margin: 0 0 8px; }
+.sys-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; }
+.sys-row small { display: block; color: var(--muted); font-size: 12px; }
+.sys-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.sys-row .dot.ok { background: var(--positive); }
+.sys-row .dot.bad { background: var(--negative); }
+.sys-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }

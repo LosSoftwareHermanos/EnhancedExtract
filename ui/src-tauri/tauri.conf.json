@@ -29,6 +29,10 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "icon": ["icons/icon.png", "icons/icon.ico"]
+    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "resources": { "../../build/dist/ee-engine/": "engine/" },
+    "windows": {
+      "nsis": { "installMode": "currentUser" }
+    }
   }
 }

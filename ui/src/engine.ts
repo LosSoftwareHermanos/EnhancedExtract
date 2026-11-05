@@ -93,6 +93,11 @@ export async function systemCheck(): Promise<SystemCheck> {
   return { unrar: !!r.unrar, winfsp: !!r.winfsp, fusepy: !!r.fusepy, admin: !!r.admin, hints, unrarSource: first(out, "check")?.source };
 }
 
+/** pip-installs fusepy into the engine's own Python (a no-op in the frozen exe, which bundles it). */
+export async function installFusepy(): Promise<void> {
+  await call(["system", "install-fusepy"]);
+}
+
 export async function jobStatus(id: string): Promise<JobSnap> {
   const out = await call(["jobs", "status", id], { allow: [1, 3, 4, 5, 6, 7, 130] });
   const r: Ev = out.result ?? { type: "result" };

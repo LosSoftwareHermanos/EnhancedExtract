@@ -21,7 +21,7 @@ id at once, keep running after your tool call ends, and are followed with
 `jobs status|wait|logs|stop`. The job id can be left out (newest job) or shortened.
 
 ```
-python cli.py --json system check | install-winfsp [--dry-run]
+python cli.py --json system check | install-winfsp [--dry-run] | install-fusepy [--dry-run]
 python cli.py --json scan FOLDER [--depth N]
 python cli.py --json rar inspect|verify|extract ARCHIVE [--dest DIR] [--delete] [--dry-run] [--yes] [--background]
 python cli.py --json iso inspect ISO [--install-size-mb N] [--files]

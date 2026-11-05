@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { inTauri, jobsList, pickArchive, systemCheck, type JobSnap, type SystemCheck } from "./engine";
-import { usePoll, useStored } from "./hooks";
+import { useAction, usePoll, useStored } from "./hooks";
 import { Backdrop } from "./fx/Backdrop";
 import { Boot, Decode, FxContext } from "./fx/motion";
 import { Icon } from "./components/ui";
@@ -27,7 +27,7 @@ interface Ctx {
   jobs: JobSnap[] | null;
   refreshJobs: () => void;
   system: SystemCheck | null;
-  recheck: () => void;
+  recheck: () => Promise<void>;
   announce: (msg: string) => void;
   openPath: (path: string) => void;
   fx: boolean;
@@ -150,6 +150,7 @@ function Rail({ running }: { running: number }) {
     </button>
   );
   const sysBad = system && (!system.unrar || !system.winfsp || !system.fusepy);
+  const [sysOpen, setSysOpen] = useState(false);
   return (
     <nav className="rail" aria-label="Main">
       <button className="mark" aria-label="EnhancedExtract, Library" onClick={() => nav({ name: "library" })}><img src={logo} alt="" /></button>
@@ -162,9 +163,52 @@ function Rail({ running }: { running: number }) {
       <button className="ri" aria-pressed={fx} aria-label={fx ? "Effects on" : "Effects off"} onClick={() => setFx(!fx)}>
         <Icon name={fx ? "fx" : "fxoff"} /><span className="tip">{fx ? "Effects on: click for a still, lighter look" : "Effects off: click to turn them on"}</span>
       </button>
-      {item("system", sysBad ? "System check: something is missing" : "System check", { name: "library" }, sysBad ? "bad" : "")}
+      <button className="ri" aria-expanded={sysOpen} aria-controls="sys-panel" aria-label={sysBad ? "System check: something is missing" : "System check"} onClick={() => setSysOpen((o) => !o)}>
+        <Icon name="system" />{sysBad && <span className="badge bad" aria-hidden="true" />}<span className="tip">{sysBad ? "System check: something is missing" : "System check"}</span>
+      </button>
+      {sysOpen && <SystemPanel onClose={() => setSysOpen(false)} />}
       <span style={{ height: 8 }} />
     </nav>
+  );
+}
+
+/** Popover from the rail: every requirement with its state, and a re-check that visibly runs. */
+function SystemPanel({ onClose }: { onClose: () => void }) {
+  const { system, recheck } = useApp();
+  const [at, setAt] = useState("");
+  const check = useAction(useCallback(async () => {
+    await recheck();
+    setAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  }, [recheck]));
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const rows: [string, boolean | undefined, string][] = [
+    ["UnRAR", system?.unrar, "needed for RAR sets"],
+    ["WinFsp driver", system?.winfsp, "needed for ISO installs"],
+    ["fusepy", system?.fusepy, "needed for ISO installs"],
+    ["Administrator", system?.admin, "needed for ISO installs"],
+  ];
+  return (
+    <>
+      <div className="sys-scrim" onClick={onClose} />
+      <div className="sys-panel" id="sys-panel" role="dialog" aria-label="System check">
+        <h2>System check</h2>
+        {rows.map(([name, ok, why]) => (
+          <div className="sys-row" key={name}>
+            <span className={`dot ${ok == null ? "" : ok ? "ok" : "bad"}`} aria-hidden="true" />
+            <span style={{ flex: 1 }}>{name}<small>{why}</small></span>
+            <span className="muted">{ok == null ? "checking" : ok ? "ready" : "missing"}</span>
+          </div>
+        ))}
+        <div className="sys-foot">
+          <span className="muted">{at ? `Checked at ${at}` : ""}</span>
+          <button className="tlink" onClick={() => check.run()} disabled={check.busy}>{check.busy ? "Checking…" : "Check again"}</button>
+        </div>
+      </div>
+    </>
   );
 }
 

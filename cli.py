@@ -36,7 +36,7 @@ EXIT = {
 }
 SETUP_SILENT = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
 DONE_MARKER = ".enhancedextract-done.json"      # left in the destination by `rar extract --delete`
-PROG = "EnhancedExtract.exe --cli" if paths.FROZEN else "python cli.py"
+PROG = f"{os.path.basename(sys.executable)} --cli" if paths.FROZEN else "python cli.py"
 
 # Text mode: these event types are the command's data and go to stdout; everything else
 # (progress, logs, warnings, errors) goes to stderr so stdout can be piped.
@@ -312,7 +312,7 @@ def cmd_system_check(args, out):
     hints = {
         "unrar": "Install WinRAR, or put UnRAR.exe on PATH (needed for rar commands).",
         "winfsp": f"Install the driver (as administrator): {PROG} system install-winfsp",
-        "fusepy": "Install the Python package: python -m pip install fusepy",
+        "fusepy": f"Install the Python package: {PROG} system install-fusepy",
         "admin": "Not administrator: iso install can't run setup.exe from here (setups elevate "
                  "themselves and can't see a drive mounted by a normal process).",
     }
@@ -338,6 +338,28 @@ def cmd_system_install_winfsp(args, out):
     if error:
         raise Stop(5, f"WinFsp install failed: {error}", fix="Get it from https://winfsp.dev and install it.")
     out("event", "WinFsp installed.")
+    return {"ok": True, "already_installed": False}
+
+
+def cmd_system_install_fusepy(args, out):
+    if fusepy_available():
+        out("event", "fusepy is already installed.")
+        return {"ok": True, "already_installed": True}
+    pip = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "fusepy"]
+    if args.dry_run:
+        out("plan", f"Would run: {subprocess.list2cmdline(pip)}")
+        return {"ok": True, "dry_run": True}
+    out("event", f"Installing fusepy into {sys.executable}...")
+    r = subprocess.run(pip, capture_output=True, text=True)
+    if r.returncode != 0 and not iso.is_admin():
+        # A Python installed for all users can't be written without admin; fall back to the user site.
+        r = subprocess.run(pip[:-1] + ["--user", "fusepy"], capture_output=True, text=True)
+    importlib.invalidate_caches()
+    if r.returncode != 0 or not fusepy_available():
+        tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["pip found no fusepy afterwards"]
+        raise Stop(5, f"fusepy install failed: {tail[0]}",
+                   fix=f"{subprocess.list2cmdline(pip[:3])} install fusepy")
+    out("event", "fusepy installed.")
     return {"ok": True, "already_installed": False}
 
 
@@ -696,7 +718,7 @@ def iso_preflight(args, out, path, files):
     if not iso.winfsp_installed():
         raise Stop(5, "WinFsp is not installed.", fix=f"{PROG} system install-winfsp   (as administrator)")
     if not fusepy_available():
-        raise Stop(5, "fusepy is not installed.", fix="python -m pip install fusepy")
+        raise Stop(5, "fusepy is not installed.", fix=f"{PROG} system install-fusepy")
     if run_setup and not any(e.path.lower() == "/setup.exe" for e in files):
         raise Stop(2, "No setup.exe in the ISO root.", fix=command_line(args.argv, "--no-setup"))
     if run_setup and not iso.is_admin():
@@ -945,6 +967,10 @@ def build_parser():
     p = add(system, "install-winfsp", cmd_system_install_winfsp,
             "install the bundled WinFsp driver (needs admin; no-op if installed)",
             examples("system install-winfsp", "system install-winfsp --dry-run"))
+    p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
+    p = add(system, "install-fusepy", cmd_system_install_fusepy,
+            "pip-install fusepy into the Python running this (no-op if installed)",
+            examples("system install-fusepy", "system install-fusepy --dry-run"))
     p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
 
     p = add(sub, "scan", cmd_scan, "find RAR sets (first parts) and ISOs in a folder; reads no archive",
