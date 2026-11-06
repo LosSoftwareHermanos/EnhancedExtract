@@ -12,7 +12,7 @@ the JSON lines it prints; the last line is always `{"type": "result", "exit_code
 | --- | --- |
 | Library | `scan FOLDER`, `system check`, `jobs list` |
 | Extract RAR | `rar inspect` (with and without `--delete`, for both space figures), `rar extract --dry-run`, then `rar extract --background [--yes]` |
-| Install from ISO | `iso inspect --files`, `iso install --dry-run`, then `iso install --background --yes` |
+| Install from ISO | `iso inspect --files`, `iso status` every second while the screen is open, `iso install --dry-run`, then `iso install --background --yes` |
 | Running screens | `jobs status ID` every second, `jobs logs ID` every few seconds, `jobs stop ID` |
 | Jobs | `jobs list`, `jobs logs` |
 
