@@ -690,7 +690,9 @@ Yes. Long work always runs as a detached engine job. Reopen the app and the **Jo
 
 ## `▚▚ 12` // LICENSE
 
-No open-source license has been chosen yet, so all rights are reserved by the author. Bundled third-party components keep their own licenses.
+EnhancedExtract is open source under the [MIT License](LICENSE). Copyright (c) 2026 Sibgha Alfirdausi Rambe.
+
+Bundled third-party components keep their own licenses: UnRAR (RARLAB freeware licence), 7-Zip (LGPL, with the unRAR restriction), WinFsp (GPLv3 with a FLOSS exception), fusepy (ISC) and the fonts (SIL OFL). See [third-party notices](docs/THIRD_PARTY_NOTICES.txt).
 
 <br>
 
