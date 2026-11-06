@@ -57,4 +57,4 @@ The Windows binaries are unsigned. Windows may display an unknown-publisher or S
 
 Windows 11 Explorer entries belong in **Show more options**. Shell parsing and installer compilation were tested; menu visibility on a fresh Windows installation has not been manually verified for this release. Not every legacy archive format or compression method has a test fixture.
 
-No open-source licence has been selected for EnhancedExtract. The author's rights and bundled third-party licences remain unchanged.
+EnhancedExtract is open source under the MIT License. Bundled third-party components keep their own licences; see `THIRD_PARTY_NOTICES.txt`.

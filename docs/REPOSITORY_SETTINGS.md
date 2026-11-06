@@ -16,4 +16,4 @@ Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releas
 
 The landing-page source is in `site/`. It is included in the repository; this release does not enable GitHub Pages hosting. To preview it locally, run `python -m http.server 8765 --bind 127.0.0.1 --directory site`.
 
-No open-source licence has been selected. Public visibility does not itself grant an open-source licence, and bundled third-party components keep their own terms.
+EnhancedExtract is licensed under the MIT License (`LICENSE` at the repository root). Bundled third-party components keep their own terms; see `docs/THIRD_PARTY_NOTICES.txt`.
