@@ -1,4 +1,10 @@
-# EnhancedExtract 0.1.1
+# EnhancedExtract 0.1.2
+
+## What's new in 0.1.2
+
+- **Fix: "Open EnhancedExtract now" no longer hangs setup.** In 0.1.1, clicking Finish with that box ticked could leave the installer stuck on the Finish page without opening the app. The installation itself was complete. Setup now closes and opens the app.
+
+If you installed 0.1.1, the app itself works the same; run the 0.1.2 installer to update.
 
 ## What's new in 0.1.1
 
@@ -28,8 +34,8 @@ The desktop app uses Tauri and Rust, with a React interface and a bundled Python
 
 ## Downloads
 
-- `EnhancedExtract_0.1.1_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
-- `EnhancedExtract-CLI-0.1.1-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
+- `EnhancedExtract_0.1.2_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
+- `EnhancedExtract-CLI-0.1.2-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
 - `SHA256SUMS.txt`: SHA-256 checksums for the installer, CLI ZIP and notices.
 - `THIRD_PARTY_NOTICES.txt`: bundled component notices and licences.
 

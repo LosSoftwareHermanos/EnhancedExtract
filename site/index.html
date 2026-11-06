@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>EnhancedExtract: big games, small drives</title>
-  <meta name="description" content="Extract multi-part RAR game sets on a nearly full Windows drive. EnhancedExtract deletes archive parts once their files are safely on disk. Version 0.1.1 for Windows 10 and 11.">
+  <meta name="description" content="Extract multi-part RAR game sets on a nearly full Windows drive. EnhancedExtract deletes archive parts once their files are safely on disk. Version 0.1.2 for Windows 10 and 11.">
   <meta property="og:title" content="EnhancedExtract: big games, small drives">
-  <meta property="og:description" content="Extract RAR, ZIP, 7z and TAR archives with a Windows desktop app and CLI. Version 0.1.1 with bundled archive tools.">
+  <meta property="og:description" content="Extract RAR, ZIP, 7z and TAR archives with a Windows desktop app and CLI. Version 0.1.2 with bundled archive tools.">
   <meta property="og:image" content="assets/media/shot-rar-running.jpg">
   <meta name="theme-color" content="#0b0c12">
   <link rel="icon" href="assets/media/logo.png" type="image/png">
@@ -78,14 +78,14 @@
         <div class="dl-rows">
           <div class="dl-row">
             <span class="dl-name">Installer</span>
-            <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">12.6&nbsp;MB, version 0.1.1</span></span>
-            <a class="btn dl-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.1/EnhancedExtract_0.1.1_x64-setup.exe" aria-label="Download for Windows: EnhancedExtract_0.1.1_x64-setup.exe, 12.6 MB">
+            <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">12.6&nbsp;MB, version 0.1.2</span></span>
+            <a class="btn dl-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.2/EnhancedExtract_0.1.2_x64-setup.exe" aria-label="Download for Windows: EnhancedExtract_0.1.2_x64-setup.exe, 12.6 MB">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>Download
             </a>
           </div>
           <div class="dl-row">
             <span class="dl-name">PowerShell</span>
-            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.1/EnhancedExtract_0.1.1_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
+            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.2/EnhancedExtract_0.1.2_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
             <button class="icon-btn" type="button" data-copy="ps" aria-label="Copy the PowerShell install command">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 7h9v9H7zM4 13V4h9"/></svg>
             </button>
@@ -295,7 +295,7 @@ python cli.py jobs wait --timeout 60</code></pre>
           </details>
           <details>
             <summary>What if the extraction stops halfway?</summary>
-            <div class="answer-text"><p>Run it again. For RAR sets, a journal beside the parts remembers every finished file, so it picks up from the parts that are left. ZIP, 7z and TAR keep their archives until extraction finishes cleanly. After a stop, retry from the beginning. Version 0.1.1 includes all of these formats.</p></div>
+            <div class="answer-text"><p>Run it again. For RAR sets, a journal beside the parts remembers every finished file, so it picks up from the parts that are left. ZIP, 7z and TAR keep their archives until extraction finishes cleanly. After a stop, retry from the beginning. Version 0.1.2 includes all of these formats.</p></div>
           </details>
           <details>
             <summary>Can I close the window while it runs?</summary>
@@ -311,7 +311,7 @@ python cli.py jobs wait --timeout 60</code></pre>
           </details>
           <details>
             <summary>What does it change on my PC?</summary>
-            <div class="answer-text"><p>Version 0.1.1 installs for your user only and can add right-click menus for RAR, ZIP, 7z, TAR and the other supported archive extensions. It leaves your default archive app alone.</p></div>
+            <div class="answer-text"><p>Version 0.1.2 installs for your user only and can add right-click menus for RAR, ZIP, 7z, TAR and the other supported archive extensions. It leaves your default archive app alone.</p></div>
           </details>
         </div>
       </div>
@@ -319,7 +319,7 @@ python cli.py jobs wait --timeout 60</code></pre>
       <aside class="faq-side" aria-labelledby="check-title" data-reveal>
         <h3 class="side-title" id="check-title">Check your download</h3>
         <ol class="check-steps">
-          <li><span>Run in the folder with the installer</span><pre class="cmd" tabindex="0"><code>Get-FileHash .\EnhancedExtract_0.1.1_x64-setup.exe</code></pre></li>
+          <li><span>Run in the folder with the installer</span><pre class="cmd" tabindex="0"><code>Get-FileHash .\EnhancedExtract_0.1.2_x64-setup.exe</code></pre></li>
           <li><span>The hash should read</span><code class="hash-chip">c961cf…f8b9b7</code></li>
           <li><span>If SmartScreen appears</span><span class="ss"><b>More info</b><i aria-hidden="true">→</i><b>Run anyway</b></span></li>
         </ol>
@@ -331,7 +331,7 @@ python cli.py jobs wait --timeout 60</code></pre>
     <section class="get wrap" id="download" aria-labelledby="get-title">
       <div class="get-head">
         <h2 class="h2 get-title" id="get-title" data-reveal>Get it for Windows</h2>
-        <p class="body-lg" data-reveal>Version 0.1.1. Free for Windows 10 and 11, 64-bit. RAR, ZIP, 7z, TAR and other common archives, with the tools bundled.</p>
+        <p class="body-lg" data-reveal>Version 0.1.2. Free for Windows 10 and 11, 64-bit. RAR, ZIP, 7z, TAR and other common archives, with the tools bundled.</p>
       </div>
 
       <div class="dl" data-ui>
@@ -342,13 +342,13 @@ python cli.py jobs wait --timeout 60</code></pre>
           <div class="dl-row">
             <span class="dl-name">Installer</span>
             <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">12.6&nbsp;MB. Adds the app, the engine and the right-click menu.</span></span>
-            <a class="icon-btn icon-btn-solid" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.1/EnhancedExtract_0.1.1_x64-setup.exe" aria-label="Download the installer, EnhancedExtract_0.1.1_x64-setup.exe, 12.6 MB">
+            <a class="icon-btn icon-btn-solid" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.2/EnhancedExtract_0.1.2_x64-setup.exe" aria-label="Download the installer, EnhancedExtract_0.1.2_x64-setup.exe, 12.6 MB">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
             </a>
           </div>
           <div class="dl-row">
             <span class="dl-name">PowerShell</span>
-            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.1/EnhancedExtract_0.1.1_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
+            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.2/EnhancedExtract_0.1.2_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
             <button class="icon-btn" type="button" data-copy="ps" aria-label="Copy the PowerShell install command">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 7h9v9H7zM4 13V4h9"/></svg>
             </button>
@@ -356,7 +356,7 @@ python cli.py jobs wait --timeout 60</code></pre>
           <div class="dl-row">
             <span class="dl-name">CLI zip</span>
             <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">12.5&nbsp;MB. Unpack and run <i>ee-engine.exe</i>, no install.</span></span>
-            <a class="icon-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.1/EnhancedExtract-CLI-0.1.1-windows-x64.zip" aria-label="Download the CLI zip, 12.5 MB">
+            <a class="icon-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.2/EnhancedExtract-CLI-0.1.2-windows-x64.zip" aria-label="Download the CLI zip, 12.5 MB">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
             </a>
           </div>
@@ -365,9 +365,9 @@ python cli.py jobs wait --timeout 60</code></pre>
       </div>
 
       <div class="hashes">
-        <p><span>Installer SHA-256</span> <code>0561f785c83e6e7ca5892f801058ca12b8e63034aded47c096b28296f8e44e33</code></p>
-        <p><span>CLI zip SHA-256</span> <code>e116643470770a64c13d6d994a733e30ef7d34e87a3245b82a6349c2fe9a8b69</code></p>
-        <p class="get-links"><a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.1">Release notes</a> <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">Source on GitHub</a></p>
+        <p><span>Installer SHA-256</span> <code>5c2acd5b3fc772f205db8d4993811c1bf38d942d4e0636665af39f59516c15ac</code></p>
+        <p><span>CLI zip SHA-256</span> <code>bdaf5f238d9c13d2e12736e59a7e64a4ddb0762b5c0618f1a0a1ae924e9296a1</code></p>
+        <p class="get-links"><a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.2">Release notes</a> <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">Source on GitHub</a></p>
       </div>
     </section>
     <section class="support" id="support" aria-labelledby="support-title">
@@ -389,7 +389,7 @@ python cli.py jobs wait --timeout 60</code></pre>
     <div class="wrap foot-inner">
       <div class="foot-top">
         <img src="assets/media/title-ink.png" width="1018" height="276" alt="EnhancedExtract" class="foot-mark">
-        <p>Version 0.1.1 for Windows 10 and 11. Desktop app in Tauri and Rust over a Python engine.</p>
+        <p>Version 0.1.2 for Windows 10 and 11. Desktop app in Tauri and Rust over a Python engine.</p>
         <p>Found a bug, or a set it can’t handle? Tell us.</p>
         <a class="tlink tlink-ink foot-up" href="#top">Back to top</a>
       </div>

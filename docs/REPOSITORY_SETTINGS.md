@@ -12,7 +12,7 @@ Suggested topics:
 
 `windows`, `archive-extractor`, `zip`, `7zip`, `rar`, `disk-space`, `file-explorer`, `cli`, `tauri`
 
-Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.1
+Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.2
 
 The landing-page source is in `site/`. It is included in the repository; this release does not enable GitHub Pages hosting. To preview it locally, run `python -m http.server 8765 --bind 127.0.0.1 --directory site`.
 
