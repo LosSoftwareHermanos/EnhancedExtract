@@ -12,6 +12,6 @@ Suggested topics:
 
 `windows`, `archive-extractor`, `zip`, `7zip`, `rar`, `disk-space`, `file-explorer`, `cli`, `tauri`
 
-Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.0
+Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.1
 
 No open-source licence has been selected. Public visibility does not itself grant an open-source licence, and bundled third-party components keep their own terms.
