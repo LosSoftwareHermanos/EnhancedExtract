@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>EnhancedExtract landing wireframe</title>
+<style>
+@font-face { font-family: "Oxanium"; font-weight: 700; src: url(assets/fonts/oxanium-latin-700-normal.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Oxanium"; font-weight: 600; src: url(assets/fonts/oxanium-latin-600-normal.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Bai Jamjuree"; font-weight: 400; src: url(assets/fonts/bai-jamjuree-latin-400-normal.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Bai Jamjuree"; font-weight: 600; src: url(assets/fonts/bai-jamjuree-latin-600-normal.woff2) format("woff2"); font-display: swap; }
+
+:root {
+  --doc: #0e0f14; --paper: #16171e; --wire: #22232c; --wire-2: #2c2d38; --line: #3a3b48;
+  --ink: #ecece8; --soft: #b4b4ae; --muted: #85869a;
+  --yellow: #fcee0a; --cyan: #00e5f0; --red: #ff4655;
+  --display: "Oxanium", "Bai Jamjuree", sans-serif; --text: "Bai Jamjuree", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc); color: var(--ink); font: 400 16px/1.55 var(--text); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; color: var(--soft); }
+.doc { max-width: 1480px; margin: 0 auto; padding: 48px clamp(16px, 3vw, 40px) 120px; }
+
+/* ---------- document header ---------- */
+.doc-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 48px; align-items: end; margin-bottom: 56px; }
+.doc-head h1 { font: 700 clamp(40px, 5vw, 72px)/1 var(--display); letter-spacing: -.03em; margin: 0 0 16px; }
+.doc-head p { margin: 0; color: var(--soft); max-width: 60ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: 14px; color: var(--soft); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 22px; height: 16px; display: inline-block; }
+.sw-img { background: var(--wire-2); background-image: linear-gradient(45deg, transparent 48%, var(--line) 49% 51%, transparent 52%), linear-gradient(-45deg, transparent 48%, var(--line) 49% 51%, transparent 52%); }
+.sw-vid { background: var(--wire-2); outline: 2px solid var(--cyan); outline-offset: -2px; }
+.sw-live { background: var(--wire); outline: 2px dashed var(--cyan); outline-offset: -2px; }
+.sw-y { background: var(--yellow); }
+.sw-ui { background: var(--wire-2); outline: 1px solid var(--soft); outline-offset: -1px; }
+
+.brief { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 72px; }
+.brief > div { background: var(--paper); padding: 24px; }
+.brief h2 { font: 700 20px/1.2 var(--display); margin: 0 0 12px; }
+.brief p, .brief li { color: var(--soft); font-size: 15px; margin: 0 0 8px; }
+.brief ul { margin: 0; padding-left: 18px; }
+.brief .wide { grid-column: 1 / -1; }
+.idea { font: 600 clamp(20px, 2vw, 28px)/1.3 var(--display); color: var(--ink); margin: 0 0 8px; }
+.idea b { color: var(--yellow); font-weight: 600; }
+.argument { counter-reset: arg; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 32px; }
+.argument li { color: var(--soft); font-size: 15px; }
+.argument b { color: var(--ink); }
+.palette { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip-c { width: 92px; }
+.chip-c i { display: block; height: 40px; }
+.chip-c span { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.specimen-d { font: 700 40px/1 var(--display); letter-spacing: -.03em; margin: 4px 0 2px; }
+.specimen-t { font: 400 17px/1.5 var(--text); color: var(--soft); }
+
+/* ---------- section rows ---------- */
+.sec { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 24px 32px; padding: 56px 0; border-top: 1px solid var(--wire-2); }
+.sec-head { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.sec-head h2 { font: 700 clamp(26px, 2.6vw, 36px)/1.1 var(--display); margin: 0; letter-spacing: -.01em; }
+.sec-head h2 small { display: block; font: 400 15px/1.4 var(--text); color: var(--muted); margin-top: 8px; letter-spacing: 0; }
+.claim { margin: 0; color: var(--soft); }
+.claim b { color: var(--ink); }
+.label { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.notes { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.notes > div { background: var(--paper); padding: 18px 20px; font-size: 14.5px; color: var(--soft); }
+.notes h3 { margin: 0 0 8px; font: 600 15px/1.3 var(--text); color: var(--ink); }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes li + li { margin-top: 4px; }
+
+/* ---------- wire frames: sized in cqw so the desktop frame behaves like a 1440 viewport ---------- */
+.frame { container-type: inline-size; background: var(--paper); position: relative; overflow: hidden; }
+.desk { aspect-ratio: auto; }
+.phone { width: 250px; justify-self: end; border-radius: 22px; outline: 6px solid var(--wire); outline-offset: 0; }
+.pad { padding: 2.2cqw; }
+.phone .pad { padding: 16px 14px; }
+
+.box, .img, .vid, .live, .ui { background: var(--wire); color: var(--muted); font-size: max(11px, .85cqw); line-height: 1.3; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; position: relative; }
+.img { background-color: var(--wire-2); background-image: linear-gradient(to top right, transparent calc(50% - 1px), var(--line) 50%, transparent calc(50% + 1px)), linear-gradient(to bottom right, transparent calc(50% - 1px), var(--line) 50%, transparent calc(50% + 1px)); }
+.vid { background: var(--wire-2); outline: 2px solid var(--cyan); outline-offset: -2px; color: var(--cyan); }
+.live { outline: 2px dashed var(--cyan); outline-offset: -2px; color: var(--cyan); }
+.ui { background: var(--wire-2); outline: 1px solid var(--soft); outline-offset: -1px; color: var(--soft); }
+.cut { clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+.yfield { background: var(--yellow); color: #0b0c12; }
+.yfield .box, .yfield .ui { background: rgba(11,12,18,.14); color: #0b0c12; outline-color: rgba(11,12,18,.5); }
+.yfield .live { background: rgba(11,12,18,.1); color: #0b0c12; outline-color: #0b0c12; }
+.yfield .t-body, .yfield .t-small { color: #2a2a20; }
+
+.t-disp { font: 700 9cqw/.98 var(--display); letter-spacing: -.035em; margin: 0; }
+.t-h2 { font: 700 5.2cqw/1 var(--display); letter-spacing: -.03em; margin: 0; }
+.t-stmt { font: 500 2.4cqw/1.28 var(--text); margin: 0; }
+.t-body { font: 400 max(11px, 1.25cqw)/1.45 var(--text); color: var(--soft); margin: 0; }
+.t-small { font: 400 max(10px, .95cqw)/1.4 var(--text); color: var(--muted); margin: 0; }
+.phone .t-disp { font-size: 12.5cqw; }
+.phone .t-h2 { font-size: 10cqw; }
+.phone .t-stmt { font-size: 6.6cqw; }
+.phone .t-body { font-size: 11.5px; }
+.phone .t-small { font-size: 10.5px; }
+.btnw { display: inline-flex; align-items: center; justify-content: center; background: var(--yellow); color: #0b0c12; font: 700 max(10px, 1.1cqw)/1 var(--display); padding: 1cqw 1.8cqw; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); white-space: nowrap; }
+.phone .btnw { font-size: 11px; padding: 10px 14px; }
+.btnw.ink { background: #0b0c12; color: var(--yellow); }
+.lnk { font-size: max(10px, 1cqw); text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+.phone .lnk { font-size: 11px; }
+.navw { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; }
+.navw .links { display: flex; gap: 2cqw; font-size: max(10px, 1cqw); color: var(--soft); }
+.mark { display: flex; align-items: center; gap: .8cqw; font: 700 max(10px, 1.1cqw)/1 var(--display); }
+.mark i { width: 2.4cqw; height: 2.4cqw; min-width: 18px; min-height: 18px; background: var(--yellow); display: inline-block; clip-path: polygon(20% 0, 100% 0, 100% 80%, 80% 100%, 0 100%, 0 20%); }
+.slot { display: inline-flex; vertical-align: baseline; width: 2.2em; height: .74em; margin-left: .18em; padding: 0; font-size: inherit; }
+.slot span { font: 400 13px/1.25 var(--text); letter-spacing: 0; padding: 0 8px; }
+.callout { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--cyan); color: #0b0c12; font: 700 12px/22px var(--text); text-align: center; z-index: 3; }
+.gl { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 1.4cqw; }
+.stack > * + * { margin-top: 1.4cqw; }
+.phone .stack > * + * { margin-top: 10px; }
+.center { text-align: center; }
+.rows { display: grid; gap: .9cqw; }
+.row3 { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr; gap: 1cqw; font-size: max(10px, 1.1cqw); color: var(--soft); }
+.row3 span:last-child { text-align: right; color: var(--ink); }
+.phone .row3 { font-size: 10.5px; grid-template-columns: 1fr 1fr; }
+.phone .row3 span:first-child { grid-column: 1 / -1; color: var(--muted); }
+.q { display: flex; justify-content: space-between; font: 400 max(11px, 1.55cqw)/1.3 var(--text); color: var(--ink); padding: .4cqw 0; }
+.q::after { content: "⌄"; color: var(--muted); }
+.q.open { background: var(--wire); padding: 1.4cqw 1.6cqw; margin: 0 -1.6cqw; display: block; }
+.q.open::after { content: none; }
+.q.open span { display: block; font-size: max(10px, 1.1cqw); color: var(--soft); margin-top: .8cqw; max-width: 48ch; }
+.phone .q { font-size: 12.5px; }
+.phone .q.open span { font-size: 11px; }
+.code { background: #0b0c12; font: 400 max(9px, .9cqw)/1.6 ui-monospace, Consolas, monospace; color: var(--soft); padding: 1.2cqw 1.4cqw; white-space: pre; overflow: hidden; }
+.phone .code { font-size: 9px; padding: 10px; }
+.parts { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+.parts i { height: 2.2cqw; background: #0b0c12; opacity: .85; }
+.parts i.del { opacity: .18; }
+.parts i.now { background: #fffbe0; outline: 2px solid #0b0c12; outline-offset: -2px; opacity: 1; }
+.parts i.wait { opacity: .35; }
+.phone .parts { grid-template-columns: repeat(12, 1fr); }
+.phone .parts i { height: 14px; }
+
+.end { margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.end > div { background: var(--paper); padding: 24px; }
+.end h2 { font: 700 22px/1.2 var(--display); margin: 0 0 12px; }
+.end li, .end p { color: var(--soft); font-size: 15px; }
+.end ol, .end ul { margin: 0; padding-left: 20px; }
+.end li + li { margin-top: 6px; }
+.sources a { color: var(--soft); }
+
+@media (max-width: 980px) {
+  .doc-head, .brief, .sec-head, .notes, .end, .argument { grid-template-columns: 1fr; }
+  .sec { grid-template-columns: 1fr; }
+  .phone { justify-self: start; }
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <header class="doc-head">
+    <div>
+      <h1>Landing page wireframe</h1>
+      <p>EnhancedExtract, one long page. Every section in order, desktop at 1440 on the left and phone at 390 on the right, with the real copy, the pictures it uses and what moves. Nothing here is styled yet: grey is structure, yellow marks the brand’s yellow fields.</p>
+    </div>
+    <div class="legend" aria-label="Legend">
+      <span><i class="sw sw-img"></i>Real app screenshot</span>
+      <span><i class="sw sw-vid"></i>Video loop from the launch film</span>
+      <span><i class="sw sw-live"></i>Interactive</span>
+      <span><i class="sw sw-ui"></i>Product control built in HTML</span>
+      <span><i class="sw sw-y"></i>Brand yellow field</span>
+    </div>
+  </header>
+
+  <div class="brief">
+    <div class="wide">
+      <h2>The idea</h2>
+      <p class="idea">On this page, <b>the 24-part RAR set that deletes itself as it unpacks</b> becomes <b>the sentence, the progress bar and the page’s one live thing</b>.</p>
+      <p>Direction dealt by taste-skill: “The sentence is the layout”, seed 514656895, with the app’s own palette and type kept. A competitor (WinRAR, 7-Zip) can’t print this page: none of them deletes parts as they go.</p>
+    </div>
+    <div class="wide">
+      <h2>The argument, one claim per section</h2>
+      <ol class="argument">
+        <li><b>1 Hero.</b> It unpacks huge games on a nearly full drive. Proof: the live space chips, the running app.</li>
+        <li><b>2 How it works.</b> Space comes back part by part. Proof: drag the job and watch both drives.</li>
+        <li><b>3 Safety.</b> Nothing is deleted until it’s safe. Proof: verify, flush, resume, the confirm dialog.</li>
+        <li><b>4 Explorer.</b> Start from any part with a right-click. Proof: type a file name, see what it does.</li>
+        <li><b>5 CLI.</b> Scripts and AI agents can drive it. Proof: a real terminal session.</li>
+        <li><b>6 Requirements.</b> 12 MB and nothing else to hunt for. Proof: the requirements table.</li>
+        <li><b>7 FAQ.</b> The six worries before pressing start, SmartScreen first.</li>
+        <li><b>8 Download.</b> One sentence with the choice in it, plus the SHA-256.</li>
+        <li><b>9 Footer.</b> The way to reach the maker, set as the headline.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Colour, from the app</h2>
+      <div class="palette">
+        <div class="chip-c"><i style="background:#0b0c12;outline:1px solid #2c2d38"></i><span>Ground #0b0c12</span></div>
+        <div class="chip-c"><i style="background:#13141c"></i><span>Surface #13141c</span></div>
+        <div class="chip-c"><i style="background:#f1f1ee"></i><span>Ink #f1f1ee</span></div>
+        <div class="chip-c"><i style="background:#fcee0a"></i><span>Yellow #fcee0a</span></div>
+        <div class="chip-c"><i style="background:#00e5f0"></i><span>Cyan #00e5f0</span></div>
+        <div class="chip-c"><i style="background:#ff4655"></i><span>Red #ff4655</span></div>
+      </div>
+      <p style="margin-top:12px">Yellow on the action and as two whole section fields (like the app’s hero panel). Cyan only for “happening now”. Red only for “disk full”.</p>
+    </div>
+    <div>
+      <h2>Type, from the app</h2>
+      <p class="specimen-d">Big games 7.77 GB</p>
+      <p>Oxanium 700: headlines and every number.</p>
+      <p class="specimen-t">Bai Jamjuree: running text, 17–18px.</p>
+      <p>Five sizes only. No monospace except real code. Cut-corner motif from the Σ logo on buttons, frames and fields.</p>
+    </div>
+    <div>
+      <h2>Rules it follows</h2>
+      <ul>
+        <li>What it is, for whom and the download in the first screen.</li>
+        <li>One primary action, same name everywhere.</li>
+        <li>Headlines two lines or fewer at every width.</li>
+        <li>No invented reviews, logos or user counts.</li>
+        <li>Unsigned beta stated up front, with a checksum.</li>
+        <li>No eyebrow labels, gradients, glass or icon card grids.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===================== 1 HERO ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>1 Navigation and hero<small>Composition: controls on the sentence</small></h2>
+      <p class="claim"><b>Claim:</b> it unpacks huge games on a nearly full drive. A stranger reads the headline, the sentence under it and the button in five seconds and knows what this is and what to do.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <div class="navw">
+          <span class="mark"><i></i>EnhancedExtract</span>
+          <span class="links"><span>How it works</span><span>Safety</span><span>Explorer</span><span>CLI</span><span>FAQ</span></span>
+          <span class="btnw">Download</span>
+        </div>
+        <div style="position:relative; margin: 9cqw 0 0; text-align:center">
+          <div class="ui cut" style="position:absolute; left:6cqw; top:-6.4cqw; width:20cqw; height:5cqw; transform:rotate(-3deg); justify-content:space-between; padding:0 1.4cqw"><span>Space needed on D:</span><b style="font:700 2cqw var(--display);color:var(--ink)">7.77 GB</b></div>
+          <div class="ui cut" style="position:absolute; right:6cqw; top:-6.4cqw; width:20cqw; height:5cqw; transform:rotate(2.5deg); justify-content:space-between; padding:0 1.4cqw"><span>Free on D: 12.00 GB</span><b style="color:#4cc38a">Fits</b></div>
+          <h3 class="t-disp">Big games<span class="slot vid cut"><span>film loop: parts draining</span></span><br>small drives</h3>
+          <div class="live cut" style="position:absolute; right:4cqw; bottom:-7cqw; width:22cqw; height:5cqw; transform:rotate(-2deg); justify-content:space-between; padding:0 1.4cqw"><span>Delete each part once it’s used</span><b>[ on ]</b></div>
+          <span class="callout" style="left:3cqw; top:-7cqw">a</span>
+          <span class="callout" style="right:2cqw; bottom:-6cqw">b</span>
+        </div>
+        <div class="stack center" style="margin-top:5cqw">
+          <p class="t-body" style="max-width:44ch; margin-inline:auto">EnhancedExtract unpacks multi-part RAR game sets on a nearly full Windows drive, deleting each part once its files are safely on disk.</p>
+          <div style="display:flex; gap:2cqw; justify-content:center; align-items:center"><span class="btnw">Download for Windows</span><span class="lnk">See how it works</span></div>
+          <p class="t-small">Free beta, 12 MB. Windows 10 and 11, x64.</p>
+        </div>
+        <div class="img cut" style="margin-top:4cqw; height:26cqw">App screenshot: extraction running, 42%, 10 of 24 parts already deleted. Rises into view; top third shows in the first screen.</div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <div class="navw"><span class="mark"><i></i></span><span class="btnw">Download</span></div>
+        <div class="ui cut" style="margin-top:30px; justify-content:space-between; padding:8px 10px"><span>Space needed</span><b style="color:var(--ink)">7.77 GB</b></div>
+        <h3 class="t-disp" style="margin-top:14px">Big games</h3>
+        <div class="vid cut" style="height:46px; margin:6px 0">film loop</div>
+        <h3 class="t-disp">small drives</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:12px">
+          <div class="ui cut" style="height:46px">Free 12.00 GB, Fits</div>
+          <div class="live cut" style="height:46px">Delete as used [on]</div>
+        </div>
+        <div class="stack" style="margin-top:14px">
+          <p class="t-body">EnhancedExtract unpacks multi-part RAR game sets on a nearly full Windows drive, deleting each part once its files are safely on disk.</p>
+          <span class="btnw" style="width:100%">Download for Windows</span>
+          <p class="t-small">Free beta, 12 MB. Windows 10 and 11, x64.</p>
+          <div class="img cut" style="height:120px">App screenshot</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>What moves</h3><ul><li>Each headline line rises from behind its baseline on load (the page’s one loud move).</li><li>The inline slot plays a muted loop of the launch film: 24 yellow parts draining.</li><li>The screenshot rises into place as you scroll.</li></ul></div>
+      <div><h3>Interaction (a, b)</h3><ul><li><b>b</b> Switch “Delete each part once it’s used”. On: chip <b>a</b> reads 7.77 GB and the free-space chip says Fits. Off: 53.10 GB and Won’t fit, in red.</li><li>The chips sit around the headline, never over its letters.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Value, audience and download in the first screen: the strongest above-the-fold pattern.</li><li>For technical users, showing the product beats claims, so the real app is in the first screen.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 2 HOW IT WORKS ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>2 How it works<small>Composition: stages as one bar, on a full yellow field</small></h2>
+      <p class="claim"><b>Claim:</b> space comes back part by part. <b>The page’s live thing:</b> drag through a sample job and watch the usual way run out of disk at 23% while EnhancedExtract never drops below 5.23 GB.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk yfield pad">
+        <div class="gl" style="align-items:end">
+          <h3 class="t-h2" style="grid-column:1 / 9">Watch the space come back</h3>
+          <p class="t-body" style="grid-column:9 / 13">A sample 24-part set, 47.30 GB packed and 52.10 GB unpacked, on a drive with 12 GB free. Drag through the job and watch both drives.</p>
+        </div>
+        <div style="display:flex; gap:6px; margin-top:4cqw; height:13cqw; position:relative">
+          <div class="box" style="flex:45; align-items:flex-start; justify-content:flex-start; font:600 1.5cqw var(--display); padding:1.4cqw">Reads 47.30 GB</div>
+          <div class="box" style="flex:48; flex-direction:column; align-items:stretch; justify-content:space-between; font:600 1.5cqw var(--display); padding:1.4cqw; text-align:left">
+            <span>Writes 52.10 GB, frees 47.30 GB</span>
+            <div class="parts"><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="box" style="flex:7; align-items:flex-start; font:600 1.2cqw var(--display); padding:1cqw">Secs</div>
+          <span style="position:absolute; left:65%; top:5cqw; bottom:-1cqw; width:3px; background:#0b0c12"></span>
+          <span class="callout" style="left:63.6%; top:3cqw">c</span>
+        </div>
+        <div style="display:grid; grid-template-columns:45fr 48fr 7fr; gap:6px; margin-top:1.4cqw">
+          <p class="t-small"><b>First</b> every part’s checksum is tested. Nothing is written or deleted.</p>
+          <p class="t-small"><b>Then</b> each part is unpacked. Once its files are flushed, it is deleted and the journal records it.</p>
+          <p class="t-small"><b>Last</b> the journal goes.</p>
+        </div>
+        <div class="live" style="margin-top:3cqw; height:4cqw; justify-content:space-between; padding:0 1.6cqw"><span>Job progress: range slider, full width, keyboard and thumb friendly</span><span class="btnw ink">Play</span></div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1.4cqw; margin-top:2.4cqw">
+          <div class="box" style="flex-direction:column; align-items:flex-start; padding:1.6cqw; height:10cqw"><span>Extracting</span><b style="font:700 4cqw/1 var(--display)">42%</b><span>506 of 1,204 files, 14 of 24 parts left</span></div>
+          <div class="box" style="flex-direction:column; align-items:flex-start; padding:1.6cqw; height:10cqw"><span>Free on D: with EnhancedExtract</span><b style="font:700 4cqw/1 var(--display)">9.83 GB</b><span>Lowest of the whole job: 5.23 GB</span></div>
+          <div class="box" style="flex-direction:column; align-items:flex-start; padding:1.6cqw; height:10cqw; background:#0b0c12; color:var(--red)"><span style="color:#c6c6c0">Free on D: the usual way</span><b style="font:700 4cqw/1 var(--display)">Disk full</b><span style="color:#c6c6c0">Ran out at 23%. Every part stays until the end.</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone yfield pad">
+        <h3 class="t-h2">Watch the space come back</h3>
+        <p class="t-body" style="margin-top:8px">A sample 24-part set on a drive with 12 GB free.</p>
+        <div style="display:grid; gap:5px; margin-top:12px">
+          <div class="box" style="height:80px; justify-content:flex-start; align-items:flex-start">Reads 47.30 GB<br>First: checksums</div>
+          <div class="box" style="height:110px; flex-direction:column; align-items:stretch; justify-content:space-between"><span style="text-align:left">Writes 52.10, frees 47.30<br>Then: unpack, delete</span><div class="parts"><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="del"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <div class="box" style="height:34px; justify-content:flex-start">Seconds. Last: journal goes</div>
+        </div>
+        <div class="live" style="height:44px; margin-top:10px">Slider + Play</div>
+        <div style="display:grid; gap:6px; margin-top:10px">
+          <div class="box" style="height:52px">42%, 14 parts left</div>
+          <div class="box" style="height:52px">EnhancedExtract: 9.83 GB free</div>
+          <div class="box" style="height:52px; background:#0b0c12; color:var(--red)">Usual way: Disk full</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>The live thing (c)</h3><ul><li>The playhead moves through three stages; widths follow the bytes each stage moves.</li><li>Inside “Writes”, the app’s own 24-part strip: parts fill, then strike out as they are deleted.</li><li>Play runs the whole job in about 8 seconds; the slider works with arrow keys.</li></ul></div>
+      <div><h3>Numbers</h3><ul><li>From the app’s demo set (Ashen Tide). 12 GB free is the scenario.</li><li>Simplified: one part per step. The section says “sample set” so nobody reads it as a benchmark.</li></ul></div>
+      <div><h3>Without JavaScript</h3><ul><li>Shows the 42% state as a still, with all three readouts filled in.</li><li>Reduced motion: Play jumps instead of animating.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 3 SAFETY ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>3 Safety<small>Composition: paragraph with picture words</small></h2>
+      <p class="claim"><b>Claim:</b> nothing is deleted until it’s safe. Deleting someone’s 47 GB download is the real fear, so trust is built here, not with badges.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <h3 class="t-h2">Nothing goes until it’s safe</h3>
+        <p class="t-stmt" style="margin-top:3cqw; max-width:84cqw">Every part’s checksum is tested <span class="ui cut" style="display:inline-flex; width:4.4cqw; height:2.2cqw; vertical-align:-.3cqw">on</span> before a byte is written. A part is deleted only after its files are flushed <span class="ui cut" style="display:inline-flex; width:4.4cqw; height:2.2cqw; vertical-align:-.3cqw">▮▮▯▯</span> to disk. Stop halfway and it resumes <span class="ui cut" style="display:inline-flex; width:6cqw; height:2.2cqw; vertical-align:-.3cqw">Resume</span> from the parts that are left.</p>
+        <div class="gl" style="margin-top:5cqw; align-items:start">
+          <div class="img cut" style="grid-column:1 / 7; height:22cqw">App screenshot: “Delete parts while extracting?” confirm dialog with the tick box</div>
+          <div class="stack" style="grid-column:8 / 12">
+            <p class="t-body">Early mode frees each part as soon as it is read, so it needs less room. If that run stops, the file being extracted can be lost, so it asks for its own tick first.</p>
+            <p class="t-body">Output never overwrites anything: if Game exists, you get Game (2). Passwords go over stdin, never onto a command line.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Nothing goes until it’s safe</h3>
+        <p class="t-stmt" style="margin-top:10px">Every part’s checksum is tested <span class="ui" style="display:inline-flex;width:28px;height:14px;padding:0"></span> before a byte is written. A part is deleted only after its files are flushed <span class="ui" style="display:inline-flex;width:28px;height:14px;padding:0"></span> to disk. Stop halfway and it resumes <span class="ui" style="display:inline-flex;width:34px;height:14px;padding:0"></span> from the parts left.</p>
+        <div class="img cut" style="height:110px; margin-top:12px">Confirm dialog</div>
+        <p class="t-body" style="margin-top:10px">Early mode frees parts sooner…</p>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Picture words</h3><ul><li>Three tiny real controls sit inline in the paragraph: the verify switch, a strip of parts, the Resume button. They are the only emphasis.</li><li>The paragraph stays at statement size (36px max), three lines on desktop.</li></ul></div>
+      <div><h3>What moves</h3><ul><li>Heading, paragraph, then screenshot enter in turn, 70ms apart, once.</li><li>The inline switch flips on as it scrolls in.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Specific mechanisms (“flushed”, “journal”) persuade a technical reader more than “safe and secure”.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 4 EXPLORER ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>4 Right-click in Explorer<small>Composition: a headline you can type into</small></h2>
+      <p class="claim"><b>Claim:</b> start from any part, straight from Explorer. Type or pick a file name and the page answers the way the app would.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <h3 class="t-h2" style="font-size:3.6cqw">Right-click any part</h3>
+        <div class="live" style="margin-top:2cqw; height:9cqw; justify-content:flex-start; padding-left:1cqw"><span style="font:700 6.6cqw/1 var(--display); color:var(--ink); letter-spacing:-.03em">Ashen.Tide.part07.rar▍</span></div>
+        <span class="callout" style="right:3cqw; top:9cqw">d</span>
+        <div class="gl" style="margin-top:3cqw; align-items:start">
+          <div class="stack" style="grid-column:1 / 6">
+            <div class="ui" style="flex-direction:column; align-items:stretch; padding:1.4cqw; gap:.8cqw; text-align:left">
+              <div class="row3" style="grid-template-columns:1fr 2fr"><span>Starts from</span><span>Ashen.Tide.part01.rar</span></div>
+              <div class="row3" style="grid-template-columns:1fr 2fr"><span>Extracts to</span><span>D:\Downloads\Ashen.Tide</span></div>
+              <div class="row3" style="grid-template-columns:1fr 2fr"><span>In the menu</span><span>Extract, Extract and free space, Open dashboard</span></div>
+            </div>
+            <div class="code">python cli.py rar extract "…part01.rar" --delete --dry-run</div>
+            <p class="t-small">Try: <u>Cinder.Pass.part1.rar</u> &nbsp; <u>Vigil.of.Ostra.iso</u> &nbsp; <u>Kestrel.Run.v2.0.zip</u></p>
+          </div>
+          <div class="vid cut" style="grid-column:7 / 13; height:20cqw">Film loop: right-click a part, Show more options, EnhancedExtract submenu</div>
+        </div>
+        <p class="t-small" style="margin-top:2cqw">On Windows 11 the entries sit under Show more options, or Shift + right-click. Your default archive app stays as it is.</p>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Right-click any part</h3>
+        <div class="live" style="height:44px; margin-top:10px; justify-content:flex-start"><b style="font:700 15px var(--display); color:var(--ink)">Ashen.Tide.part07…</b></div>
+        <div class="ui" style="height:84px; margin-top:8px">Answer rows</div>
+        <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px"><span class="box" style="height:36px">Cinder…part1</span><span class="box" style="height:36px">Vigil.iso</span><span class="box" style="height:36px">….zip</span></div>
+        <div class="vid cut" style="height:110px; margin-top:10px">Film loop</div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Interaction (d)</h3><ul><li>The big line is a real text input. Typing re-parses it live.</li><li><code>part07</code> resolves to <code>part01</code> with the same zero padding.</li><li><code>.iso</code> answers with the ISO install route (admin, WinFsp).</li><li><code>.zip</code> or <code>.7z</code> answers honestly: not supported yet.</li></ul></div>
+      <div><h3>Pictures</h3><ul><li>Launch film, 5-second right-click loop, muted, paused off screen.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Shows the most useful shortcut without a paragraph of instructions; the control explains itself.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 5 CLI ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>5 CLI for scripts and agents<small>Composition: statement left, proof right</small></h2>
+      <p class="claim"><b>Claim:</b> the app is one caller of a plain engine that scripts and AI agents can drive safely.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <div class="gl" style="align-items:start">
+          <div class="stack" style="grid-column:1 / 6">
+            <h3 class="t-h2" style="font-size:4.4cqw">Scripts and agents welcome</h3>
+            <p class="t-body">The app is one caller of a plain command-line engine. Every input is a flag and nothing ever prompts. With --json, the last line is always the result, carrying the exact command to run next.</p>
+            <div class="code">python cli.py scan D:\Downloads
+python cli.py rar extract Game.part1.rar --delete --dry-run
+python cli.py rar extract Game.part1.rar --delete --yes --background
+python cli.py jobs wait --timeout 60</div>
+            <p class="t-small">Deleting needs --yes. Without it the engine stops with exit code 6 and prints the plan.</p>
+          </div>
+          <div class="img cut" style="grid-column:7 / 13; height:30cqw">Real terminal capture: system check, scan, dry run, background job, exit code 0</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Scripts and agents welcome</h3>
+        <p class="t-body" style="margin-top:8px">The app is one caller of a plain command-line engine…</p>
+        <div class="code" style="margin-top:8px">python cli.py scan D:\…
+python cli.py rar extract …</div>
+        <div class="img cut" style="height:120px; margin-top:10px">Terminal capture</div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Code</h3><ul><li>The only monospace on the page is real commands. Code block scrolls sideways on a phone instead of wrapping.</li></ul></div>
+      <div><h3>What moves</h3><ul><li>Text, code, then capture enter in turn, once.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Developer audiences trust real output over feature lists. The <code>--yes</code> rule shows the safety model reaches agents too.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 6 REQUIREMENTS ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>6 Requirements<small>Composition: statement, table pushed right</small></h2>
+      <p class="claim"><b>Claim:</b> 12 MB, and everything it needs ships with it. Answers “will this work on my PC?” before the download button.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <h3 class="t-h2" style="font-size:4.4cqw; padding-left:3cqw">Small download, nothing<br>to go hunting for</h3>
+        <div class="gl" style="margin-top:5cqw; align-items:end">
+          <div class="img cut" style="grid-column:1 / 5; aspect-ratio:1/1">Quick extract window (real capture), bottom-aligned with the last row</div>
+          <p class="t-small" style="grid-column:7 / 8; align-self:start">Needs</p>
+          <div class="rows" style="grid-column:8 / 13; gap:1.3cqw">
+            <div class="row3"><span>System</span><span>Windows 10 or 11</span><span>64-bit</span></div>
+            <div class="row3"><span>Desktop app</span><span>WebView2</span><span>Built into Windows 11</span></div>
+            <div class="row3"><span>RAR sets</span><span>UnRAR</span><span>Bundled</span></div>
+            <div class="row3" style="margin-top:1.4cqw"><span>ISO installs</span><span>WinFsp driver</span><span>Installer bundled</span></div>
+            <div class="row3"><span>ISO installs</span><span>Administrator</span><span>Shortcut starts as admin</span></div>
+            <div class="row3"><span>RAR extraction</span><span>Administrator</span><span>Never needed</span></div>
+            <div class="row3" style="margin-top:1.4cqw"><span>Installer</span><span>For your user only</span><span>12.2 MB</span></div>
+            <div class="row3"><span>CLI zip</span><span>Python and UnRAR inside</span><span>12.5 MB</span></div>
+            <div class="row3"><span>Not yet</span><span>ZIP and 7z</span><span>RAR and ISO only</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Small download, nothing to hunt for</h3>
+        <div class="rows" style="margin-top:12px; gap:8px">
+          <div class="row3"><span>System</span><span>Windows 10 or 11</span><span>64-bit</span></div>
+          <div class="row3"><span>RAR sets</span><span>UnRAR</span><span>Bundled</span></div>
+          <div class="row3"><span>ISO installs</span><span>WinFsp</span><span>Bundled</span></div>
+          <div class="row3"><span>Installer</span><span>Per user</span><span>12.2 MB</span></div>
+        </div>
+        <div class="img cut" style="width:60%; margin:12px 0 0 auto; aspect-ratio:4/5">Quick extract</div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Table</h3><ul><li>A real table. Rows separated by space, grouped in threes.</li></ul></div>
+      <div><h3>Honesty</h3><ul><li>“Not yet: ZIP and 7z” stays in. Saying what it doesn’t do is part of being trusted.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Download pages that state OS, size and dependencies up front cut the “will it run?” bounce.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 7 FAQ ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>7 FAQ<small>Composition: wide heading, indented questions</small></h2>
+      <p class="claim"><b>Claim:</b> the six worries before pressing start. The SmartScreen one goes first because every visitor will hit it.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <h3 class="t-h2" style="font-size:5.4cqw">Before you press start</h3>
+        <div class="gl" style="margin-top:4cqw">
+          <div class="rows" style="grid-column:5 / 13; gap:2.2cqw">
+            <div class="q open">Will Windows warn me about the installer?<span>Probably. This beta isn’t code-signed yet, so SmartScreen can show “Windows protected your PC”. That means the file is new to Microsoft, not that it found anything. Check the SHA-256 first, then More info and Run anyway.</span></div>
+            <div class="q">What if the extraction stops halfway?</div>
+            <div class="q">Can I close the window while it runs?</div>
+            <div class="q">Does it need administrator rights?</div>
+            <div class="q">How do ISO installs save space?</div>
+            <div class="q">What does it change on my PC?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Before you press start</h3>
+        <div class="rows" style="margin-top:12px; gap:12px">
+          <div class="q open">Will Windows warn me?<span>Probably. This beta isn’t code-signed yet…</span></div>
+          <div class="q">Stops halfway?</div>
+          <div class="q">Close the window?</div>
+          <div class="q">Admin rights?</div>
+          <div class="q">ISO installs?</div>
+          <div class="q">What changes on my PC?</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Build</h3><ul><li>Native details and summary: keyboard and screen reader work for free.</li><li>The open row gets a one-step lighter tile, no lines between rows.</li></ul></div>
+      <div><h3>Answers</h3><ul><li>From the README and user guide, in plain words, with the PowerShell command to check the hash.</li></ul></div>
+      <div><h3>Why</h3><ul><li>Unsigned open-source tools that explain the warning before users see it keep them from bailing at “Windows protected your PC”.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 8 DOWNLOAD ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>8 Download<small>Composition: a sentence with a blank</small></h2>
+      <p class="claim"><b>Claim:</b> it’s free, small and verifiable. The choice of build sits inside the sentence; its last word is the button.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk pad">
+        <h3 class="t-h2" style="font-size:6cqw; line-height:1.25">Get the <span class="live cut" style="display:inline-flex; width:24cqw; height:6.4cqw; vertical-align:-1.2cqw; font:700 4.6cqw/1 var(--display); color:var(--soft); letter-spacing:-.03em">installer ▾</span><br>for Windows, <span class="btnw" style="font-size:5.4cqw; padding:0 2cqw; height:6.4cqw; vertical-align:-1.2cqw">free</span></h3>
+        <span class="callout" style="left:30cqw; top:3cqw">e</span>
+        <div class="gl" style="margin-top:3cqw">
+          <div class="stack" style="grid-column:1 / 9">
+            <p class="t-body">Version 0.1.0 beta 1, 12.2 MB. Installs for your user, adds the right-click menu, and bundles the engine.</p>
+            <p class="t-small">SHA-256 <code>c961cfc169d7…f8b9b7</code> <u>Copy</u></p>
+            <p class="t-small"><u>Release notes</u> &nbsp; <u>Source on GitHub</u></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone pad">
+        <h3 class="t-h2">Get the</h3>
+        <div class="live cut" style="height:44px; margin:6px 0">installer ▾</div>
+        <h3 class="t-h2">for Windows, <span class="btnw" style="font-size:20px">free</span></h3>
+        <p class="t-small" style="margin-top:10px">0.1.0 beta 1, 12.2 MB. SHA-256 c961cf… Copy</p>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Interaction (e)</h3><ul><li>Installer or CLI zip. The button link, size, description and SHA-256 swap to match.</li><li>Copy puts the full hash on the clipboard.</li></ul></div>
+      <div><h3>Same action everywhere</h3><ul><li>Every “Download” on the page scrolls here, so the visitor always sees the size, version and hash before the file starts.</li></ul></div>
+      <div><h3>Why</h3><ul><li>A published hash and a link to source are the trust signals that matter for an unsigned exe.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== 9 FOOTER ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>9 Footer<small>Composition: contact as the headline, on a full yellow field</small></h2>
+      <p class="claim"><b>Claim:</b> a beta wants bug reports. The page ends on the brand’s yellow, like the Σ logo, with the way to reach the maker set huge.</p>
+    </div>
+    <div>
+      <p class="label">Desktop 1440</p>
+      <div class="frame desk yfield pad" style="min-height:34cqw; display:flex; flex-direction:column; justify-content:space-between">
+        <div class="gl" style="align-items:start">
+          <div class="box" style="grid-column:1 / 3; height:3cqw">EnhancedExtract wordmark</div>
+          <p class="t-small" style="grid-column:4 / 7">A beta for Windows 10 and 11. Desktop app in Tauri and Rust over a Python engine.</p>
+          <p class="t-small" style="grid-column:7 / 10">Found a bug or a set it can’t handle? Tell us.</p>
+          <p class="t-small" style="grid-column:12 / 13; text-align:right"><u>Back to top</u></p>
+        </div>
+        <div>
+          <p style="font:700 9cqw/1 var(--display); letter-spacing:-.04em; margin:0; text-decoration:underline; text-decoration-thickness:.06em; text-underline-offset:.12em">Open an issue</p>
+          <div style="display:flex; justify-content:space-between; margin-top:2cqw" class="t-small"><span><u>GitHub</u> <u>User guide</u></span><span>UnRAR by RARLAB, WinFsp. Type: Oxanium, Bai Jamjuree</span><span>All rights reserved, 2026</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Phone 390</p>
+      <div class="frame phone yfield pad" style="min-height:320px; display:flex; flex-direction:column; justify-content:space-between">
+        <div class="stack"><div class="box" style="height:20px; width:60%">wordmark</div><p class="t-small">A beta for Windows 10 and 11…</p></div>
+        <div><p style="font:700 40px/1 var(--display); letter-spacing:-.04em; margin:0">Open an issue</p><p class="t-small" style="margin-top:10px">GitHub, User guide<br>Credits<br>All rights reserved, 2026</p></div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>No link-column sitemap</h3><ul><li>The page closes on one designed line, not six columns of links.</li></ul></div>
+      <div><h3>Credits</h3><ul><li>UnRAR, WinFsp and the fonts are credited here, as the README does.</li></ul></div>
+      <div><h3>Open question</h3><ul><li>“Open an issue” goes to GitHub Issues. If you’d rather show an email or a Discord, that line becomes it.</li></ul></div>
+    </div>
+  </section>
+
+  <div class="end">
+    <div>
+      <h2>Decisions I need from you</h2>
+      <ol>
+        <li><b>The repository is private.</b> Every Download, Release notes and GitHub link on this page would give visitors a 404. Make the repo (or just its releases) public, or tell me where the files will be hosted.</li>
+        <li><b>Footer contact.</b> GitHub Issues, an email address, or something else?</li>
+        <li><b>Headline.</b> “Big games / small drives” comes from your launch film. Keep it, or try another line?</li>
+        <li><b>ISO installs</b> are marked experimental in the release notes, so the page mentions them only in the requirements and FAQ. Want them louder?</li>
+      </ol>
+    </div>
+    <div class="sources">
+      <h2>Research behind it</h2>
+      <ul>
+        <li>Value, audience and one dominant action above the fold; aim for the purpose readable in about five seconds. <a href="https://codivox.pages.dev/blog/landing-page-design-best-practices-2026/">Codivox</a>, <a href="https://www.koji.so/docs/5-second-test-guide">Koji five-second test guide</a></li>
+        <li>Developer tools: show real output and supported environments rather than logos. <a href="https://dev.to/whoffagents/landing-pages-that-convert-for-developer-tools-patterns-that-actually-work-3c8k">DEV Community</a></li>
+        <li>Unsigned Windows exes: explain SmartScreen before users meet it, publish SHA-256 and the PowerShell check, link the source. <a href="https://jerrettdavis.github.io/McpManager/SMARTSCREEN_WARNING.html">McpManager guide</a>, <a href="https://github.com/laurentiu021/SystemManager/discussions/2347">SystemManager discussion</a></li>
+        <li>Dark interfaces: 4.5:1 for text, 3:1 for controls, avoid pure black. <a href="https://www.accessibilitychecker.org/blog/dark-mode-accessibility/">Accessibility Checker</a></li>
+        <li>Layout, type and motion rules: taste-skill’s study of 247 gallery sites.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

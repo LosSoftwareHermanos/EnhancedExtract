@@ -69,10 +69,10 @@ export function Num({ value, format }: { value: number; format: (n: number) => s
   return <span ref={el}>{format(from.current)}</span>;
 }
 
-/** Start-up: the Σ logo glitches in, the wordmark wipes across, then the app shows (about 1 s, once per launch). */
+/** Start-up: the Σ logo appears, the wordmark wipes across, a bar fills, then the app shows (about 0.8 s, once per launch). */
 export function Boot({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1150);
+    const t = setTimeout(onDone, 750);
     return () => clearTimeout(t);
   }, [onDone]);
   return (

@@ -6,11 +6,13 @@ SRC = os.path.abspath(os.path.join(SPECPATH, ".."))
 # Only what the app reads at runtime. Left out on purpose: EE (design sources, the
 # title art's copy is taken from it below), dev, logo, logs, deps\wheels, settings.json.
 datas = [
+    (os.path.join(SRC, "docs", "THIRD_PARTY_NOTICES.txt"), "."),
     (os.path.join(SRC, "fonts"), "fonts"),
     (os.path.join(SRC, "sounds"), "sounds"),
     (os.path.join(SRC, "EE", "title", "title2.png"), "title"),
     (os.path.join(SRC, "icon.ico"), "."),
     (os.path.join(SRC, "deps", "winfsp-2.1.25156.msi"), "deps"),   # driver for tab 2, installed on demand
+    (os.path.join(SRC, "deps", "7zip"), "7zip"),                    # zip, 7z, tar ... (LGPL; licence text beside it)
 ]
 binaries = [
     (r"C:\Program Files\WinRAR\UnRAR.exe", "."),    # freeware, may be shared on its own (WinRAR license 2a)
