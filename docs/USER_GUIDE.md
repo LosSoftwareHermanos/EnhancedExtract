@@ -2,11 +2,13 @@
 
 <a href="#readme"><img src="../docs/assets/banner.svg" width="100%" alt="EnhancedExtract: big games, small drives"></a>
 
-**Extract multi-part RAR sets and install games from ISOs on a nearly full drive.<br>Free archive space as files finish, and resume a stopped RAR extraction from the parts left.**
+**Extract multi-part RAR sets, ZIP, 7z, TAR and other common archives, and install games from ISOs on a nearly full drive.<br>Free archive space as files finish, and resume a stopped RAR extraction from the parts left.**
+
+> [Download EnhancedExtract 0.1.0 for Windows](https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.0). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
 
 <br>
 
-[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](../ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](../cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v1.3-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli)
+[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](../ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](../cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.0-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli)
 
 <br>
 
@@ -46,6 +48,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 | **ISO install** | room for the whole install, with the full ISO still on disk | `5 GB buffer + 2 GB` margin `+ any growth past the ISO's size` |
 | **Deleting RAR parts** | by hand, after it's done | safe: after every file in a part is extracted and flushed; early: as soon as the part is read |
 | **If RAR extraction stops** | source archives remain | safe: rerun to resume; early: files spanning deleted parts may be unrecoverable, with a warning and checkbox before starting |
+| **ZIP, 7z, TAR…** | the archive stays until you delete it | room for the unpacked files. 7-Zip cannot free anything while it reads, so with `--delete` the whole archive goes only after a verified, error-free extraction |
 
 > [!NOTE]
 > Space estimates come from [`extractor.space_needed`](../extractor.py) and [`isocore.space_needed`](../isocore.py), using the archive layout and your real drive. Safe deletion of a solid RAR set waits until extraction finishes, so it needs room for the whole output.
@@ -69,6 +72,12 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 - Passwords over **stdin**, never on a command line
 - Extract to another drive with `--dest`, keep or drop the parts
 
+### `▸` ZIP, 7z, TAR and more
+- ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and split sets (`.7z.001`, `.zip.001`, `.z01`) through **7-Zip**
+- `.tar.gz` and friends unpack in one streamed pass, with no temporary tar
+- Same screens, same commands (`archive inspect|verify|extract`), same JSON as RAR
+- `--delete` removes the archive only after a verified, error-free extraction; a corrupt one is never touched
+
 </td>
 <td width="50%" valign="top">
 
@@ -85,7 +94,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 <td width="50%" valign="top">
 
 ### `▸` Explorer
-- **Right-click a `.rar`** for a submenu with three actions
+- **Right-click a RAR, ZIP, 7z, TAR…** for a submenu with three actions
 - Compact quick-extract window, no dashboard
 - Existing output is never overwritten: `Game`, `Game (2)`, `Game (3)`…
 - Per-user, doesn't touch your default archive app
@@ -144,6 +153,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 | **Windows 10 / 11 x64** | everything | |
 | **WebView2** | the desktop app | ships with Windows 11 and current Windows 10 |
 | **UnRAR** | RAR sets | ✅ bundled. WinRAR's own copy is used first if WinRAR is installed |
+| **7-Zip** | ZIP, 7z, TAR and the other formats | ✅ bundled (`deps/7zip`, LGPL). An installed 7-Zip is used first |
 | **WinFsp** | ISO installs | ✅ installer bundled: `system install-winfsp` or the in-app button |
 | **fusepy** | ISO installs, **from source only** | ✅ inside the packaged engine. From source: `pip install fusepy` |
 | **Administrator** | ISO installs only (setup.exe elevates itself) | the app's shortcuts start it as admin; right-click extraction stays unelevated |
@@ -153,7 +163,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 1. Download **`EnhancedExtract_0.1.0_x64-setup.exe`** from [**Releases**](https://github.com/gustavofring1483369/EnhancedExtract/releases).
 2. Run it. It installs **for your user only**, no admin prompt, into `%LOCALAPPDATA%\EnhancedExtract`.
 3. Open **EnhancedExtract** from the Start menu and point the Library at your downloads folder. For ISOs, the set-up screen's **Before mounting** checklist shows whether WinFsp and admin rights are in place.
-4. Right-click any `.rar` → **Show more options** → **EnhancedExtract**.
+4. Right-click any archive (`.rar`, `.zip`, `.7z`, `.tar.gz`…) → **Show more options** → **EnhancedExtract**.
 
 > [!TIP]
 > Uninstalling from *Settings → Apps* removes the app and only its own right-click entries.
@@ -174,7 +184,7 @@ Needs **Node 20+**, the **Rust** toolchain (`rustup`, MSVC target) and the **MSV
 
 ### Option C — Terminal only
 
-No build step. Python and WinRAR (or `UnRAR.exe`) are enough for RAR sets.
+No build step. Python and WinRAR (or `UnRAR.exe`) are enough for RAR sets; 7-Zip (`7z.exe`, or the copy in `deps/7zip`) opens the other formats.
 
 ```powershell
 git clone https://github.com/gustavofring1483369/EnhancedExtract.git
@@ -221,7 +231,7 @@ The launch film's walkthrough: **5 steps + a shortcut**.
 > [!IMPORTANT]
 > ISO installs need an **administrator** app window (setup.exe elevates itself and can't see a drive mounted by a normal process). The installed shortcuts already start the app as admin; from source, the ISO screen offers **Restart as admin**.
 
-**Keys:** <kbd>Ctrl</kbd>+<kbd>O</kbd> opens a `.rar` or `.iso` · <kbd>F5</kbd> rescans the Library · drag a file onto the window to set it up · **Effects** in the rail turns the animated backdrop off.
+**Keys:** <kbd>Ctrl</kbd>+<kbd>O</kbd> opens an archive or `.iso` · <kbd>F5</kbd> rescans the Library · drag a file onto the window to set it up · **Effects** in the rail turns the animated backdrop off.
 
 <img src="../docs/assets/divider.svg" width="100%" alt="">
 
@@ -237,7 +247,7 @@ The launch film's walkthrough: **5 steps + a shortcut**.
 
 <p align="center"><img src="../docs/assets/explorer-menu.png" width="100%" alt="Windows 11 classic context menu with the EnhancedExtract submenu, next to the Extract and free space plan window"></p>
 
-The installer adds an **EnhancedExtract** submenu to every `.rar` (Windows 11: **Show more options**, or <kbd>Shift</kbd>+right-click):
+The installer adds an **EnhancedExtract** submenu to every `.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.tgz`, `.bz2`, `.xz`, `.zst`, `.001`, `.cab` and `.wim` (Windows 11: **Show more options**, or <kbd>Shift</kbd>+right-click):
 
 | Entry | What happens |
 |---|---|
@@ -250,12 +260,12 @@ The installer adds an **EnhancedExtract** submenu to every `.rar` (Windows 11: *
 <td width="45%"><img src="../docs/assets/explorer-done.png" alt="Quick extract finished"></td>
 <td valign="top">
 
-- Pick **any** part; `.part07.rar` resolves to the first volume, zero-padded or not.
+- Pick **any** part; `.part07.rar` resolves to the first volume, zero-padded or not. `.7z.003` resolves to `.7z.001` and `.z02` to the `.zip`.
 - Output never overwrites: `Game` exists → `Game (2)` → `Game (3)`.
 - Password-protected? The window asks, and the password goes over stdin.
 - Close the window and the job keeps running; the dashboard's **Jobs** screen follows it.
 - A second window on the same archive is refused while one is open.
-- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\.rar\shell\EnhancedExtract`. Your default archive app is untouched.
+- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\<.ext>\shell\EnhancedExtract`. Your default archive app is untouched.
 
 </td>
 </tr>
@@ -313,10 +323,10 @@ ee-engine.exe --cli <group> <command> [flags]           # engine shipped with th
 ### The loop
 
 ```powershell
-python cli.py scan D:\Downloads                                         # 1. find sets and ISOs
-python cli.py rar inspect D:\Downloads\Game.part1.rar --delete          # 2. sizes, space, `next`
-python cli.py rar extract D:\Downloads\Game.part1.rar --delete --dry-run   # 3. the plan, nothing changes
-python cli.py rar extract D:\Downloads\Game.part1.rar --delete --yes --background   # 4. go
+python cli.py scan D:\Downloads                                         # 1. find archives and ISOs
+python cli.py archive inspect D:\Downloads\Game.part1.rar --delete      # 2. sizes, space, `next` (RAR, zip, 7z, tar ...)
+python cli.py archive extract D:\Downloads\Game.part1.rar --delete --dry-run   # 3. the plan, nothing changes
+python cli.py archive extract D:\Downloads\Game.part1.rar --delete --yes --background   # 4. go
 python cli.py jobs wait --timeout 60                                    # 5. repeat while exit code is 7
 ```
 
@@ -327,7 +337,7 @@ python cli.py jobs wait --timeout 60                                    # 5. rep
 
 | Command | Does | Flags |
 |---|---|---|
-| `system check` | UnRAR, WinFsp, fusepy, admin rights | |
+| `system check` | UnRAR, 7-Zip, WinFsp, fusepy, admin rights | |
 | `system install-winfsp` | installs the bundled WinFsp driver (admin; no-op if present) | `--dry-run` |
 | `system install-fusepy` | `pip install fusepy` into this Python (no-op if present) | `--dry-run` |
 
@@ -338,25 +348,25 @@ python cli.py jobs wait --timeout 60                                    # 5. rep
 
 | Command | Does | Flags |
 |---|---|---|
-| `scan FOLDER` | lists RAR sets (first parts) and ISOs; reads no archive | `--depth N` (default 2) |
+| `scan FOLDER` | lists RAR sets (first parts), other archives (zip, 7z, tar…) and ISOs; reads no archive | `--depth N` (default 2) |
 | `schema` | every command, flag, example and exit code as one JSON document (~10 KB) | |
 
 </details>
 
 <details open>
-<summary><b><code>rar</code></b> — multi-part RAR sets</summary>
+<summary><b><code>archive</code></b> · <b><code>rar</code></b> — RAR sets, ZIP, 7z, TAR and more (<code>rar</code> runs the same commands)</summary>
 
 | Command | Does |
 |---|---|
-| `rar inspect ARCHIVE` | parts, sizes and the free space an extract needs |
-| `rar verify ARCHIVE` | tests every part's checksums; writes nothing |
-| `rar extract ARCHIVE` | verifies, then extracts; `--delete` uses safe deletion and a resume journal |
+| `archive inspect ARCHIVE` | parts, sizes and the free space an extract needs. RAR goes to UnRAR, everything else to 7-Zip |
+| `archive verify ARCHIVE` | tests every part's checksums; writes nothing |
+| `archive extract ARCHIVE` | verifies, then extracts; for RAR `--delete` uses safe deletion and a resume journal, for other formats it removes the archive after a clean extraction |
 
 | Flag | On | Meaning |
 |---|---|---|
 | `--dest DIR` | inspect, extract | output folder (default: beside the archive, named after it) |
-| `--delete` | inspect, extract | safe mode: delete a part once every file in it is extracted and flushed |
-| `--early-delete` | inspect, extract | with `--delete`, free each part as soon as it is read; interruption may lose files spanning deleted parts |
+| `--delete` | inspect, extract | RAR: safe mode, delete a part once every file in it is extracted and flushed. Other formats: delete the whole archive after a clean extraction |
+| `--early-delete` | inspect, extract | RAR only: with `--delete`, free each part as soon as it is read; interruption may lose files spanning deleted parts |
 | `--no-verify` | extract | skip the checksum pass |
 | `--ignore-space` | extract | start even if free space looks too low |
 | `--dry-run` | extract | check everything, print the `plan`, change nothing |
@@ -446,7 +456,7 @@ python cli.py iso install Game.iso --no-free --no-setup --background
 | `2` | bad arguments or input | run `fix` |
 | `3` | password needed or wrong | supply the password |
 | `4` | not enough free space | compare `needed` and `free` |
-| `5` | UnRAR, WinFsp, fusepy or admin rights missing | `system check`, follow the hints |
+| `5` | UnRAR, 7-Zip, WinFsp, fusepy or admin rights missing | `system check`, follow the hints |
 | `6` | a destructive step needs `--yes` | review the plan, then run `fix` |
 | `7` | job still running (`jobs wait` timed out) | wait again |
 | `130` | Ctrl+C / `jobs stop` | |
@@ -549,6 +559,7 @@ EnhancedExtract/
 ├─ cli.py            terminal front end: every command, --json, jobs, exit codes
 ├─ engine.py         entry point of ee-engine (CLI + virtual drive)
 ├─ extractor.py      RAR: list, verify, extract, delete-as-you-go
+├─ sevenzip.py       everything else (zip, 7z, tar ...) through 7-Zip
 ├─ isocore.py        ISO: checks, space maths, virtual drive process, setup verdict
 ├─ vdrive.py         WinFsp filesystem that frees the ISO behind setup
 ├─ sparse.py         NTFS sparse-file helpers
@@ -576,7 +587,7 @@ MP4 renders use Git LFS; run `git lfs install` before cloning, or `git lfs pull`
 existing checkout to download them. Local HyperFrames preview caches are ignored.
 
 ```powershell
-# engine (PyInstaller folder build, bundles UnRAR.exe and the WinFsp installer)
+# engine (PyInstaller folder build, bundles UnRAR.exe, 7-Zip and the WinFsp installer)
 build\build-engine.bat
 
 # desktop app + NSIS installer
@@ -584,13 +595,15 @@ cd ui
 npm install
 npm run build              # typecheck + Vite
 npm run tauri build        # -> src-tauri\target\release\bundle\nsis\EnhancedExtract_0.1.0_x64-setup.exe
+cd ..
+python build/package-release.py   # installer, CLI ZIP, notices and SHA256SUMS in build/dist/release-0.1.0
 
 # browser-only UI preview with a mock engine (no Rust needed): http://localhost:1420
 npm run dev                # #rar #rarJob #iso #isoJob #jobs open a screen directly
 ```
 
 ```powershell
-python -m unittest discover -s tests      # engine + CLI (RAR tests need WinRAR; ISO job test needs WinFsp + fusepy)
+python -m unittest discover -s tests      # engine + CLI (RAR tests need WinRAR; other-format tests need 7-Zip; ISO job test needs WinFsp + fusepy)
 cd ui\src-tauri; cargo test --lib         # engine bridge + Explorer integration
 ```
 
@@ -618,14 +631,14 @@ cd ui\src-tauri; cargo test --lib         # engine bridge + Explorer integration
 <summary><b>I don't see EnhancedExtract when I right-click a .rar</b></summary>
 <br>
 
-On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. They're registered for `.rar` only (not ZIP or 7z) and only for the user who ran the installer.
+On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. They're registered for the supported archive types (`.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.001` and more) and only for the user who ran the installer.
 </details>
 
 <details>
 <summary><b>"admin MISSING" in <code>system check</code></b></summary>
 <br>
 
-Only ISO installs need it. RAR extraction never does. Start the app from its shortcut (it runs as admin) or use an administrator terminal for `iso install`.
+Only ISO installs need it. Extracting archives never does. Start the app from its shortcut (it runs as admin) or use an administrator terminal for `iso install`.
 </details>
 
 <details>
@@ -646,7 +659,7 @@ The Library marks missing parts in red before you start, and verification (`rar 
 <summary><b>Does it support ZIP / 7z?</b></summary>
 <br>
 
-Not yet. The engine extracts RAR sets and installs from UDF ISOs.
+Yes. Version 0.1.0 supports ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and other 7-Zip formats, including split sets. RAR uses UnRAR; other formats use the bundled 7-Zip. For ZIP/7z/TAR, source archives are kept until extraction finishes cleanly. RAR-style incremental deletion and journal-based resume apply only to RAR.
 </details>
 
 <details>
@@ -663,6 +676,7 @@ Yes. Long work always runs as a detached engine job. Reopen the app and the **Jo
 ## `▚▚ 11` // CREDITS
 
 - **[UnRAR](https://www.rarlab.com/)** by Alexander Roshal / RARLAB, freeware, redistributed as permitted by its license.
+- **[7-Zip](https://www.7-zip.org/)** by Igor Pavlov. Its DLL, executable and licence notice are bundled for non-RAR archives. See [third-party notices](THIRD_PARTY_NOTICES.txt).
 - **[WinFsp](https://winfsp.dev/)** by Bill Zissimopoulos, and **[fusepy](https://github.com/fusepy/fusepy)**.
 - **[Tauri](https://tauri.app/)**, **[React](https://react.dev/)**, **[Vite](https://vite.dev/)**.
 - Type: **Oxanium**, **Bai Jamjuree** and **Rajdhani**, all under the SIL Open Font License ([`fonts/OFL.txt`](../fonts/OFL.txt)).

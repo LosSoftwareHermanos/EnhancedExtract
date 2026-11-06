@@ -27,7 +27,9 @@ def tearDownModule():
 
 
 def run(*args, stdin=None):
-    return subprocess.run([sys.executable, os.path.join(APP, "cli.py"), *args], input=stdin, env=ENV,
+    engine = os.environ.get("EE_TEST_ENGINE")
+    command = [engine, "--cli"] if engine else [sys.executable, os.path.join(APP, "cli.py")]
+    return subprocess.run([*command, *args], input=stdin, env=ENV,
                           capture_output=True, text=True, encoding="utf-8")
 
 
@@ -248,6 +250,300 @@ class RarCli(unittest.TestCase):
         code, events = cli("rar", "extract", first, "--dest", os.path.join(self.tmp, "out"), "--delete", "--yes")
         self.assertEqual(code, 1)
         self.assertEqual(events[-1]["parts_left"], 5)
+
+
+def seven_zip():
+    sys.path.insert(0, APP)
+    try:
+        import sevenzip
+        return sevenzip.find_7z()
+    except Exception:
+        return None
+    finally:
+        sys.path.remove(APP)
+
+
+@unittest.skipUnless(seven_zip(), "needs 7-Zip (7z.exe) to read and build test archives")
+class OtherFormatsCli(unittest.TestCase):
+    """zip, 7z, tar.gz, split sets and passwords, through 7-Zip. Zip and tar.gz test archives are
+    built with Python's own libraries, so they do not depend on the tool being tested."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.src = os.path.join(self.tmp, "src")
+        os.makedirs(os.path.join(self.src, "Ünï"))
+        self.payload = {"a.txt": b"hello", os.path.join("Ünï", "big.bin"): os.urandom(2_500_000)}
+        for name, data in self.payload.items():
+            with open(os.path.join(self.src, name), "wb") as f:
+                f.write(data)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def zip(self, name="Pack.zip"):
+        import zipfile
+        path = os.path.join(self.tmp, name)
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+            for n in self.payload:
+                z.write(os.path.join(self.src, n), n.replace(os.sep, "/"))
+        return path
+
+    def tar_gz(self, name="Pack.tar.gz"):
+        import tarfile
+        path = os.path.join(self.tmp, name)
+        with tarfile.open(path, "w:gz") as t:
+            t.add(self.src, arcname=".")
+        return path
+
+    def seven(self, *flags, name="Pack.7z"):
+        path = os.path.join(self.tmp, name)
+        subprocess.run([seven_zip(), "a", *flags, path, os.path.join(self.src, "*"), "-bso0", "-bsp0"], check=True)
+        return path
+
+    def assert_extracted(self, out_dir):
+        for name, data in self.payload.items():
+            with open(os.path.join(out_dir, name), "rb") as f:
+                self.assertEqual(f.read(), data, name)
+
+    def test_zip_extracts_with_the_same_result_fields_as_rar(self):
+        out = os.path.join(self.tmp, "out")
+        code, events = cli("archive", "extract", self.zip(), "--dest", out)
+        self.assertEqual(code, 0, events[-1])
+        self.assert_extracted(out)
+        result = events[-1]
+        self.assertEqual((result["dest"], result["parts"], result["parts_left"]), (out, 1, 1))
+        self.assertEqual({e["phase"] for e in events if e["type"] == "progress"}, {"verifying", "extracting"})
+        self.assertEqual(events[-2]["type"], "progress")
+        self.assertEqual(events[-2]["overall"], 100.0)
+
+    def test_rar_group_takes_other_formats_too(self):
+        out = os.path.join(self.tmp, "out")
+        self.assertEqual(cli("rar", "extract", self.zip(), "--dest", out)[0], 0)
+        self.assert_extracted(out)
+
+    def test_7z_and_tar_gz(self):
+        for make in (self.seven, self.tar_gz):
+            out = os.path.join(self.tmp, "out-" + make.__name__)
+            code, events = cli("archive", "extract", make(), "--dest", out)
+            self.assertEqual(code, 0, (make.__name__, events[-1]))
+            self.assert_extracted(out)
+
+    def test_tar_gz_counts_the_files_inside_the_tar(self):
+        code, events = cli("archive", "inspect", self.tar_gz())
+        self.assertEqual(code, 0)
+        archive = next(e for e in events if e["type"] == "archive")
+        self.assertEqual(archive["files"], 2)       # not 1 (the tar) and not counting folders
+        self.assertEqual(archive["format"], "gzip")
+
+    def test_default_destination_is_named_after_the_archive(self):
+        for name, folder in (("Pack.zip", "Pack"), ("Pack.tar.gz", "Pack"), ("My.Game.v2.zip", "My.Game.v2")):
+            path = self.zip(name) if name.endswith("zip") else self.tar_gz(name)
+            code, events = cli("archive", "inspect", path)
+            self.assertEqual(events[-1]["dest"], os.path.join(self.tmp, folder), name)
+
+    def test_split_set_opens_from_any_piece_and_missing_pieces_are_named(self):
+        self.seven("-v1m", name="Split.7z")
+        pieces = sorted(f for f in os.listdir(self.tmp) if f.startswith("Split.7z."))
+        self.assertGreaterEqual(len(pieces), 3)
+        code, events = cli("archive", "inspect", os.path.join(self.tmp, pieces[-1]))
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(len(next(e for e in events if e["type"] == "archive")["volumes"]), len(pieces))
+        found = next(e for e in cli("scan", self.tmp)[1] if e["type"] == "archive_set" and "Split" in e["first"])
+        self.assertTrue(found["first"].endswith("Split.7z.001"))
+        os.remove(os.path.join(self.tmp, pieces[1]))
+        code, events = cli("archive", "inspect", os.path.join(self.tmp, pieces[0]))
+        self.assertEqual(code, 1)
+        self.assertIn("Missing parts", events[-1]["error"])
+
+    def test_delete_needs_yes_and_removes_every_piece_only_after_success(self):
+        self.seven("-v1m", name="Split.7z")
+        first = os.path.join(self.tmp, "Split.7z.001")
+        pieces = [f for f in os.listdir(self.tmp) if f.startswith("Split.7z.")]
+        code, events = cli("archive", "extract", first, "--delete")
+        self.assertEqual(code, 6)
+        self.assertTrue(events[-1]["fix"].endswith("--yes"))
+        code, events = cli("archive", "extract", first, "--delete", "--dry-run")
+        plan = next(e for e in events if e["type"] == "plan")
+        self.assertEqual(len(plan["deletes"]), len(pieces))
+        self.assertTrue(events[-1]["needs_yes"])
+        self.assertTrue(all(os.path.exists(os.path.join(self.tmp, p)) for p in pieces))
+        out = os.path.join(self.tmp, "out")
+        code, events = cli("archive", "extract", first, "--dest", out, "--delete", "--yes")
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["parts_left"], 0)
+        self.assertFalse([f for f in os.listdir(self.tmp) if f.startswith("Split.7z.")])
+        self.assert_extracted(out)
+        code, events = cli("archive", "extract", first, "--dest", out, "--delete", "--yes")   # retried after success
+        self.assertEqual(code, 0, events[-1])
+        self.assertTrue(events[-1]["already_done"])
+
+    def test_a_corrupt_archive_is_never_deleted(self):
+        path = self.seven()
+        with open(path, "rb") as f:
+            data = bytearray(f.read())
+        data[len(data) // 2] ^= 0xFF
+        with open(path, "wb") as f:
+            f.write(data)
+        code, events = cli("archive", "extract", path, "--dest", os.path.join(self.tmp, "out"), "--delete", "--yes")
+        self.assertEqual(code, 1)
+        self.assertTrue(os.path.exists(path))
+
+    def test_password_goes_through_stdin_and_a_wrong_one_is_exit_3(self):
+        path = self.seven("-pSECRET", "-mhe=on")
+        code, events = cli("archive", "inspect", path)
+        self.assertEqual(code, 3)
+        self.assertIn("--password-stdin", events[-1]["fix"])
+        self.assertEqual(cli("archive", "inspect", path, "--password-stdin", stdin="WRONG\n")[0], 3)
+        out = os.path.join(self.tmp, "out")
+        code, events = cli("archive", "extract", path, "--dest", out, "--password-stdin", stdin="SECRET\n")
+        self.assertEqual(code, 0, events[-1])
+        self.assert_extracted(out)
+
+    def test_wrong_password_on_a_zip_whose_names_are_open_is_caught_before_writing(self):
+        path = self.seven("-tzip", "-pSECRET", name="Locked.zip")
+        out = os.path.join(self.tmp, "out")
+        self.assertEqual(cli("archive", "extract", path, "--dest", out)[0], 3)       # names open, still asks
+        code, events = cli("archive", "extract", path, "--dest", out, "--password-stdin", stdin="WRONG\n")
+        self.assertEqual(code, 3)
+        self.assertFalse(os.path.exists(os.path.join(out, "a.txt")))
+
+    def test_early_delete_is_for_rar_only(self):
+        code, events = cli("archive", "extract", self.zip(), "--delete", "--early-delete")
+        self.assertEqual(code, 2)
+        self.assertNotIn("--early-delete", events[-1]["fix"])
+
+    def test_not_an_archive_fails_cleanly(self):
+        path = os.path.join(self.tmp, "junk.zip")
+        with open(path, "wb") as f:
+            f.write(b"this is not a zip")
+        code, events = cli("archive", "inspect", path)
+        self.assertEqual(code, 1)
+        self.assertEqual(events[-1]["type"], "result")
+
+    def test_scan_lists_other_formats_next_to_rar_sets(self):
+        self.zip()
+        self.tar_gz()
+        code, events = cli("scan", self.tmp)
+        names = {os.path.basename(e["first"]): e["format"] for e in events if e["type"] == "archive_set"}
+        self.assertEqual(names, {"Pack.zip": "zip", "Pack.tar.gz": "gz"})
+        self.assertEqual(events[-1]["archives"], 2)
+        self.assertIn("archive inspect", next(e for e in events if e["type"] == "archive_set")["next"])
+
+    def test_scan_reports_missing_classic_zip_pieces(self):
+        # Scanning only uses names; it must warn before the user opens an incomplete set.
+        for name in ("Split.z01", "Split.z03", "Split.zip"):
+            with open(os.path.join(self.tmp, name), "wb") as f:
+                f.write(b"part")
+        code, events = cli("scan", self.tmp)
+        found = [e for e in events if e["type"] == "archive_set"]
+        self.assertEqual(code, 0)
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["missing"], [2])
+        self.assertEqual(found[0]["first"], os.path.join(self.tmp, "Split.zip"))
+
+    def test_compressed_tar_variants_and_standalone_streams(self):
+        import bz2
+        import gzip
+        import lzma
+        import tarfile
+        for suffix, mode in (("tar", "w"), ("tgz", "w:gz"), ("tar.bz2", "w:bz2"), ("txz", "w:xz")):
+            with self.subTest(format=suffix):
+                path = os.path.join(self.tmp, "Bundle." + suffix)
+                with tarfile.open(path, mode) as archive:
+                    archive.add(self.src, arcname=".")
+                dest = os.path.join(self.tmp, "out-" + suffix)
+                code, events = cli("archive", "extract", path, "--dest", dest)
+                self.assertEqual(code, 0, events[-1])
+                self.assert_extracted(dest)
+                self.assertGreaterEqual(events[-1]["unpacked"], sum(map(len, self.payload.values())))
+                self.assertEqual(events[-1]["files"], len(self.payload))
+                self.assertTrue(os.path.isfile(path))
+                self.assertFalse(os.path.exists(os.path.join(dest, "Bundle.tar")))
+        for suffix, compress in (("gz", gzip.compress), ("bz2", bz2.compress), ("xz", lzma.compress)):
+            with self.subTest(format=suffix):
+                data = self.payload["a.txt"]
+                path = os.path.join(self.tmp, "single.txt." + suffix)
+                with open(path, "wb") as f:
+                    f.write(compress(data))
+                dest = os.path.join(self.tmp, "out-" + suffix)
+                code, events = cli("archive", "extract", path, "--dest", dest)
+                self.assertEqual(code, 0, events[-1])
+                self.assertEqual(events[-1]["unpacked"], len(data))
+                with open(os.path.join(dest, "single.txt"), "rb") as f:
+                    self.assertEqual(f.read(), data)
+
+    def test_zip_background_job_preserves_whole_archive_progress(self):
+        path = self.zip()
+        dest = os.path.join(self.tmp, "background-out")
+        code, events = cli("archive", "extract", path, "--dest", dest, "--background")
+        self.assertEqual(code, 0, events[-1])
+        job = events[-1]["job"]
+        code, events = cli("jobs", "wait", job, "--timeout", "30")
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["result"]["format"], "zip")
+        self.assertTrue(events[-1]["progress"]["whole"])
+        self.assert_extracted(dest)
+        self.assertTrue(os.path.isfile(path))
+
+    def test_zstd_stream_and_compressed_tar(self):
+        try:
+            from compression import zstd
+        except ImportError:
+            self.skipTest("Python 3.14 compression.zstd is needed to create these independent fixtures")
+        import tarfile
+        data = self.payload["a.txt"]
+        path = os.path.join(self.tmp, "single.txt.zst")
+        with open(path, "wb") as f:
+            f.write(zstd.compress(data))
+        dest = os.path.join(self.tmp, "out-zstd")
+        code, events = cli("archive", "extract", path, "--dest", dest)
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["unpacked"], len(data))
+        with open(os.path.join(dest, "single.txt"), "rb") as f:
+            self.assertEqual(f.read(), data)
+        path = os.path.join(self.tmp, "Bundle.tar.zst")
+        with tarfile.open(path, "w:zst") as archive:
+            archive.add(self.src, arcname=".")
+        dest = os.path.join(self.tmp, "out-tar-zstd")
+        code, events = cli("archive", "extract", path, "--dest", dest)
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["files"], len(self.payload))
+        self.assert_extracted(dest)
+
+    def test_wim_extracts_unicode_files(self):
+        path = self.seven("-twim", name="Image.wim")
+        dest = os.path.join(self.tmp, "out-wim")
+        code, events = cli("archive", "extract", path, "--dest", dest)
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["format"], "wim")
+        self.assert_extracted(dest)
+
+    @unittest.skipUnless(shutil.which("makecab.exe"), "needs Windows makecab to build a CAB fixture")
+    def test_cab_from_windows_makecab(self):
+        path = os.path.join(self.tmp, "Payload.cab")
+        subprocess.run(["makecab.exe", "/D", "CompressionType=LZX", os.path.join(self.src, "a.txt"), path],
+                       check=True, capture_output=True)
+        dest = os.path.join(self.tmp, "out-cab")
+        code, events = cli("archive", "extract", path, "--dest", dest)
+        self.assertEqual(code, 0, events[-1])
+        with open(os.path.join(dest, "a.txt"), "rb") as f:
+            self.assertEqual(f.read(), self.payload["a.txt"])
+
+    def test_bundled_7zip_works_without_a_system_install(self):
+        from unittest.mock import patch
+        import sevenzip
+        bundled = os.path.join(APP, "deps", "7zip", "7z.exe")
+        if not os.path.isfile(bundled):
+            self.skipTest("bundled 7-Zip is absent from this source checkout")
+        with patch.object(sevenzip, "SYSTEM_DIRS", []):
+            self.assertEqual(os.path.normcase(sevenzip.find_7z()), os.path.normcase(bundled))
+            for make in (self.zip, self.tar_gz):
+                info = sevenzip.inspect(make())
+                dest = os.path.join(self.tmp, "bundled-" + make.__name__)
+                runner = sevenzip.Runner(log=lambda _: None, progress=lambda *args: None)
+                runner.verify(info)
+                runner.extract(info, dest)
+                self.assert_extracted(dest)
 
 
 @unittest.skipUnless(os.path.isfile(RAR), "needs WinRAR's Rar.exe to build test archives")
