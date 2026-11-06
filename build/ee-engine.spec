@@ -10,7 +10,9 @@ import os
 SRC = os.path.abspath(os.path.join(SPECPATH, ".."))
 
 datas = [
+    (os.path.join(SRC, "docs", "THIRD_PARTY_NOTICES.txt"), "."),
     (os.path.join(SRC, "deps", "winfsp-2.1.25156.msi"), "deps"),   # `system install-winfsp`
+    (os.path.join(SRC, "deps", "7zip"), "7zip"),                    # zip, 7z, tar ... (LGPL; licence text beside it)
 ]
 binaries = [
     (r"C:\Program Files\WinRAR\UnRAR.exe", "."),    # freeware, may be shared on its own (WinRAR license 2a)

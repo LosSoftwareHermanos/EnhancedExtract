@@ -20,6 +20,13 @@ const SETS = [
   { first: `${DL}\\Low.Orbit.part1.rar`, parts: 5, size: 9.8 * G, missing: [4] },
   { first: `${DL}\\Cinder.Pass.part1.rar`, parts: 3, size: 5.42 * G, missing: [] },
 ];
+// zip, 7z, tar ... (the engine runs these through 7-Zip: one percentage for the whole archive, nothing freed while reading)
+const OTHERS = [
+  { first: `${DL}\\Kestrel.Run.v2.0.zip`, format: "zip", parts: 1, size: 184 * 1024 ** 2, missing: [] as number[] },
+  { first: `${DL}\\Ashen.Tide.Soundtrack.7z.001`, format: "7z", parts: 3, size: 2.6 * G, missing: [] },
+  { first: `${DL}\\Pale.Harbor.Mods.tar.gz`, format: "gz", parts: 1, size: 612 * 1024 ** 2, missing: [] },
+];
+const isArc = (g?: string) => g === "rar" || g === "archive";
 const ISOS = [{ path: `E:\\Downloads\\Vigil.of.Ostra.iso`, size: 71.62 * G, was_freed: false }];
 const LOCKED = "Cinder.Pass";
 const PASSWORD = "harbor";
@@ -45,7 +52,7 @@ function snap(j: MockJob) {
   const t = now() - j.start;
   const frac = Math.min(1, t / j.seconds);
   if (!j.end && frac >= 1) {
-    const info = j.argv[0] === "rar" ? archive(j.argv[2]) : null;
+    const info = isArc(j.argv[0]) ? archive(j.argv[2]) : null;
     const dest = j.argv.includes("--dest") ? j.argv[j.argv.indexOf("--dest") + 1] : "D:\\Games\\Ashen Tide";
     j.end = { code: 0, fields: info ? { dest, files: info.files, unpacked: info.unpacked, parts: info.volumes.length,
       parts_left: j.argv.includes("--delete") ? 0 : info.volumes.length } : { setup_exit_code: 0, problems: [] } };
@@ -53,14 +60,15 @@ function snap(j: MockJob) {
   const state = j.end ? (j.end.code === 0 ? "done" : "failed") : "running";
   const s: any = { id: j.id, state, command: j.argv.join(" "), argv: j.argv, elapsed_s: Math.round(j.end ? j.seconds : t) };
   if (state === "running") {
-    if (j.argv[0] === "rar") {
+    if (isArc(j.argv[0])) {
       // Like the engine: an extract verifies first, and each phase counts 0-100 % on its own.
       const verifyFirst = j.argv[1] === "extract" && !j.argv.includes("--no-verify");
       const verify = j.argv[1] === "verify" || (verifyFirst && frac < 0.3);
       const [from, to] = verifyFirst ? (verify ? [0, 0.3] : [0.3, 1]) : [0, 1];
       const f = (frac - from) / (to - from);
       const parts = archive(j.argv[2]).volumes.length;
-      s.progress = { phase: verify ? "verifying" : "extracting", overall: +(f * 100).toFixed(1), part: Math.min(parts, Math.floor(f * parts) + 1), parts,
+      const whole = OTHERS.some((o) => o.first === j.argv[2]);
+      s.progress = { ...(whole ? { whole: true } : {}), phase: verify ? "verifying" : "extracting", overall: +(f * 100).toFixed(1), part: whole ? 1 : Math.min(parts, Math.floor(f * parts) + 1), parts: whole ? 1 : parts,
         part_percent: Math.round((f * parts % 1) * 100), files_done: verify ? 0 : Math.round(1204 * f), files: 1204, elapsed_s: Math.round(t),
         eta_s: f > 0.02 ? Math.round(j.seconds * (to - from) * (1 - f)) : null };
     } else {
@@ -85,6 +93,12 @@ function snap(j: MockJob) {
 const find = (id?: string) => (id ? jobs.find((j) => j.id === id || j.id.endsWith(id)) : jobs[0]);
 
 function archive(first: string) {
+  const other = OTHERS.find((o) => o.first === first);
+  if (other) {
+    const stem = other.first.replace(/\.001$/, "");
+    return { first: other.first, format: other.format, volumes: other.parts === 1 ? [other.first]
+      : Array.from({ length: other.parts }, (_, i) => `${stem}.${String(i + 1).padStart(3, "0")}`), files: 312, packed: other.size, unpacked: other.size * 1.4 };
+  }
   const set = SETS.find((s) => s.first === first) ?? SETS[0];
   const unpacked = set.size * 1.1015;
   return { first: set.first, volumes: Array.from({ length: set.parts }, (_, i) => set.first.replace(/part0*1\.rar$/i, `part${String(i + 1).padStart(2, "0")}.rar`)), files: 1204, packed: set.size, unpacked };
@@ -96,13 +110,14 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
   const val = (f: string) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
 
   if (a === "system" && b === "check")
-    return delay(ok({ unrar: true, winfsp: true, fusepy: true, admin: true, missing: [] }, [
+    return delay(ok({ unrar: true, sevenzip: true, winfsp: true, fusepy: true, admin: true, missing: [] }, [
       { type: "check", name: "unrar", ok: true, source: "WinRAR", msg: "unrar OK" }]));
   if (a === "system" && b === "install-fusepy")
     return delay(ok({ already_installed: true }, [{ type: "event", msg: "fusepy is already installed." }]));
   if (a === "scan")
-    return delay(ok({ folder: args[1], rar_sets: SETS.length, isos: ISOS.length }, [
-      ...SETS.map((s) => ({ type: "rar_set", ...s })), ...ISOS.map((i) => ({ type: "found_iso", ...i }))]), 400);
+    return delay(ok({ folder: args[1], rar_sets: SETS.length, archives: OTHERS.length, isos: ISOS.length }, [
+      ...SETS.map((s) => ({ type: "rar_set", ...s })), ...OTHERS.map((o) => ({ type: "archive_set", ...o })),
+      ...ISOS.map((i) => ({ type: "found_iso", ...i }))]), 400);
   if (a === "jobs" && b === "list") return delay(ok({ jobs: jobs.length }, jobs.map((j) => ({ type: "job", ...snap(j) }))), 120);
   if (a === "jobs" && b === "status") {
     const j = find(args[2]); if (!j) return fail(2, "No job matches.");
@@ -111,7 +126,7 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
   if (a === "jobs" && b === "logs") {
     const j = find(args[2]); if (!j) return fail(2, "No job matches.");
     const s = snap(j);
-    const evs: Ev[] = j.argv[0] === "rar"
+    const evs: Ev[] = isArc(j.argv[0])
       ? [{ type: "event", msg: "Verifying all parts (reads everything, writes nothing)..." },
          ...(j.end?.code === 1 ? [{ type: "log", msg: "Checksum error in Kestrel.Run.v2.0.part07.rar" }, { type: "error", msg: j.end.fields.error }]
            : Array.from({ length: Math.max(0, (s.progress?.part ?? 25) - 1) }, (_, k) => ({ type: "log", msg: `Deleted ${j.argv[2].replace(/part0*1\.rar$/i, `part${String(k + 1).padStart(2, "0")}.rar`)}` })))]
@@ -130,8 +145,25 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
     }
     return delay(ok({ state: "failed" }), 600);
   }
-  if (a === "rar") {
+  if (isArc(a)) {
     const first = args[2];
+    const other = OTHERS.find((o) => o.first === first);
+    if (other) {
+      // Every other format: the whole archive goes after a clean extraction, so --delete needs no extra room.
+      const info = archive(first);
+      const dest = val("--dest") ?? first.replace(/\.7z\.001$|\.tar\.gz$|\.zip$/i, "");
+      const needed = info.unpacked + 64 * 1024 ** 2;
+      const space = { type: "space", dest, needed, free: 82.7 * G, enough: true, mode: has("--delete") ? "after" : "keep", generic: true };
+      if (b === "inspect") return delay(ok({ parts: info.volumes.length, unpacked: info.unpacked, dest, resume: false, format: other.format }, [{ type: "archive", ...info }, space]), 300);
+      if (has("--background")) {
+        const id = stamp(0, Math.random().toString(16).slice(2, 6));
+        jobs.unshift({ id, argv: args.filter((x) => x !== "--background"), start: now(), seconds: 20 });
+        return delay(ok({ job: id, state: "running" }, [{ type: "event", msg: `Started background job ${id}.`, job: id }]));
+      }
+      if (b === "extract" && has("--dry-run"))
+        return delay(ok({ dry_run: true, dest, needs_yes: has("--delete"), mode: space.mode, resume: false },
+          [space, { type: "archive", ...info }, { type: "plan", steps: [], mode: space.mode, resume: false, done: 0, files: info.files, lost: [], deletes: has("--delete") ? info.volumes : [] }]));
+    }
     if (first.includes(LOCKED) && stdin?.trim() !== PASSWORD)
       return delay(fail(3, stdin ? "Wrong password." : "The archive is encrypted: a password is needed.", "echo <password> | ... --password-stdin"));
     const set = SETS.find((s) => s.first === first);

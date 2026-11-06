@@ -18,9 +18,10 @@ import extractor as ex
 import isocore as iso
 import jobs
 import paths
+import sevenzip as sz
 import udf
 
-VERSION = "1.3"
+VERSION = "0.1.0"
 SCHEMA = 2          # bumped when JSON event fields change incompatibly
 
 EXIT = {
@@ -29,18 +30,19 @@ EXIT = {
     2: "bad arguments or input",
     3: "password needed or wrong",
     4: "not enough free space",
-    5: "something the PC needs is missing (UnRAR, WinFsp, fusepy, admin rights)",
+    5: "something the PC needs is missing (UnRAR, 7-Zip, WinFsp, fusepy, admin rights)",
     6: "a destructive step needs --yes",
     7: "the job is still running (jobs wait timed out); wait again",
     130: "stopped with Ctrl+C",
 }
 SETUP_SILENT = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
-DONE_MARKER = ".enhancedextract-done.json"      # left in the destination by `rar extract --delete`
+DONE_MARKER = ".enhancedextract-done.json"      # left in the destination by `archive extract --delete`
 PROG = f"{os.path.basename(sys.executable)} --cli" if paths.FROZEN else "python cli.py"
 
 # Text mode: these event types are the command's data and go to stdout; everything else
 # (progress, logs, warnings, errors) goes to stderr so stdout can be piped.
-DATA_TYPES = {"archive", "space", "iso", "file", "check", "plan", "job", "job_event", "rar_set", "found_iso"}
+DATA_TYPES = {"archive", "space", "iso", "file", "check", "plan", "job", "job_event", "rar_set", "archive_set",
+              "found_iso"}
 CHATTY_TYPES = {"log", "progress", "status", "event"}      # hidden by --quiet
 
 
@@ -198,7 +200,7 @@ def cmd_scan(args, out):
     root = os.path.abspath(args.folder)
     if not os.path.isdir(root):
         raise Stop(2, f"Folder not found: {root}")
-    sets, isos = {}, []
+    sets, isos, others = {}, [], {}
     base_depth = root.rstrip(os.sep).count(os.sep)
     for folder, dirs, names in os.walk(root):
         if folder.count(os.sep) - base_depth >= args.depth:
@@ -215,6 +217,12 @@ def cmd_scan(args, out):
                 sets.setdefault((folder, o["base"]), []).append((int(o["n"]) + 1, path))
             elif name.lower().endswith(".iso"):
                 isos.append(path)
+            elif sz.classify(name):
+                base, number, kind = sz.classify(name)
+                # `x.zip` and its `x.z01 ...` pieces are one set; numbered volumes are one per base name
+                group = "volume" if kind == "volume" else "single"
+                stem = base + ".zip" if kind == "zsplit" else base
+                others.setdefault((folder, stem.lower(), group), []).append((number, path))
     found_sets = []
     for (folder, base), parts in sorted(sets.items()):
         parts.sort()
@@ -229,12 +237,28 @@ def cmd_scan(args, out):
                        + (f" - MISSING parts {missing}" if missing else ""),
             first=first, parts=len(parts), size=size, missing=missing,
             next=command_line(["rar", "inspect", first]))
+    found_archives = 0
+    for (folder, _, group), parts in sorted(others.items()):
+        parts.sort()
+        numbers = [n for n, _ in parts]
+        first = sz.first_volume(parts[0][1])
+        numbered = group == "volume" or any(sz.ZIP_SPLIT.match(os.path.basename(p)) for _, p in parts)
+        missing = [n for n in range(1, max(numbers) + 1) if n not in numbers] if numbered else []
+        size = sum(os.path.getsize(p) for _, p in parts)
+        fmt = os.path.splitext(first)[1].lstrip(".").lower() or "archive"
+        if group == "volume":
+            fmt = os.path.splitext(os.path.splitext(first)[0])[1].lstrip(".").lower()
+        found_archives += 1
+        out("archive_set", f"Archive ({fmt}): {first} ({len(parts)} {'part' if len(parts) == 1 else 'parts'}, "
+                           f"{ex.human(size)})" + (f" - MISSING parts {missing}" if missing else ""),
+            first=first, format=fmt, parts=len(parts), size=size, missing=missing,
+            next=command_line(["archive", "inspect", first]))
     for path in sorted(isos):
         size = os.path.getsize(path)
         freed = iso.was_freed(path)
         out("found_iso", f"ISO: {path} ({ex.human(size)})" + (" - already partly freed" if freed else ""),
             path=path, size=size, was_freed=freed, next=command_line(["iso", "inspect", path]))
-    return {"ok": True, "folder": root, "rar_sets": len(found_sets), "isos": len(isos)}
+    return {"ok": True, "folder": root, "rar_sets": len(found_sets), "archives": found_archives, "isos": len(isos)}
 
 
 # ---------- schema ----------
@@ -295,8 +319,10 @@ def fusepy_available():
 
 def system_report():
     tool = ex.rar_tool()
+    seven = sz.tool()
     return {
         "unrar": {"ok": bool(tool), "source": tool[0] if tool else None, "path": tool[1] if tool else None},
+        "sevenzip": {"ok": bool(seven), "source": seven[0] if seven else None, "path": seven[1] if seven else None},
         "winfsp": {"ok": iso.winfsp_installed()},
         "fusepy": {"ok": fusepy_available()},
         "admin": {"ok": iso.is_admin()},
@@ -306,11 +332,12 @@ def system_report():
 def cmd_system_check(args, out):
     report = system_report()
     for name, r in report.items():
-        out("check", f"{name:7} {'OK' if r['ok'] else 'MISSING'}" + (f"  ({r['source']}: {r['path']})"
-                                                                     if r.get("path") else ""),
+        out("check", f"{name:8} {'OK' if r['ok'] else 'MISSING'}" + (f"  ({r['source']}: {r['path']})"
+                                                                      if r.get("path") else ""),
             name=name, **r)
     hints = {
-        "unrar": "Install WinRAR, or put UnRAR.exe on PATH (needed for rar commands).",
+        "unrar": "Install WinRAR, or put UnRAR.exe on PATH (needed for RAR archives).",
+        "sevenzip": "Install 7-Zip, or put 7z.exe on PATH (needed for zip, 7z, tar, gz and the other formats).",
         "winfsp": f"Install the driver (as administrator): {PROG} system install-winfsp",
         "fusepy": f"Install the Python package: {PROG} system install-fusepy",
         "admin": "Not administrator: iso install can't run setup.exe from here (setups elevate "
@@ -371,7 +398,9 @@ def read_password(args):
 
 
 def archive_dest(args, first):
-    return os.path.abspath(args.dest) if getattr(args, "dest", None) else ex.default_dest(first)
+    if getattr(args, "dest", None):
+        return os.path.abspath(args.dest)
+    return (ex.default_dest if sz.is_rar(first) else sz.default_dest)(first)
 
 
 def engine_errors(args):
@@ -385,7 +414,7 @@ def engine_errors(args):
                 argv = [a for a in args.argv if a != args.archive]
                 raise Stop(3, str(e), fix=f"echo <password> | {command_line(argv, args.archive, '--password-stdin')}")
             if isinstance(e, ex.ExtractError):
-                if "UnRAR.exe not found" in str(e):
+                if "UnRAR.exe not found" in str(e) or "7z.exe not found" in str(e):
                     raise Stop(5, str(e), fix=f"{PROG} system check")
                 raise Stop(1, str(e))
             return False
@@ -475,9 +504,11 @@ def space_text(space):
 
 
 def archive_event(out, info):
-    out("archive", f"{len(info.volumes)} parts, {info.files} files, {ex.human(info.packed)} packed -> "
-                   f"{ex.human(info.unpacked)} unpacked", first=info.first, volumes=info.volumes,
-        files=info.files, packed=info.packed, unpacked=info.unpacked)
+    parts = len(info.volumes)
+    fmt = getattr(info, "kind", None)
+    out("archive", f"{parts} {'part' if parts == 1 else 'parts'}, {info.files} files, {ex.human(info.packed)} "
+                   f"packed -> {ex.human(info.unpacked)} unpacked", first=info.first, volumes=info.volumes,
+        files=info.files, packed=info.packed, unpacked=info.unpacked, **({"format": fmt} if fmt else {}))
 
 
 def cmd_rar_inspect(args, out):
@@ -503,6 +534,9 @@ class Progress:
         self.out = out
         self.every = every
         sizes = [os.path.getsize(v) if os.path.exists(v) else 0 for v in info.volumes]
+        self.whole = getattr(info, "single_progress", False)    # 7-Zip reports one percentage for the whole set
+        if self.whole:
+            sizes = [sum(sizes) or 1]
         total = sum(sizes) or 1
         self.before = [sum(sizes[:i]) / total for i in range(len(sizes))]   # share done before part i
         self.share = [s / total for s in sizes]
@@ -540,12 +574,14 @@ class Progress:
         elapsed = now - self.started
         eta = round(elapsed * (100 - overall) / overall) if 1 <= overall < 100 else None
         part, pct = self.state
-        text = (f"{self.phase}: {overall:.0f}% (part {part} of {len(self.share)}"
-                + (f", {self.files_done} of {self.files} files" if self.files_done else "") + ")"
+        where = ([] if self.whole else [f"part {part} of {len(self.share)}"]) \
+            + ([f"{self.files_done} of {self.files} files" if self.files else f"{self.files_done} files"]
+               if self.files_done else [])
+        text = (f"{self.phase}: {overall:.0f}%" + (f" ({', '.join(where)})" if where else "")
                 + (f", about {eta} s left" if eta is not None else ""))
         self.out("progress", text, phase=self.phase.lower(), overall=round(overall, 1), part=part,
                  parts=len(self.share), part_percent=pct, files_done=self.files_done, files=self.files,
-                 elapsed_s=round(elapsed, 1), eta_s=eta)
+                 elapsed_s=round(elapsed, 1), eta_s=eta, **({"whole": True} if self.whole else {}))
 
 
 # UnRAR lines worth showing without --verbose; the rest are one line per file.
@@ -600,9 +636,13 @@ def already_extracted(args):
     first = os.path.abspath(args.archive)
     if os.path.exists(first):
         return None
-    marker = os.path.join(archive_dest(args, first), DONE_MARKER)
+    return already_extracted_at(first, archive_dest(args, first))
+
+
+def already_extracted_at(first, dest):
+    """The done-marker in `dest` if it says `first`'s archive was extracted and deleted there."""
     try:
-        with open(marker, encoding="utf-8") as f:
+        with open(os.path.join(dest, DONE_MARKER), encoding="utf-8") as f:
             done = json.load(f)
     except (OSError, ValueError):
         return None
@@ -696,6 +736,160 @@ def cmd_rar_extract(args, out):
                        "unpacked": info.unpacked}, f)
     return {"ok": True, "dest": dest, "files": info.files, "unpacked": info.unpacked, "mode": mode,
             "parts": len(info.volumes), "parts_left": len(ex.remaining_parts(info)), "lost": lost}
+
+
+# ---------- everything but RAR: zip, 7z, tar, gz, ... through 7-Zip ----------
+# Same commands and result fields as the RAR ones, so a caller does not care which engine ran.
+# The one difference is --delete: 7-Zip cannot free pieces while it reads, so the whole archive
+# is removed once a verified extraction finished without a single error.
+def load_generic(args):
+    path = os.path.abspath(args.archive)
+    if not os.path.isfile(sz.first_volume(path)):
+        raise Stop(2, f"Archive not found: {path}",
+                   fix=f"Pass the archive itself: {PROG} {args.group} {args.cmd} \"D:\\Downloads\\Pack.zip\"")
+    with engine_errors(args):
+        return sz.inspect(path, args.pw)
+
+
+def generic_space(info, dest, delete):
+    free = ex.free_space(dest)
+    need = sz.space_needed(info, dest)
+    return {"dest": dest, "needed": need, "free": free, "enough": free >= need,
+            "mode": "after" if delete else "keep", "generic": True}
+
+
+def generic_space_text(space):
+    return (f"Extract to {space['dest']}: free {ex.human(space['free'])}, needed {ex.human(space['needed'])}"
+            + (" (archive deleted afterwards)" if space["mode"] == "after" else "")
+            + f" ({'OK' if space['enough'] else 'NOT ENOUGH'})")
+
+
+def reject_rar_only(args):
+    if getattr(args, "early_delete", False):
+        raise Stop(2, "--early-delete only applies to RAR sets: other formats cannot be freed while they are read.",
+                   fix=command_line([a for a in args.argv if a != "--early-delete"]))
+
+
+def generic_inspect(args, out):
+    reject_rar_only(args)
+    info = load_generic(args)
+    dest = archive_dest(args, info.first)
+    space = generic_space(info, dest, args.delete)
+    archive_event(out, info)
+    out("space", generic_space_text(space), **space)
+    return {"ok": True, "parts": len(info.volumes), "unpacked": info.unpacked, "dest": dest,
+            "space_ok": space["enough"], "resume": False, "format": info.kind,
+            "next": command_line(["archive", "extract", info.first, "--dest", dest]
+                                 + (["--delete"] if args.delete else []) + ["--dry-run"])}
+
+
+SZ_FILE = re.compile(r"^[-T] (?P<name>.+)$")
+SZ_IMPORTANT = re.compile(r"^(Deleted|Could not|Verif|Extraction)|ERROR|Wrong password|CRC|Data Error|Warning|"
+                          r"Unexpected end|Can't open|Cannot|Everything is Ok", re.I)
+
+
+def seven_log(out, progress, verbose):
+    """Log callback for the 7-Zip runner: counts finished files, passes on what matters."""
+    def log(text):
+        m = SZ_FILE.match(text)
+        if m:
+            if not m["name"].endswith("\\"):        # a folder line, not a file
+                progress.file_done()
+            if verbose:
+                out("log", text)
+        elif verbose or SZ_IMPORTANT.search(text):
+            out("log", " ".join(text.split()))
+    return log
+
+
+def generic_verify(args, out):
+    info = load_generic(args)
+    if args.background:
+        return start_background(args, out)
+    progress = Progress(out, info, args.progress_every)
+    runner = sz.Runner(log=seven_log(out, progress, args.verbose), progress=progress, password=args.pw)
+
+    def job():
+        progress.start("Verifying")
+        runner.verify(info)
+        progress.emit(done=True)
+
+    run_job(runner, job)
+    return {"ok": True, "parts": len(info.volumes), "files": info.files,
+            "next": command_line(["archive", "extract", info.first, "--dry-run"])}
+
+
+def generic_extract(args, out):
+    reject_rar_only(args)
+    first = sz.first_volume(args.archive)
+    if not os.path.exists(first):
+        done = already_extracted_at(first, archive_dest(args, first))
+        if done:
+            dest = archive_dest(args, first)
+            out("event", f"Already extracted to {dest} (the archive was deleted then).")
+            return {"ok": True, "already_done": True, "dest": dest,
+                    **{k: done[k] for k in ("files", "unpacked") if k in done}}
+    info = load_generic(args)
+    dest = archive_dest(args, info.first)
+    delete = args.delete
+    space = generic_space(info, dest, delete)
+    out("space", generic_space_text(space), **space)
+    if not space["enough"] and not args.ignore_space:
+        raise Stop(4, f"Not enough free space for {dest}: {ex.human(space['needed'] - space['free'])} short.",
+                   fix=f"Free some space, or try anyway: {command_line(args.argv, '--ignore-space')}", **space)
+    if args.dry_run:
+        archive_event(out, info)
+        steps = ([] if args.no_verify else ["verify the archive"]) + [f"extract to {dest}"]
+        if delete:
+            steps.append(f"delete the archive ({len(info.volumes)} {'file' if len(info.volumes) == 1 else 'files'}) "
+                         "once the extraction finished without errors")
+        out("plan", "Would " + ", then ".join(steps) + ".", steps=steps, mode=space["mode"],
+            deletes=info.volumes if delete else [], resume=False, lost=[], done=0, files=info.files)
+        real = [a for a in args.argv if a != "--dry-run"] + ["--background"]
+        return {"ok": True, "dry_run": True, "dest": dest, "needs_yes": delete, "mode": space["mode"],
+                "resume": False, "next": command_line(real, *(["--yes"] if delete else []))}
+    if delete and not args.yes:
+        raise Stop(6, f"--delete removes {os.path.basename(info.first)}"
+                      + (f" and its {len(info.volumes) - 1} other parts" if len(info.volumes) > 1 else "")
+                      + " once the extraction finished without errors.", fix=with_yes(args))
+    if args.background:
+        return start_background(args, out)
+    progress = Progress(out, info, args.progress_every)
+    runner = sz.Runner(log=seven_log(out, progress, args.verbose), progress=progress, password=args.pw)
+    freed = {}
+
+    def job():
+        if not args.no_verify:
+            progress.start("Verifying")
+            runner.verify(info)
+            progress.emit(done=True)
+        progress.start("Extracting")
+        runner.extract(info, dest, delete)
+        progress.emit(done=True)
+        if delete:
+            freed["bytes"] = sz.delete_volumes(info, lambda t: out("log", t))
+
+    run_job(runner, job)
+    if delete:
+        with open(os.path.join(dest, DONE_MARKER), "w", encoding="utf-8") as f:
+            json.dump({"archive": os.path.basename(info.first), "files": info.files, "unpacked": info.unpacked}, f)
+    left = [v for v in info.volumes if os.path.exists(v)]
+    return {"ok": True, "dest": dest, "files": info.files, "unpacked": info.unpacked, "mode": space["mode"],
+            "parts": len(info.volumes), "parts_left": len(left), "lost": [], "format": info.kind,
+            **({"freed": freed["bytes"]} if delete else {})}
+
+
+# One entry point per command for both groups (`rar` and `archive`): RAR sets go to UnRAR, the rest to 7-Zip.
+def cmd_archive_inspect(args, out):
+    return (cmd_rar_inspect if sz.is_rar(args.archive) else generic_inspect)(args, out)
+
+
+def cmd_archive_verify(args, out):
+    return (cmd_rar_verify if sz.is_rar(args.archive) else generic_verify)(args, out)
+
+
+def cmd_archive_extract(args, out):
+    return (cmd_rar_extract if sz.is_rar(args.archive) else generic_extract)(args, out)
 
 
 # ---------- iso ----------
@@ -1055,13 +1249,14 @@ def build_parser():
         return g.add_subparsers(dest="cmd", metavar="<command>")
 
     ap = Parser(prog=PROG, parents=[common], formatter_class=fmt,
-                description="EnhancedExtract in the terminal: extract RAR sets and install games from "
-                            "ISOs while freeing space as you go. Never prompts; everything is a flag.",
+                description="EnhancedExtract in the terminal: extract RAR, zip, 7z, tar and other archives, and "
+                            "install games from ISOs while freeing space as you go. Never prompts; everything "
+                            "is a flag.",
                 epilog="Typical agent flow:\n" + "\n".join(f"  {PROG} {line}" for line in (
-                    "--json scan D:\\Downloads                       # find RAR sets and ISOs",
-                    "--json rar inspect D:\\Downloads\\Game.part1.rar  # sizes, space, next command",
-                    "--json rar extract D:\\Downloads\\Game.part1.rar --delete --dry-run",
-                    "--json rar extract D:\\Downloads\\Game.part1.rar --delete --yes --background",
+                    "--json scan D:\\Downloads                       # find archives and ISOs",
+                    "--json archive inspect D:\\Downloads\\Game.part1.rar  # sizes, space, next command",
+                    "--json archive extract D:\\Downloads\\Game.part1.rar --delete --dry-run",
+                    "--json archive extract D:\\Downloads\\Game.part1.rar --delete --yes --background",
                     "--json jobs wait --timeout 60                   # repeat until state is done",
                     "--json schema                                   # every command and flag, as JSON"))
                 + "\n\n" + examples("system check", "rar extract Game.part1.rar --dry-run",
@@ -1072,7 +1267,7 @@ def build_parser():
     sub = ap.add_subparsers(dest="group", metavar="<group>")
 
     system = group("system", "what this PC has, and installing what's missing")
-    add(system, "check", cmd_system_check, "report UnRAR, WinFsp, fusepy and admin rights",
+    add(system, "check", cmd_system_check, "report UnRAR, 7-Zip, WinFsp, fusepy and admin rights",
         examples("system check", "--json system check"))
     p = add(system, "install-winfsp", cmd_system_install_winfsp,
             "install the bundled WinFsp driver (needs admin; no-op if installed)",
@@ -1083,7 +1278,7 @@ def build_parser():
             examples("system install-fusepy", "system install-fusepy --dry-run"))
     p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
 
-    p = add(sub, "scan", cmd_scan, "find RAR sets (first parts) and ISOs in a folder; reads no archive",
+    p = add(sub, "scan", cmd_scan, "find RAR sets, other archives (zip, 7z, tar ...) and ISOs in a folder; reads no archive",
             examples("scan D:\\Downloads", "--json scan D:\\Downloads --depth 3"))
     p.add_argument("folder", help="folder to look in")
     p.add_argument("--depth", type=int, default=2, help="how many folder levels down to look (default 2)")
@@ -1114,39 +1309,56 @@ def build_parser():
             p.add_argument("--force", action="store_true",
                            help="stop even while setup is still running (setup fails; when freeing, the ISO is lost)")
 
-    rar = group("rar", "multi-part RAR sets")
-    for name, func, text, ex_lines in (
-            ("inspect", cmd_rar_inspect, "list parts, sizes and the free space an extract needs",
-             ["rar inspect \"D:\\Downloads\\Game.part1.rar\"",
-              "rar inspect Game.part1.rar --dest \"D:\\Games\\Game\" --delete"]),
-            ("verify", cmd_rar_verify, "test every part's checksums; writes nothing",
-             ["rar verify Game.part1.rar", "echo secret | rar verify Game.part1.rar --password-stdin"]),
-            ("extract", cmd_rar_extract, "verify, then extract; with --delete each part is removed once its files are out",
-             ["rar extract Game.part1.rar --dest \"D:\\Games\\Game\"",
-              "rar extract Game.part1.rar --delete --dry-run",
-              "rar extract Game.part1.rar --delete --yes",
-              "--json rar extract Game.part1.rar --delete --yes --password-stdin < pw.txt"])):
-        p = add(rar, name, func, text, examples(*ex_lines))
-        p.add_argument("archive", help="first part of the set, e.g. Game.part1.rar")
-        pw = p.add_mutually_exclusive_group()
-        pw.add_argument("--password", help="archive password (visible to other programs; prefer the next two)")
-        pw.add_argument("--password-stdin", action="store_true", help="read the password from the first stdin line")
-        p.epilog += "\n\nThe password can also come from the EE_PASSWORD environment variable."
-        if name != "verify":
-            p.add_argument("--dest", help="extract into this folder (default: next to the archive, named after it)")
-            p.add_argument("--delete", action="store_true",
-                           help="delete each part once every file in it is extracted; a stopped run resumes "
-                                "when the same command is run again")
-            p.add_argument("--early-delete", action="store_true",
-                           help="with --delete: delete each part as soon as it is read. Needs less free space, "
-                                "but a stop or crash loses the file being extracted")
-        if name == "extract":
-            p.add_argument("--no-verify", action="store_true", help="skip the checksum pass before extracting")
-            p.add_argument("--ignore-space", action="store_true", help="start even if free space looks too low")
-            p.add_argument("--dry-run", action="store_true", help="check everything and print the plan; change nothing")
-            p.add_argument("--yes", action="store_true", help="confirm --delete")
-        if name != "inspect":
-            p.add_argument("--background", action="store_true", help=background_help)
+    # `archive` takes any supported format and `rar` stays for existing scripts; both run the same
+    # handlers, which send RAR sets to UnRAR and everything else (zip, 7z, tar, gz, ...) to 7-Zip.
+    for grp, label, first_help, ex_lines in (
+            ("archive", "any archive: RAR sets (UnRAR) and zip, 7z, tar, gz, bz2, xz, zst, cab, wim ... (7-Zip)",
+             "the archive, or the first part of a set (Game.part1.rar, Pack.7z.001, Pack.zip)",
+             {"inspect": ["archive inspect \"D:\\Downloads\\Pack.zip\"",
+                          "archive inspect Game.part1.rar --dest \"D:\\Games\\Game\" --delete"],
+              "verify": ["archive verify Pack.7z", "echo secret | archive verify Pack.zip --password-stdin"],
+              "extract": ["archive extract Pack.zip --dest \"D:\\Games\\Pack\"",
+                          "archive extract Pack.7z.001 --delete --dry-run",
+                          "archive extract Pack.tar.gz --delete --yes",
+                          "--json archive extract Pack.zip --yes --password-stdin < pw.txt"]}),
+            ("rar", "multi-part RAR sets (the same commands as `archive`, which also takes other formats)",
+             "first part of the set, e.g. Game.part1.rar",
+             {"inspect": ["rar inspect \"D:\\Downloads\\Game.part1.rar\"",
+                          "rar inspect Game.part1.rar --dest \"D:\\Games\\Game\" --delete"],
+              "verify": ["rar verify Game.part1.rar", "echo secret | rar verify Game.part1.rar --password-stdin"],
+              "extract": ["rar extract Game.part1.rar --dest \"D:\\Games\\Game\"",
+                          "rar extract Game.part1.rar --delete --dry-run",
+                          "rar extract Game.part1.rar --delete --yes",
+                          "--json rar extract Game.part1.rar --delete --yes --password-stdin < pw.txt"]})):
+        grp_parser = group(grp, label)
+        for name, func, text in (
+                ("inspect", cmd_archive_inspect, "list parts, sizes and the free space an extract needs"),
+                ("verify", cmd_archive_verify, "test every part's checksums; writes nothing"),
+                ("extract", cmd_archive_extract,
+                 "verify, then extract; with --delete the archive is removed afterwards (RAR: each part "
+                 "once its files are out)")):
+            p = add(grp_parser, name, func, text, examples(*ex_lines[name]))
+            p.add_argument("archive", help=first_help)
+            pw = p.add_mutually_exclusive_group()
+            pw.add_argument("--password", help="archive password (visible to other programs; prefer the next two)")
+            pw.add_argument("--password-stdin", action="store_true", help="read the password from the first stdin line")
+            p.epilog += "\n\nThe password can also come from the EE_PASSWORD environment variable."
+            if name != "verify":
+                p.add_argument("--dest", help="extract into this folder (default: next to the archive, named after it)")
+                p.add_argument("--delete", action="store_true",
+                               help="delete the archive once it is extracted. RAR: each part goes once every file "
+                                    "in it is out and a stopped run resumes when the same command is run again; "
+                                    "other formats: the whole archive goes after a clean extraction")
+                p.add_argument("--early-delete", action="store_true",
+                               help="RAR only, with --delete: delete each part as soon as it is read. Needs less "
+                                    "free space, but a stop or crash loses the file being extracted")
+            if name == "extract":
+                p.add_argument("--no-verify", action="store_true", help="skip the checksum pass before extracting")
+                p.add_argument("--ignore-space", action="store_true", help="start even if free space looks too low")
+                p.add_argument("--dry-run", action="store_true", help="check everything and print the plan; change nothing")
+                p.add_argument("--yes", action="store_true", help="confirm --delete")
+            if name != "inspect":
+                p.add_argument("--background", action="store_true", help=background_help)
 
     isos = group("iso", "install a game from an ISO while freeing the ISO behind setup")
     p = add(isos, "inspect", cmd_iso_inspect, "files in the ISO and the free space an install needs",
@@ -1208,7 +1420,7 @@ def main(argv=None):
             if not hasattr(args, name):
                 setattr(args, name, default)
         args.argv = argv
-        args.pw = read_password(args) if args.group == "rar" else None
+        args.pw = read_password(args) if args.group in ("rar", "archive") else None
         jobs.watch_for_stop()
         result = args.func(args, out)
         code, result = result if isinstance(result, tuple) else (0 if result.get("ok") else 1, result)

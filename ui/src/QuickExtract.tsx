@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { call, closeWindow, EngineError, jobStatus, jobsList, openFolder, shellDestination, type EngineOutput, type JobSnap } from "./engine";
-import { basename, dirname, drive, dur, gb, int, setName } from "./format";
+import { archiveFormat, basename, dirname, drive, dur, int, isRar, setName, size } from "./format";
 import logo from "./assets/logo-64.png";
 import "./quick-extract.css";
 
 export interface ShellRequest { archive: string; delete: boolean }
 interface Info { parts: number; files: number; unpacked: number }
 /** The engine's dry run. `mode` "safe" deletes a part once every file in it is out (a stop can be
- *  resumed); "early" deletes each part as soon as it is read and is only offered when safe doesn't fit. */
+ *  resumed); "early" deletes each part as soon as it is read and is only offered when safe doesn't fit.
+ *  "after" is every other format (zip, 7z, tar ...): the archive goes once extraction finished cleanly. */
 interface Plan {
   dest: string; deletes: string[]; needed: number; free: number; neededSafe: number;
-  mode: "safe" | "early" | "keep"; resume: boolean; done: number; files: number; lost: string[];
+  mode: "safe" | "early" | "keep" | "after"; resume: boolean; done: number; files: number; lost: string[];
 }
 type State =
   | { kind: "busy"; message: string }
@@ -28,7 +29,7 @@ const plural = (n: number, word: string) => `${int(n)} ${word}${n === 1 ? "" : "
 function readPlan(out: EngineOutput, dest: string): Plan {
   const event = (type: string) => out.events.find(e => e.type === type);
   const plan = event("plan"), space = event("space");
-  const mode = plan?.mode === "early" ? "early" : plan?.mode === "keep" ? "keep" : "safe";
+  const mode = plan?.mode === "early" ? "early" : plan?.mode === "keep" ? "keep" : plan?.mode === "after" ? "after" : "safe";
   return {
     dest: typeof out.result?.dest === "string" ? out.result.dest : dest,
     deletes: strings(plan?.deletes), needed: num(space?.needed), free: num(space?.free),
@@ -49,7 +50,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   const early = useRef(false);
   const initialized = useRef(false);
   const acting = useRef(false);
-  const args = (dest: string, extra: string[]) => ["rar", "extract", request.archive, "--dest", dest,
+  const args = (dest: string, extra: string[]) => ["archive", "extract", request.archive, "--dest", dest,
     ...(request.delete ? ["--delete"] : []), ...(early.current ? ["--early-delete"] : []),
     ...(secret.current ? ["--password-stdin"] : []), ...extra];
   const options = () => ({ stdin: secret.current || undefined });
@@ -70,7 +71,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
     setState({ kind: "busy", message: "Reading the archive and checking free space…" });
     try {
       // Reopen an extraction of this archive that is already running rather than starting a second one.
-      const existing = (await jobsList(10000)).find(j => j.state === "running" && j.argv?.[0] === "rar"
+      const existing = (await jobsList(10000)).find(j => j.state === "running" && (j.argv?.[0] === "archive" || j.argv?.[0] === "rar")
         && j.argv[1] === "extract" && pathKey(j.argv[2] ?? "") === pathKey(request.archive));
       if (existing) {
         const i = existing.argv?.indexOf("--dest") ?? -1;
@@ -143,7 +144,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   const close = () => void closeWindow();
 
   const meta = info
-    ? `${plural(info.parts, "part")} · ${plural(info.files, "file")} · ${gb(info.unpacked)} GB`
+    ? [info.parts > 1 ? plural(info.parts, "part") : archiveFormat(request.archive), info.files ? plural(info.files, "file") : "", size(info.unpacked)].filter(Boolean).join(" · ")
     : basename(request.archive);
 
   let body: ReactNode = null;
@@ -173,8 +174,8 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
         <div className="qx-space">
           <div className="qx-meter" aria-hidden><i style={{ width: `${plan.free ? Math.min(100, Math.max(1.5, 100 * plan.needed / plan.free)) : 100}%` }} /></div>
           <div className="qx-space-row">
-            <span>Needs <b className="num">{gb(plan.needed)} GB</b></span>
-            <span><b className="num">{gb(plan.free)} GB</b> free{drive(plan.dest) ? ` on ${drive(plan.dest)}` : ""}</span>
+            <span>Needs <b className="num">{size(plan.needed)}</b></span>
+            <span><b className="num">{size(plan.free)}</b> free{drive(plan.dest) ? ` on ${drive(plan.dest)}` : ""}</span>
           </div>
         </div>
       </Destination>
@@ -192,15 +193,20 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
         <input id="qx-agree" type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />
         <label htmlFor="qx-agree">
           <strong>Not enough room to extract safely</strong>
-          <span>Keeping a file’s parts until it’s out needs <b className="num">{gb(plan.neededSafe)} GB</b>. Deleting each part as soon as it’s read fits, but if extraction stops or crashes, the file being extracted is lost.</span>
+          <span>Keeping a file’s parts until it’s out needs <b className="num">{size(plan.neededSafe)}</b>. Deleting each part as soon as it’s read fits, but if extraction stops or crashes, the file being extracted is lost.</span>
           <em>Delete parts early anyway</em>
         </label>
         {partsList}
       </div> : !plan.resume && <div className="qx-note-card">
         <Shield />
         <div>
-          <strong>Parts are deleted as their files finish</strong>
-          <span>Every part is verified first. A part is only deleted once every file in it is safely on disk, so if extraction stops, run it again to continue.</span>
+          {plan.mode === "after" ? <>
+            <strong>{count > 1 ? "The parts are deleted after extraction" : "The archive is deleted after extraction"}</strong>
+            <span>It is verified first, and only deleted once every file has been extracted without an error. If anything goes wrong, nothing is deleted.</span>
+          </> : <>
+            <strong>Parts are deleted as their files finish</strong>
+            <span>Every part is verified first. A part is only deleted once every file in it is safely on disk, so if extraction stops, run it again to continue.</span>
+          </>}
           {partsList}
         </div>
       </div>}
@@ -267,11 +273,11 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
           </div>)}
         </div>
         <p className="qx-detail" role="status">
-          {done ? <>{result?.files != null ? <>{plural(num(result.files), "file")} extracted{result.unpacked != null && <> · <span className="num">{gb(num(result.unpacked))} GB</span></>}</> : "All files extracted."}
-              {deleting && result?.parts != null && <> · {plural(deleted, "archive part")} deleted</>}</>
+          {done ? <>{result?.files != null ? <>{plural(num(result.files), "file")} extracted{result.unpacked != null && <> · <span className="num">{size(num(result.unpacked))}</span></>}</> : "All files extracted."}
+              {deleting && result?.parts != null && <> · {progress?.whole || num(result.parts) === 1 ? "archive" : plural(deleted, "archive part")} deleted</>}</>
             : finished ? null
-            : progress ? <>Part <span className="num">{progress.part ?? 1}</span> of <span className="num">{progress.parts ?? "?"}</span>
-                {phase === "extract" && progress.files ? <> · <span className="num">{int(progress.files_done ?? 0)}</span> of <span className="num">{int(progress.files)}</span> files</> : null}</>
+            : progress ? <>{progress.whole ? null : <>Part <span className="num">{progress.part ?? 1}</span> of <span className="num">{progress.parts ?? "?"}</span></>}
+                {phase === "extract" && progress.files ? <>{progress.whole ? null : " · "}<span className="num">{int(progress.files_done ?? 0)}</span> of <span className="num">{int(progress.files)}</span> files</> : null}</>
             : "Starting…"}
         </p>
       </section>
@@ -288,7 +294,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
     </>;
 
     foot = stopAsk ? <>
-      <p className="qx-ask">{risky ? "Stop now? The file being extracted is lost." : deleting ? "Stop now? You can resume later." : "Stop now? Extracted files stay."}</p>
+      <p className="qx-ask">{risky ? "Stop now? The file being extracted is lost." : deleting && isRar(request.archive) ? "Stop now? You can resume later." : "Stop now? The archive and extracted files stay."}</p>
       <button className="btn" autoFocus onClick={() => setStopAsk(false)}>Keep going</button>
       <button className="btn btn-danger solid" onClick={() => void stop()}>Stop</button>
     </> : <>

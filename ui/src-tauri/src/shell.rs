@@ -7,6 +7,40 @@ pub struct ShellRequest {
     pub delete: bool,
 }
 
+// Everything but RAR is opened by the engine through 7-Zip (sevenzip.py keeps the same list).
+const OTHER_EXTS: &[&str] = &[
+    "zip", "zipx", "7z", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "zst", "tzst", "lzma", "z", "cab",
+    "wim", "arj", "lzh", "lha", "cpio",
+];
+const TAR_COMPRESSORS: &[&str] = &["gz", "bz2", "xz", "zst", "lzma", "z"];
+
+fn digits_after_dot(name: &str, min: usize) -> Option<(usize, usize)> {
+    // (index of the dot, digit count) when `name` ends in ".<digits>" with at least `min` digits
+    let dot = name.rfind('.')?;
+    let digits = &name[dot + 1..];
+    (digits.len() >= min && digits.bytes().all(|b| b.is_ascii_digit())).then_some((dot, digits.len()))
+}
+
+/// `x.7z.001` -> Some(dot index of ".001"): a numbered volume of a known format.
+fn volume_dot(lower: &str) -> Option<usize> {
+    let (dot, _) = digits_after_dot(lower, 3)?;
+    let ext = lower[..dot].rsplit('.').next()?;
+    (lower[..dot].contains('.') && OTHER_EXTS.contains(&ext)).then_some(dot)
+}
+
+/// `x.z01` (the pieces of a classic split zip) -> Some(dot index).
+fn zsplit_dot(lower: &str) -> Option<usize> {
+    let dot = lower.rfind('.')?;
+    let tail = &lower[dot + 1..];
+    (tail.len() >= 3 && tail.starts_with('z') && tail[1..].bytes().all(|b| b.is_ascii_digit())).then_some(dot)
+}
+
+pub fn is_supported(path: &Path) -> bool {
+    let lower = path.file_name().unwrap_or_default().to_string_lossy().to_ascii_lowercase();
+    let ext = lower.rsplit('.').next().unwrap_or("");
+    lower.contains('.') && (ext == "rar" || OTHER_EXTS.contains(&ext) || volume_dot(&lower).is_some() || zsplit_dot(&lower).is_some())
+}
+
 // canonicalize() adds a device-path prefix on Windows. UnRAR and Explorer expect
 // ordinary drive or UNC paths at their command-line boundary.
 pub fn ordinary_path(path: PathBuf) -> PathBuf {
@@ -20,11 +54,11 @@ pub fn parse(args: &[String]) -> Result<Option<ShellRequest>, String> {
     if args.is_empty() { return Ok(None); }
     if !args[0].starts_with("--shell-") { return Ok(None); }
     if args.len() != 2 || !matches!(args[0].as_str(), "--shell-extract" | "--shell-extract-delete") {
-        return Err("Expected --shell-extract <archive.rar> or --shell-extract-delete <archive.rar>.".into());
+        return Err("Expected --shell-extract <archive> or --shell-extract-delete <archive>.".into());
     }
     let path = Path::new(&args[1]);
-    if !path.extension().is_some_and(|x| x.eq_ignore_ascii_case("rar")) {
-        return Err("Select a RAR archive (.rar).".into());
+    if !is_supported(path) {
+        return Err("Select an archive (.rar, .zip, .7z, .tar.gz and other common formats).".into());
     }
     Ok(Some(ShellRequest { archive: first_volume(path).to_string_lossy().into_owned(), delete: args[0] == "--shell-extract-delete" }))
 }
@@ -32,6 +66,14 @@ pub fn parse(args: &[String]) -> Result<Option<ShellRequest>, String> {
 pub fn first_volume(path: &Path) -> PathBuf {
     let name = path.file_name().unwrap_or_default().to_string_lossy();
     let lower = name.to_ascii_lowercase();
+    // Only the first piece of a split set opens; the engine rejects later ones.
+    if let Some(dot) = volume_dot(&lower) {
+        let width = name.len() - dot - 1;
+        return path.with_file_name(format!("{}.{:0>width$}", &name[..dot], "1", width = width));
+    }
+    if let Some(dot) = zsplit_dot(&lower) {
+        return path.with_file_name(format!("{}.zip", &name[..dot]));
+    }
     if lower.ends_with(".rar") {
         if let Some(i) = lower.rfind(".part") {
             let digits = &name[i + 5..name.len() - 4];
@@ -45,14 +87,36 @@ pub fn first_volume(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
-pub fn destination(archive: &Path, reserve: bool) -> Result<PathBuf, String> {
-    let stem = archive.file_stem().ok_or("Invalid archive name")?.to_string_lossy();
-    let lower = stem.to_ascii_lowercase();
-    let base = match lower.rfind(".part") {
-        Some(i) if stem[i+5..].bytes().all(|b| b.is_ascii_digit()) && stem.len() > i+5 => &stem[..i],
-        _ => &stem,
+/// The folder name an archive extracts into: `Game.part1.rar` -> `Game`, `Pack.tar.gz` -> `Pack`,
+/// `Pack.7z.001` -> `Pack` (the same rule as default_dest in sevenzip.py).
+pub fn archive_base(name: &str) -> String {
+    let lower = name.to_ascii_lowercase();      // ASCII-only lowering keeps byte offsets valid in `name`
+    let mut end = name.len();
+    if let Some(dot) = volume_dot(&lower) {
+        end = dot;                              // Pack.7z.001 -> Pack.7z, handled below
+    } else if let Some(dot) = zsplit_dot(&lower) {
+        return name[..dot].to_owned();          // Pack.z01 -> Pack
+    }
+    let (name, lower) = (&name[..end], &lower[..end]);
+    for compressor in TAR_COMPRESSORS {
+        if let Some(stem) = lower.strip_suffix(&format!(".tar.{compressor}")) {
+            return name[..stem.len()].to_owned();   // Pack.tar.gz -> Pack
+        }
+    }
+    let name = match lower.rfind('.') {
+        Some(dot) if dot > 0 && (&lower[dot + 1..] == "rar" || OTHER_EXTS.contains(&&lower[dot + 1..])) => &name[..dot],
+        _ => name,
     };
-    let base = if base.is_empty() { "Extracted" } else { base };
+    match name.to_ascii_lowercase().rfind(".part") {
+        Some(i) if name.len() > i + 5 && name[i + 5..].bytes().all(|b| b.is_ascii_digit()) => name[..i].to_owned(),
+        _ => name.to_owned(),
+    }
+}
+
+pub fn destination(archive: &Path, reserve: bool) -> Result<PathBuf, String> {
+    let name = archive.file_name().ok_or("Invalid archive name")?.to_string_lossy();
+    let base = archive_base(&name);
+    let base = if base.is_empty() { "Extracted" } else { base.as_str() };
     let parent = archive.parent().ok_or("Archive has no parent folder")?;
     for n in 1..10000 {
         let candidate = parent.join(if n == 1 { base.to_owned() } else { format!("{base} ({n})") });
@@ -101,7 +165,9 @@ mod tests {
         assert!(!request.delete);
         assert!(parse(&["--shell-extract-delete".into(), "x.rar".into()]).unwrap().unwrap().delete);
         assert!(parse(&["--shell-extract".into()]).is_err());
-        assert!(parse(&["--shell-extract".into(), "x.zip".into()]).is_err());
+        assert!(parse(&["--shell-extract".into(), "x.zip".into()]).unwrap().is_some());
+        assert!(parse(&["--shell-extract".into(), "x.txt".into()]).is_err());
+        assert!(parse(&["--shell-extract".into(), "x".into()]).is_err());
         assert!(parse(&["--shell-extract".into(), "x.rar".into(), "--yes".into()]).is_err());
     }
 
@@ -112,6 +178,28 @@ mod tests {
         assert_eq!(first_volume(Path::new("Game.rar")), PathBuf::from("Game.rar"));
         assert_eq!(first_volume(Path::new("Game.partners.rar")), PathBuf::from("Game.partners.rar"));
         assert_eq!(first_volume(Path::new("İstanbul.part003.rar")), PathBuf::from("İstanbul.part001.rar"));
+    }
+
+    #[test]
+    fn split_sets_resolve_to_the_piece_the_engine_opens() {
+        assert_eq!(first_volume(Path::new("Pack.7z.003")), PathBuf::from("Pack.7z.001"));
+        assert_eq!(first_volume(Path::new("Pack.ZIP.0012")), PathBuf::from("Pack.ZIP.0001"));
+        assert_eq!(first_volume(Path::new("Pack.z05")), PathBuf::from("Pack.zip"));
+        assert_eq!(first_volume(Path::new("Pack.zip")), PathBuf::from("Pack.zip"));
+        assert_eq!(first_volume(Path::new("Pack.tar.gz")), PathBuf::from("Pack.tar.gz"));
+        // a numbered file that is not a known archive format is left alone
+        assert_eq!(first_volume(Path::new("movie.mkv.003")), PathBuf::from("movie.mkv.003"));
+        assert!(is_supported(Path::new("Pack.7z.002")) && is_supported(Path::new("a.z01")) && is_supported(Path::new("A.TAR.GZ")));
+        assert!(!is_supported(Path::new("movie.mkv.003")) && !is_supported(Path::new("notes.txt")) && !is_supported(Path::new("zip")));
+    }
+
+    #[test]
+    fn output_folder_is_named_after_the_archive() {
+        for (name, want) in [("Game.part01.rar", "Game"), ("Pack.zip", "Pack"), ("Pack.tar.gz", "Pack"), ("My.Game.v2.7z", "My.Game.v2"),
+                             ("Pack.7z.001", "Pack"), ("Pack.zip.001", "Pack"), ("Pack.z01", "Pack"), ("Pack.TGZ", "Pack"),
+                             ("data.tar", "data"), ("İstanbul.7z", "İstanbul"), (".zip", ".zip")] {
+            assert_eq!(archive_base(name), want, "{name}");
+        }
     }
 
     #[test]
