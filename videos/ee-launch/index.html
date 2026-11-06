@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>EnhancedExtract — launch + tutorial</title>
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Tektur"; font-weight: 500; src: url(assets/fonts/tektur-latin-500-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Tektur"; font-weight: 700; src: url(assets/fonts/tektur-latin-700-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Tektur"; font-weight: 800; src: url(assets/fonts/tektur-latin-800-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Tektur"; font-weight: 900; src: url(assets/fonts/tektur-latin-900-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Rajdhani"; font-weight: 500; src: url(assets/fonts/rajdhani-latin-500-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Rajdhani"; font-weight: 600; src: url(assets/fonts/rajdhani-latin-600-normal.woff2) format("woff2"); }
+      @font-face { font-family: "Rajdhani"; font-weight: 700; src: url(assets/fonts/rajdhani-latin-700-normal.woff2) format("woff2"); }
+      @font-face { font-family: "STM"; font-weight: 400; src: url(assets/fonts/share-tech-mono-latin-400-normal.woff2) format("woff2"); }
+
+      :root {
+        --ground: #05060a; --surface: rgba(12,13,20,.92); --raised: #1a1b25; --rule: #2a2b38;
+        --text: #f3f3ee; --soft: #cfcfc8; --muted: #8d8e9c;
+        --y: #fcee0a; --c: #00e5f0; --r: #ff4655; --m: #ff2fd6; --g: #4cc38a;
+        --mono: "STM", ui-monospace, monospace;
+        --brand: "Tektur", sans-serif;
+        --body: "Rajdhani", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ground); }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--ground); color: var(--text); font-family: var(--body); }
+      .clip { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+
+      /* ---------- ambient layers ---------- */
+      #city { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #scan { background: repeating-linear-gradient(rgba(0,0,0,.24) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; pointer-events: none; }
+      #vig { background: radial-gradient(120% 95% at 50% 45%, transparent 50%, rgba(0,0,0,.6)); pointer-events: none; }
+      #noise { opacity: .06; mix-blend-mode: screen; pointer-events: none; }
+      #hud { pointer-events: none; font-family: var(--mono); font-size: 16px; letter-spacing: .14em; color: rgba(243,243,238,.7); }
+      #hud .br { position: absolute; width: 34px; height: 34px; border-color: rgba(252,238,10,.65); border-style: solid; border-width: 0; }
+      #hud .tl { left: 36px; top: 36px; border-left-width: 2px; border-top-width: 2px; }
+      #hud .tr { right: 36px; top: 36px; border-right-width: 2px; border-top-width: 2px; }
+      #hud .bl { left: 36px; bottom: 36px; border-left-width: 2px; border-bottom-width: 2px; }
+      #hud .brr { right: 36px; bottom: 36px; border-right-width: 2px; border-bottom-width: 2px; }
+      #hud .t1 { position: absolute; left: 84px; top: 44px; }
+      #hud .t2 { position: absolute; right: 84px; top: 44px; text-align: right; }
+      #hud .t3 { position: absolute; left: 84px; bottom: 44px; }
+      #hud .t4 { position: absolute; right: 84px; bottom: 44px; text-align: right; }
+      #hud .dot { display: inline-block; width: 8px; height: 8px; background: var(--r); margin-right: 10px; vertical-align: 1px; }
+      #gl { pointer-events: none; }
+      #gl .bar { position: absolute; left: 0; top: 0; width: 10px; height: 10px; opacity: 0; mix-blend-mode: screen; }
+      #flash { background: var(--y); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+
+      /* ---------- shared bits ---------- */
+      .headline { position: absolute; left: 140px; top: 112px; font: 700 40px/1.2 var(--brand); color: var(--text); display: flex; align-items: center; gap: 22px; white-space: nowrap; text-shadow: 0 2px 18px rgba(0,0,0,.9); }
+      .headline .ico { width: 30px; height: 30px; flex: none; }
+      .chroma { text-shadow: -3px 0 rgba(255,70,85,.75), 3px 0 rgba(0,229,240,.75); }
+      .shade { text-shadow: 0 2px 16px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9); }
+
+      /* S1 boot */
+      #s1 .prompt { position: absolute; left: 270px; right: 0; top: 486px; text-align: left; font: 400 62px/1.5 var(--mono); white-space: pre; text-shadow: 0 0 22px rgba(0,0,0,.95); }
+      #s1 .pr { color: var(--y); }
+      #s1 .caret { display: inline-block; width: 32px; height: 66px; background: var(--y); vertical-align: -12px; margin-left: 4px; box-shadow: 0 0 24px var(--y); }
+      #s1 .out { position: absolute; left: 0; right: 0; top: 610px; text-align: center; font: 400 34px/1.6 var(--mono); color: var(--soft); }
+      #s1 .out b { color: var(--r); font-weight: 400; }
+
+      /* S2 parts list */
+      #s2 .hdr { position: absolute; left: 140px; top: 96px; display: flex; align-items: baseline; gap: 26px; white-space: nowrap; }
+      #s2 .hdr .name { font: 800 56px/1 var(--brand); }
+      #s2 .hdr .cnt { font: 400 42px/1 var(--mono); color: var(--r); }
+      #s2 .hdr .lbl { font: 400 32px/1 var(--mono); color: var(--soft); }
+      #s2 .listwin { position: absolute; left: 140px; top: 190px; width: 1640px; height: 820px; overflow: hidden;
+        -webkit-mask-image: linear-gradient(transparent, #000 8%, #000 80%, transparent); mask-image: linear-gradient(transparent, #000 8%, #000 80%, transparent); }
+      #s2 .list { position: absolute; left: 0; top: 0; width: 1640px; }
+      #s2 .row { height: 64px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.06); background: rgba(5,6,10,.55); }
+      #s2 .pill { font: 400 31px/1 var(--mono); color: #ffe3e5; background: rgba(255,70,85,.85); padding: 9px 16px; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+      #s2 .meta { font: 400 27px/1 var(--mono); color: var(--soft); padding-right: 12px; }
+      #s2 .dim { background: rgba(5,6,10,.78); opacity: 0; }
+      #s2 .stamp { position: absolute; left: 0; right: 0; top: 330px; text-align: center; opacity: 0; }
+      #s2 .stamp .k { font: 400 36px/1 var(--mono); color: var(--soft); letter-spacing: .04em; }
+      #s2 .stamp .v { display: block; margin: 26px auto 22px; width: 1500px; font: 900 210px/1 var(--brand); color: var(--r); }
+      #s2 .stamp .s { font: 400 32px/1.4 var(--mono); color: var(--soft); }
+
+      /* S3 extractor core */
+      #s3 .hd { position: absolute; font: 400 26px/1 var(--mono); color: var(--soft); white-space: nowrap; }
+      #s3 .hd b { color: var(--text); font: 700 30px/1 var(--brand); margin-right: 14px; }
+      #s3 .tile { position: absolute; width: 96px; height: 56px; background: rgba(252,238,10,.9); color: #07080d; font: 800 26px/56px var(--brand); text-align: center; z-index: 5;
+        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); box-shadow: 0 0 22px rgba(252,238,10,.6); }
+      #s3 .slot { position: absolute; width: 96px; height: 56px; border: 2px solid rgba(252,238,10,.28); font: 400 18px/52px var(--mono); text-align: center; color: transparent; background: rgba(5,6,10,.6); }
+      #s3 .core { position: absolute; left: 750px; top: 240px; width: 420px; height: 420px; }
+      #s3 .core svg { position: absolute; left: 0; top: 0; width: 420px; height: 420px; overflow: visible; }
+      #s3 .core .ring { transform-origin: 210px 210px; }
+      #s3 .coreglow { position: absolute; left: 110px; top: 110px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(252,238,10,.85), rgba(252,238,10,.15) 55%, transparent 70%); mix-blend-mode: screen; }
+      #s3 .corelogo { position: absolute; left: 140px; top: 140px; width: 140px; height: 140px; }
+      #s3 .corelab { position: absolute; left: 700px; top: 690px; width: 520px; text-align: center; font: 400 24px/1 var(--mono); color: var(--y); letter-spacing: .3em; }
+      #s3 .files { position: absolute; left: 1390px; top: 250px; width: 384px; height: 240px; }
+      #s3 .fsq { position: absolute; width: 18px; height: 18px; background: rgba(0,229,240,.10); border: 1px solid rgba(0,229,240,.25); }
+      #s3 .dotp { position: absolute; left: 954px; top: 444px; width: 12px; height: 12px; background: var(--c); box-shadow: 0 0 14px var(--c); opacity: 0; z-index: 6; }
+      #s3 .stat { position: absolute; font: 400 30px/1 var(--mono); color: var(--soft); white-space: nowrap; }
+      #s3 .stat b { font: 800 40px/1 var(--brand); color: var(--text); margin-left: 12px; }
+      #s3 .chart { position: absolute; left: 150px; top: 790px; width: 1620px; height: 180px; background: rgba(5,6,10,.72); border-top: 1px solid var(--rule); }
+      #s3 .chart svg { position: absolute; left: 0; top: 0; width: 1620px; height: 180px; overflow: visible; }
+      #s3 .ctag { position: absolute; left: 22px; top: 16px; font: 400 22px/1 var(--mono); color: var(--soft); }
+      #s3 .cpk { position: absolute; right: 22px; top: 16px; font: 400 22px/1 var(--mono); color: var(--y); }
+
+      /* S4 bars */
+      #s4 .title { position: absolute; left: 140px; top: 120px; font: 800 54px/1 var(--brand); }
+      #s4 .rowb { position: absolute; left: 140px; width: 1640px; height: 230px; }
+      #s4 .rl { font: 700 40px/1 var(--brand); }
+      #s4 .rs { margin-top: 14px; font: 400 28px/1 var(--mono); color: var(--soft); height: 30px; position: relative; }
+      #s4 .rs span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+      #s4 .track { position: absolute; left: 0; top: 104px; width: 1300px; height: 74px; background: rgba(255,255,255,.06); }
+      #s4 .fill { position: absolute; left: 0; top: 0; height: 74px; width: 1300px; transform-origin: 0 50%; }
+      #s4 .val { position: absolute; left: 1340px; top: 112px; font: 900 56px/1 var(--brand); white-space: nowrap; }
+      #s4 .val small { font-size: 30px; color: var(--soft); margin-left: 8px; }
+      #s4 .free { position: absolute; top: 88px; width: 0; height: 106px; border-left: 3px dashed var(--c); }
+      #s4 .free span { position: absolute; left: 10px; top: -30px; font: 400 23px/1 var(--mono); color: var(--c); white-space: nowrap; }
+      #s4 .pct { position: absolute; left: 1120px; top: 810px; width: 660px; text-align: right; font: 900 160px/1 var(--brand); color: var(--c); opacity: 0; }
+      #s4 .pctl { position: absolute; left: 1080px; top: 985px; width: 700px; text-align: right; font: 400 28px/1 var(--mono); color: var(--soft); opacity: 0; }
+
+      /* S5 diff */
+      #s5 .card { position: absolute; left: 140px; width: 1180px; background: var(--surface); border: 1px solid var(--rule); }
+      #s5 .ch { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font: 400 25px/1 var(--mono); color: var(--soft); border-bottom: 1px solid var(--rule); }
+      #s5 .ch .badge { color: var(--r); }
+      #s5 .ch .badge.g { color: var(--g); }
+      #s5 .ln { height: 52px; overflow: hidden; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font: 400 29px/1 var(--mono); color: var(--soft); white-space: pre; }
+      #s5 .ln .sz { color: #a9aab6; font-size: 25px; }
+      #s5 .ln.del { background: rgba(255,70,85,0); }
+      #s5 .ln .mk { display: inline-block; width: 34px; color: var(--r); }
+      #s5 .ln.add .mk { color: var(--g); }
+      #s5 .ln .tagx { color: var(--c); font-size: 23px; letter-spacing: .08em; }
+
+      /* S6 + CTA logo */
+      .logo-wrap { position: absolute; }
+      .logo-wrap img { display: block; width: 100%; height: 100%; }
+      #s6 .tag { position: absolute; left: 0; right: 0; top: 806px; text-align: center; font: 700 46px/1 var(--brand); color: var(--text); white-space: pre; }
+      #s6 .sub { position: absolute; left: 0; right: 0; top: 880px; text-align: center; font: 400 28px/1 var(--mono); color: var(--soft); letter-spacing: .2em; }
+
+      /* S7 how-to card */
+      #s7 .panel { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: var(--y);
+        clip-path: polygon(0 0, 1840px 0, 1920px 80px, 1920px 1080px, 80px 1080px, 0 1000px); }
+      #s7 .big { position: absolute; left: 140px; top: 330px; font: 900 196px/0.95 var(--brand); color: #07080d; white-space: nowrap; }
+      #s7 .meta { position: absolute; left: 148px; top: 770px; font: 400 42px/1 var(--mono); color: #07080d; }
+      #s7 .mk { position: absolute; left: 1560px; top: 140px; width: 220px; height: 220px; }
+      #s7 .stripes { position: absolute; left: 140px; top: 880px; width: 520px; height: 26px; background: repeating-linear-gradient(-45deg, #07080d 0 14px, transparent 14px 28px); }
+
+      /* ---------- tutorial ---------- */
+      .tut .scrim { position: absolute; left: 0; top: 0; width: 820px; height: 1080px; background: linear-gradient(90deg, rgba(5,6,10,.92) 0%, rgba(5,6,10,.85) 55%, transparent 100%); }
+      .tut .side { position: absolute; left: 110px; top: 140px; width: 440px; }
+      .tut .stepk { font: 400 23px/1 var(--mono); color: var(--y); letter-spacing: .2em; }
+      .tut .segs { display: flex; gap: 8px; margin-top: 18px; width: 440px; }
+      .tut .seg { flex: 1; height: 6px; background: #2a2b37; }
+      .tut .seg.done { background: var(--c); }
+      .tut .seg.now { background: var(--y); }
+      .tut .num { margin-top: 26px; font: 900 160px/0.9 var(--brand); color: transparent; -webkit-text-stroke: 3px var(--y); }
+      .tut .ttl { margin-top: 22px; font: 800 46px/1.06 var(--brand); color: var(--text); }
+      .tut .body { margin-top: 18px; font: 500 28px/1.3 var(--body); color: var(--soft); }
+      .tut .tips { margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
+      .tut .tip { display: flex; gap: 14px; font: 600 27px/1.22 var(--body); color: var(--text); }
+      .tut .tip i { flex: none; font-style: normal; font-family: var(--mono); color: var(--y); width: 26px; }
+      .tut .tip b { color: var(--y); font-weight: 700; }
+      .tut .vpout { position: absolute; left: 596px; top: 146px; width: 1248px; height: 783px; }
+      .tut .vpout svg { position: absolute; left: 0; top: 0; width: 1248px; height: 783px; overflow: visible; }
+      .tut .vp { position: absolute; left: 600px; top: 150px; width: 1240px; height: 775px; overflow: hidden; background: #0b0c12;
+        clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px); box-shadow: 0 0 80px rgba(0,0,0,.8); }
+      .tut .layer { position: absolute; left: 0; top: 0; width: 2400px; height: 1500px; transform-origin: 0 0; }
+      .tut .layer img.plate { position: absolute; left: 0; top: 0; width: 2400px; height: 1500px; }
+      .tut .cap { position: absolute; left: 600px; top: 950px; width: 1240px; display: flex; justify-content: space-between; font: 400 21px/1 var(--mono); color: var(--soft); letter-spacing: .1em; text-shadow: 0 2px 10px #000; }
+      .cur { position: absolute; left: 0; top: 0; width: 60px; height: 76px; transform-origin: 0 0; z-index: 30; }
+      .rip { position: absolute; width: 110px; height: 110px; border-radius: 50%; border: 6px solid var(--y); opacity: 0; z-index: 29; }
+      .hl { position: absolute; border: 5px solid var(--c); background: rgba(0,229,240,.07); box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 0 40px rgba(0,229,240,.45); opacity: 0; z-index: 20; }
+      .hl.red { border-color: var(--r); background: rgba(255,70,85,.08); box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 0 40px rgba(255,70,85,.5); }
+      .hl.yel { border-color: var(--y); background: rgba(252,238,10,.05); box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 0 40px rgba(252,238,10,.45); }
+      .hl .chip { position: absolute; left: -5px; bottom: 100%; margin-bottom: 10px; padding: 10px 18px; background: var(--c); color: #07080d; font: 400 36px/1 var(--mono); white-space: nowrap; }
+      .hl.red .chip { background: var(--r); color: #fff; }
+      .hl.yel .chip { background: var(--y); }
+      .hl.below .chip { bottom: auto; top: 100%; margin: 10px 0 0; }
+      .typed { position: absolute; font: 600 36px/1 var(--body); color: #0b0c12; z-index: 25; white-space: pre; text-align: right; }
+
+      /* TX: Explorer right-click */
+      #tx .xl { position: absolute; left: 0; top: 0; width: 1240px; height: 775px; transform-origin: 0 0; font-family: "Segoe UI", system-ui, sans-serif; color: #fff; }
+      #tx .xp { position: absolute; inset: 0; background: #191919; }
+      #tx .xp-top { height: 52px; display: flex; align-items: center; gap: 18px; padding: 0 18px; background: #202020; border-bottom: 1px solid #2d2d2d; font-size: 15px; color: #d6d6d6; }
+      #tx .xp-path { flex: 1; height: 34px; line-height: 34px; padding: 0 14px; background: #2b2b2b; border-radius: 4px; }
+      #tx .xp-search { width: 240px; height: 34px; line-height: 34px; padding: 0 14px; background: #2b2b2b; border-radius: 4px; color: #9a9a9a; }
+      #tx .xp-cmd { height: 46px; line-height: 46px; padding: 0 22px; font-size: 14px; color: #cfcfcf; border-bottom: 1px solid #2d2d2d; word-spacing: 18px; }
+      #tx .xp-nav { position: absolute; left: 0; top: 98px; bottom: 0; width: 220px; border-right: 1px solid #2d2d2d; padding: 12px 0; font-size: 15px; color: #d0d0d0; }
+      #tx .xp-nav div { height: 34px; line-height: 34px; padding-left: 24px; }
+      #tx .xp-nav .on { background: #2d2d2d; }
+      #tx .xp-list { position: absolute; left: 221px; right: 0; top: 98px; bottom: 0; font-size: 15px; }
+      #tx .xp-hdr, #tx .xp-row { display: grid; grid-template-columns: 420px 180px 160px 1fr; align-items: center; height: 36px; padding-left: 18px; }
+      #tx .xp-hdr { color: #a8a8a8; border-bottom: 1px solid #2d2d2d; font-size: 14px; }
+      #tx .xp-row { color: #e8e8e8; }
+      #tx .xp-row span:first-child { display: flex; align-items: center; gap: 10px; }
+      #tx .xp-row .ic { width: 20px; height: 20px; flex: none; }
+      #tx .xp-row .dim { color: #a8a8a8; }
+      #tx .sel { position: absolute; left: 221px; right: 6px; height: 36px; background: rgba(76,194,255,.22); border: 1px solid rgba(76,194,255,.55); opacity: 0; }
+      #tx .cm { position: absolute; background: #2b2b2b; border: 1px solid #454545; border-radius: 8px; padding: 4px; box-shadow: 0 12px 34px rgba(0,0,0,.6); font-size: 15px; color: #f2f2f2; opacity: 0; z-index: 10; }
+      #tx .mi { position: relative; height: 34px; display: flex; align-items: center; gap: 12px; padding: 0 36px 0 10px; border-radius: 4px; white-space: nowrap; }
+      #tx .mi .ic { width: 20px; height: 20px; flex: none; display: block; }
+      #tx .mi .sp { width: 20px; flex: none; }
+      #tx .mi .ar { position: absolute; right: 12px; top: 0; line-height: 34px; color: #cfcfcf; }
+      #tx .mi .hv { position: absolute; inset: 0; background: #3d3d3d; border-radius: 4px; opacity: 0; z-index: -1; }
+      #tx .sep { height: 1px; background: #454545; margin: 4px 0; }
+      #tx .xcur { position: absolute; left: 0; top: 0; width: 26px; height: 33px; z-index: 30; }
+      #tx .xrip { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--y); opacity: 0; z-index: 29; }
+
+      /* T6 CLI */
+      #t6 .term { position: absolute; left: 600px; top: 250px; width: 1240px; height: 560px; background: rgba(8,9,14,.95); border: 2px solid var(--rule);
+        clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px); }
+      #t6 .tbar { height: 50px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: 12px; padding: 0 22px; font: 400 21px/1 var(--mono); color: var(--soft); }
+      #t6 .tbar i { width: 12px; height: 12px; background: #2a2b37; display: block; }
+      #t6 .tbody { padding: 30px 34px; font: 400 27px/1.55 var(--mono); color: var(--soft); white-space: pre-wrap; }
+      #t6 .ln { min-height: 40px; }
+      #t6 .pr { color: var(--y); }
+      #t6 .k { color: var(--c); }
+      #t6 .ok { color: var(--g); }
+      #t6 .caret { display: inline-block; width: 15px; height: 32px; background: var(--y); vertical-align: -6px; }
+
+      /* CTA */
+      #s8 .cta1 { position: absolute; left: 0; right: 0; top: 700px; text-align: center; font: 700 52px/1 var(--brand); color: var(--text); }
+      #s8 .cta2 { position: absolute; left: 0; right: 0; top: 790px; text-align: center; font: 400 31px/1 var(--mono); color: var(--c); }
+      #s8 .cta3 { position: absolute; left: 0; right: 0; top: 850px; text-align: center; font: 400 24px/1 var(--mono); color: var(--soft); letter-spacing: .24em; }
+      #s8 .btn { position: absolute; left: 780px; top: 930px; width: 360px; height: 74px; background: var(--y); color: #07080d; display: flex; align-items: center; justify-content: center; font: 900 32px/1 var(--brand); letter-spacing: .06em;
+        clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="85" data-width="1920" data-height="1080">
+      <!-- raymarched neon city: full duration -->
+      <div id="bg" class="clip" data-start="0" data-duration="85" data-track-index="0">
+        <canvas id="city" width="1920" height="1080"></canvas>
+      </div>
+
+      <div id="stage" class="clip" data-start="0" data-duration="85" data-track-index="1">
+        <!-- ================= ACT I: THE AD ================= -->
+        <section id="s1" class="clip" data-start="0" data-duration="4" data-track-index="2">
+          <div class="prompt"><span class="pr">› </span><span id="s1-typed"></span><span class="caret" id="s1-caret"></span></div>
+          <div class="out shade" id="s1-out">needs <b>53.10 GB</b> of free space</div>
+        </section>
+
+        <section id="s2" class="clip" data-start="4" data-duration="5" data-track-index="2">
+          <div class="hdr shade"><span class="name">Ashen.Tide.v1.4.2</span><span class="cnt" id="s2-cnt">0 parts</span><span class="lbl" id="s2-gb">0.00 GB</span></div>
+          <div class="listwin"><div class="list" id="s2-list"></div></div>
+          <div class="clip dim" id="s2-dim"></div>
+          <div class="stamp" id="s2-stamp">
+            <div class="k">free space to unpack it the usual way</div>
+            <span class="v chroma">53.10 GB</span>
+            <div class="s">every part stays on disk until the whole game is out</div>
+          </div>
+        </section>
+
+        <section id="s3" class="clip" data-start="9" data-duration="6" data-track-index="2">
+          <div class="hd shade" style="left: 150px; top: 206px"><b>D:\Downloads</b>24 parts</div>
+          <div id="s3-tiles"></div>
+          <div class="core" id="s3-core">
+            <div class="coreglow" id="s3-glow"></div>
+            <svg viewBox="0 0 420 420">
+              <g class="ring" id="s3-r1"><circle cx="210" cy="210" r="196" fill="none" stroke="#fcee0a" stroke-width="3" stroke-dasharray="26 14" opacity=".9" /></g>
+              <g class="ring" id="s3-r2"><circle cx="210" cy="210" r="168" fill="none" stroke="#00e5f0" stroke-width="2" stroke-dasharray="4 10" opacity=".9" /></g>
+              <g class="ring" id="s3-r3"><polygon points="210,62 338,136 338,284 210,358 82,284 82,136" fill="rgba(5,6,10,.85)" stroke="#fcee0a" stroke-width="4" /></g>
+            </svg>
+            <img class="corelogo" id="s3-logo" src="assets/brand/logo.png" alt="" />
+          </div>
+          <div class="corelab shade">UNPACK · DELETE · NEXT</div>
+          <div class="hd shade" style="left: 1390px; top: 206px"><b>D:\Games\Ashen Tide</b></div>
+          <div class="files" id="s3-files"></div>
+          <div class="stat shade" style="left: 150px; top: 690px">parts left<b id="s3-left">24</b></div>
+          <div class="stat shade" style="left: 1390px; top: 530px">files<b id="s3-nf">0</b></div>
+          <div class="stat shade" style="left: 1390px; top: 600px">freed<b id="s3-freed" style="color: var(--c)">0.00 GB</b></div>
+          <div class="chart" id="s3-chart">
+            <div class="ctag">extra space used on D:, live</div>
+            <div class="cpk" id="s3-pk">peak 7.77 GB</div>
+            <svg viewBox="0 0 1620 180"><polyline id="s3-line" fill="none" stroke="#fcee0a" stroke-width="4" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px #fcee0a)" /></svg>
+          </div>
+          <div class="headline" id="s3-head"><svg class="ico" viewBox="0 0 30 30"><polygon points="15,1 29,15 15,29 1,15" fill="#fcee0a"/><polygon points="15,9 21,15 15,21 9,15" fill="#07080d"/></svg><span>Unpack a part. Delete it. Next.</span></div>
+        </section>
+
+        <section id="s4" class="clip" data-start="15" data-duration="5" data-track-index="2">
+          <div class="title shade">free space needed</div>
+          <div class="rowb shade" style="top: 250px">
+            <div class="rl">Ashen Tide <span style="color: var(--soft); font-weight: 500">· 24 RAR parts</span></div>
+            <div class="rs"><span id="s4-a1">keep every part</span><span id="s4-a2" style="color: var(--y); opacity: 0">delete each part once it's used</span></div>
+            <div class="track"><div class="fill" id="s4-fa"></div></div>
+            <div class="free" style="left: 1300px"><span>82.70 GB free on D:</span></div>
+            <div class="val" id="s4-va">53.10<small>GB</small></div>
+          </div>
+          <div class="rowb shade" style="top: 540px">
+            <div class="rl">Vigil of Ostra <span style="color: var(--soft); font-weight: 500">· ISO</span></div>
+            <div class="rs"><span id="s4-b1">normal install, ISO kept</span><span id="s4-b2" style="color: var(--y); opacity: 0">install while freeing the ISO</span></div>
+            <div class="track"><div class="fill" id="s4-fb"></div></div>
+            <div class="free" style="left: 649px"><span>41.30 GB free on E:</span></div>
+            <div class="val" id="s4-vb">50.78<small>GB</small></div>
+          </div>
+          <div class="pct chroma" id="s4-pct">−85%</div>
+          <div class="pctl shade" id="s4-pctl">same games, about 85% less free space</div>
+        </section>
+
+        <section id="s5" class="clip" data-start="20" data-duration="4" data-track-index="2">
+          <div class="headline" id="s5-head"><svg class="ico" viewBox="0 0 30 30"><polygon points="15,1 29,15 15,29 1,15" fill="#ff4655"/><polygon points="15,9 21,15 15,21 9,15" fill="#07080d"/></svg><span>Your drive, halfway through.</span></div>
+          <div class="card" id="s5-c1" style="top: 220px">
+            <div class="ch"><span>D:\Downloads</span><span class="badge">−3</span></div>
+            <div id="s5-lines"></div>
+          </div>
+          <div class="card" id="s5-c2" style="top: 700px">
+            <div class="ch"><span>D:\Games\Ashen Tide</span><span class="badge g">+523</span></div>
+            <div class="ln add"><span><span class="mk">+</span>Ashen Tide\  523 of 1,204 files</span><span class="tagx">EXTRACTING 43%</span></div>
+          </div>
+        </section>
+
+        <section id="s6" class="clip" data-start="24" data-duration="4" data-track-index="2">
+          <div class="logo-wrap" id="s6-logo" style="left: 830px; top: 190px; width: 260px; height: 260px"><img src="assets/brand/logo.png" alt="EnhancedExtract logo" /></div>
+          <div class="logo-wrap" id="s6-word" style="left: 451px; top: 500px; width: 1018px; height: 276px"><img src="assets/brand/title.png" alt="Enhanced Extract" /></div>
+          <div class="tag shade" id="s6-tag">Big games. Small drives.</div>
+          <div class="sub shade" id="s6-sub">RAR SETS · GAME ISOS · WINDOWS</div>
+        </section>
+
+        <section id="s7" class="clip" data-start="28" data-duration="2" data-track-index="2">
+          <div class="panel" id="s7-panel">
+            <div class="big" id="s7-big">HOW TO<br />USE IT</div>
+            <div class="meta" id="s7-meta">5 steps + a shortcut</div>
+            <div class="stripes"></div>
+            <div class="mk" style="background: #07080d; clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px)"><img src="assets/brand/logo.png" alt="" style="position: absolute; left: 30px; top: 30px; width: 160px; height: 160px" /></div>
+          </div>
+        </section>
+
+        <!-- ================= ACT II: TUTORIAL ================= -->
+        <section id="t1" class="clip tut" data-start="30" data-duration="8" data-track-index="2"></section>
+
+        <section id="tx" class="clip tut" data-start="38" data-duration="6" data-track-index="2">
+          <div class="scrim"></div>
+          <div class="side" id="tx-side">
+            <div class="stepk">SHORTCUT</div>
+            <div class="num" style="font-size: 104px; margin-top: 30px">R-CLICK</div>
+            <div class="ttl">Right-click any .rar</div>
+            <div class="body">No dashboard needed. Start straight from Explorer.</div>
+            <div class="tips" id="tx-tips"></div>
+          </div>
+          <div class="vpout" id="tx-vpo"><svg viewBox="0 0 1248 783"><polygon points="25,2 1246,2 1246,757 1221,781 2,781 2,25" fill="none" stroke="#fcee0a" stroke-width="2.5" opacity=".9"/><polyline points="2,60 2,25 25,2 70,2" fill="none" stroke="#00e5f0" stroke-width="5"/><polyline points="1178,781 1221,781 1246,757 1246,716" fill="none" stroke="#00e5f0" stroke-width="5"/></svg></div>
+          <div class="vp" id="tx-vp">
+            <div class="xl" id="tx-xl">
+              <div class="xp">
+                <div class="xp-top"><span class="xp-path">This PC  ›  Data (D:)  ›  Downloads</span><span class="xp-search">Search Downloads</span></div>
+                <div class="xp-cmd">New  Cut  Copy  Paste  Rename  Share  Delete  Sort  View</div>
+                <div class="xp-nav"><div>Home</div><div>Gallery</div><div>Desktop</div><div class="on">Downloads</div><div>Documents</div><div>Pictures</div><div>Music</div><div>This PC</div><div>Data (D:)</div><div>Games (E:)</div></div>
+                <div class="xp-list" id="tx-list"><div class="xp-hdr"><span>Name</span><span>Date modified</span><span>Type</span><span>Size</span></div></div>
+                <div class="sel" id="tx-sel" style="top: 134px"></div>
+              </div>
+              <div class="cm" id="tx-cm1" style="left: 470px; top: 156px; width: 300px">
+                <div class="mi"><span class="sp"></span>Open</div>
+                <div class="mi" id="tx-ee"><div class="hv" id="tx-eehv"></div><img class="ic" src="assets/brand/logo-64.png" alt="" />EnhancedExtract<span class="ar">›</span></div>
+                <div class="mi"><svg class="ic" viewBox="0 0 20 20"><rect x="3" y="2" width="14" height="5" fill="#7b3fb8"/><rect x="3" y="7.5" width="14" height="5" fill="#2f6fd6"/><rect x="3" y="13" width="14" height="5" fill="#c23b6b"/><rect x="9" y="1" width="2.5" height="18" fill="#d9c27a"/></svg>WinRAR<span class="ar">›</span></div>
+                <div class="mi"><span class="sp"></span>Add to Favorites</div>
+                <div class="sep"></div>
+                <div class="mi"><span class="sp"></span>Copy as path</div>
+                <div class="mi"><span class="sp"></span>Properties</div>
+              </div>
+              <div class="cm" id="tx-cm2" style="left: 764px; top: 194px; width: 400px">
+                <div class="mi"><img class="ic" src="assets/brand/logo-64.png" alt="" />Extract with EnhancedExtract</div>
+                <div class="mi" id="tx-fr"><div class="hv" id="tx-frhv"></div><img class="ic" src="assets/brand/logo-64.png" alt="" />Extract and free space (delete parts)...</div>
+                <div class="mi"><img class="ic" src="assets/brand/logo-64.png" alt="" />Open EnhancedExtract dashboard</div>
+              </div>
+              <div class="xrip" id="tx-rip1"></div><div class="xrip" id="tx-rip2"></div>
+              <svg class="xcur" id="tx-cur" viewBox="0 0 60 76"><polygon points="3,3 3,62 18,48 29,72 40,67 29,44 50,44" fill="#07080d" stroke="#fcee0a" stroke-width="4" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="cap"><span>WINDOWS EXPLORER</span><span>SHOW MORE OPTIONS › ENHANCEDEXTRACT</span></div>
+        </section>
+
+        <section id="t2" class="clip tut" data-start="44" data-duration="8" data-track-index="2"></section>
+        <section id="t3" class="clip tut" data-start="52" data-duration="7" data-track-index="2"></section>
+        <section id="t4" class="clip tut" data-start="59" data-duration="6.5" data-track-index="2"></section>
+        <section id="t5" class="clip tut" data-start="65.5" data-duration="9" data-track-index="2"></section>
+
+        <section id="t6" class="clip tut" data-start="74.5" data-duration="4.5" data-track-index="2">
+          <div class="scrim"></div>
+          <div class="side">
+            <div class="stepk">BONUS</div>
+            <div class="num" style="font-size: 120px">CLI</div>
+            <div class="ttl">For scripts and AI agents</div>
+            <div class="body">Every screen runs the same JSON command line underneath. Dry-run first, then confirm.</div>
+          </div>
+          <div class="term" id="t6-term">
+            <div class="tbar"><i></i><i></i><i></i><span style="margin-left: 12px">EnhancedExtract — terminal</span></div>
+            <div class="tbody">
+              <div class="ln"><span class="pr">› </span><span id="t6-cmd"></span><span class="caret" id="t6-caret"></span></div>
+              <div class="ln" id="t6-o1"><span class="k">{"type": "plan"</span>, "steps": ["verify 24 parts", "extract 1,204 files", "delete each part once used"]}</div>
+              <div class="ln" id="t6-o2"><span class="k">{"type": "result"</span>, <span class="ok">"ok": true</span>, "exit_code": 0, "dry_run": true, "next": "… --yes --background"}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= ACT III: CTA ================= -->
+        <section id="s8" class="clip" data-start="79" data-duration="6" data-track-index="2">
+          <div class="logo-wrap" id="s8-logo" style="left: 860px; top: 150px; width: 200px; height: 200px"><img src="assets/brand/logo.png" alt="EnhancedExtract logo" /></div>
+          <div class="logo-wrap" id="s8-word" style="left: 526px; top: 400px; width: 868px; height: 235px"><img src="assets/brand/title.png" alt="Enhanced Extract" /></div>
+          <div class="cta1 shade" id="s8-c1">Big games. Small drives.</div>
+          <div class="cta2 shade" id="s8-c2">github.com/gustavofring1483369/EnhancedExtract</div>
+          <div class="cta3 shade" id="s8-c3">FREE · WINDOWS · v1.3</div>
+          <div class="btn" id="s8-btn">GET IT NOW</div>
+        </section>
+      </div>
+
+      <!-- overlays -->
+      <div id="gl" class="clip" data-start="0" data-duration="85" data-track-index="3"></div>
+      <div id="flash" class="clip" data-start="0" data-duration="85" data-track-index="4"></div>
+      <svg id="noise" class="clip" data-start="0" data-duration="85" data-track-index="5" viewBox="0 0 1920 1080">
+        <filter id="nf"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" /></filter>
+        <rect width="1920" height="1080" filter="url(#nf)" />
+      </svg>
+      <div id="scan" class="clip" data-start="0" data-duration="85" data-track-index="6"></div>
+      <div id="vig" class="clip" data-start="0" data-duration="85" data-track-index="7"></div>
+      <div id="hud" class="clip" data-start="0" data-duration="85" data-track-index="8">
+        <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
+        <div class="t1"><span class="dot" id="hud-dot"></span>EE://LAUNCH_SEQ</div>
+        <div class="t2">ENHANCED EXTRACT · v1.3</div>
+        <div class="t3" id="hud-sec">01 · THE PROBLEM</div>
+        <div class="t4" id="hud-tc">00:00:00</div>
+      </div>
+
+      <audio id="soundtrack" src="assets/soundtrack.wav" data-start="0" data-duration="85" data-track-index="9"></audio>
+    </div>
+
+    <script id="city-fs" type="x-shader/x-fragment">
+      precision highp float;
+      uniform vec2 uR; uniform float uT; uniform vec3 uCam; uniform vec3 uTgt; uniform float uG; uniform float uDim; uniform float uBeat; uniform float uSpd;
+      const vec3 YL = vec3(0.988, 0.933, 0.039);
+      const vec3 CY = vec3(0.0, 0.898, 0.941);
+      const vec3 MG = vec3(1.0, 0.184, 0.839);
+      const vec3 RD = vec3(1.0, 0.275, 0.333);
+      const float CS = 6.0;
+      float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
+      float bH(vec2 c) { float r = h21(c); return 5.0 + r * r * 24.0; }
+      float bW(vec2 c) { return 1.6 + 0.8 * h21(c + 17.3); }
+      // city blocks: returns (dist, safe step cap)
+      vec2 cityD(vec3 p, out vec2 cid) {
+        vec2 c = floor(p.xz / CS); cid = c;
+        vec2 l = p.xz - (c + 0.5) * CS;
+        float cx = (c.x + 0.5) * CS;
+        float d = 1e3;
+        if (abs(cx) > 5.0) {
+          float h = bH(c), w = bW(c);
+          d = sdBox(vec3(l.x, p.y - h * 0.5, l.y), vec3(w, h * 0.5, w));
+          float top = 1.5 + 4.0 * h21(c + 3.1);
+          d = min(d, sdBox(vec3(l.x, p.y - h - top * 0.5, l.y), vec3(w * 0.5, top * 0.5, w * 0.5)));
+          d = min(d, sdBox(vec3(l.x - w * 0.3, p.y - h - top - 2.5, l.y), vec3(0.05, 2.5, 0.05)));
+        }
+        vec2 bd = CS * 0.5 - abs(l);
+        return vec2(d, max(min(bd.x, bd.y), 0.0) + 0.06);
+      }
+      // RAR parts streaming down the avenue toward the horizon
+      vec2 partsD(vec3 p, out float pid) {
+        float zz = p.z - uT * uSpd;
+        float k = floor(zz / 5.0); pid = k;
+        float lz = zz - (k + 0.5) * 5.0;
+        float side = h21(vec2(k, 1.0)) > 0.5 ? 1.0 : -1.0;
+        float lane = side * (2.8 + 2.0 * h21(vec2(k, 4.0)));
+        float y = 3.2 + 5.5 * h21(vec2(k, 2.0));
+        vec3 q = vec3(p.x - lane, p.y - y, lz);
+        float a = uT * (0.6 + h21(vec2(k, 5.0))) ;
+        float ca = cos(a), sa = sin(a); q.xy = mat2(ca, -sa, sa, ca) * q.xy;
+        float d = sdBox(q, vec3(0.34, 0.21, 0.56)) - 0.04;
+        return vec2(d, 2.5 - abs(lz) + 0.06);
+      }
+      float sceneD(vec3 p) { vec2 c; float k; return min(min(cityD(p, c).x, p.y), partsD(p, k).x); }
+      vec3 nrm(vec3 p) { vec2 e = vec2(0.003, 0.0); return normalize(vec3(sceneD(p + e.xyy) - sceneD(p - e.xyy), sceneD(p + e.yxy) - sceneD(p - e.yxy), sceneD(p + e.yyx) - sceneD(p - e.yyx))); }
+
+      float march(vec3 ro, vec3 rd, float maxT, int N, out float mat, out vec2 cid, out float pid, inout vec3 glow) {
+        float t = 0.05; mat = -1.0;
+        for (int i = 0; i < 120; i++) {
+          if (i >= N) break;
+          vec3 p = ro + rd * t;
+          vec2 c; float k;
+          vec2 cd = cityD(p, c); vec2 pd = partsD(p, k);
+          float g = p.y;
+          glow += YL * 0.0011 / (0.02 + pd.x * pd.x);
+          float d = min(min(cd.x, g), pd.x);
+          if (d < 0.0015 * t + 0.001) {
+            mat = (d == g) ? 0.0 : ((d == pd.x) ? 2.0 : 1.0);
+            cid = c; pid = k; return t;
+          }
+          t += min(d, min(cd.y, pd.y)) * 0.92;
+          if (t > maxT) break;
+        }
+        return -1.0;
+      }
+      vec3 skyCol(vec3 rd) {
+        float y = rd.y;
+        vec3 c = mix(vec3(0.12, 0.03, 0.16), vec3(0.004, 0.005, 0.014), smoothstep(-0.02, 0.45, y));
+        c += YL * 0.32 * exp(-abs(y) * 14.0) * smoothstep(0.7, 1.0, rd.z);
+        c += MG * 0.10 * exp(-abs(y - 0.05) * 6.0);
+        return c;
+      }
+      vec3 shadeBuilding(vec3 p, vec3 n, vec2 c) {
+        float h = bH(c);
+        vec3 col = vec3(0.022, 0.024, 0.04) * (0.6 + 0.4 * n.y);
+        float u = abs(n.x) > 0.5 ? p.z : p.x;
+        vec2 g = vec2(u * 1.7, p.y * 2.3);
+        vec2 gi = floor(g), gf = fract(g);
+        float win = step(0.18, gf.x) * step(gf.x, 0.82) * step(0.25, gf.y) * step(gf.y, 0.75);
+        float r = h21(gi + c * 31.7 + n.xz * 7.0);
+        float lit = step(0.64, r) * step(0.08, h21(gi + floor(uT * 0.6 + r * 9.0)));
+        vec3 wc = r > 0.95 ? MG : (r > 0.83 ? YL * 0.95 : CY * 0.75);
+        col += win * lit * wc * (0.85 + 0.7 * uBeat) * step(p.y, h);
+        float edge = smoothstep(0.22, 0.0, abs(p.y - h));
+        col += edge * (h21(c + 5.0) > 0.5 ? CY : MG) * 1.8;
+        float facing = step(0.5, abs(n.x)) * step(0.0, -n.x * sign(c.x + 0.5));
+        float sy = h * 0.3 + 3.0 * h21(c + 9.0);
+        float lz = p.z - (c.y + 0.5) * CS;
+        float sgn = facing * step(abs(p.y - sy), 2.2) * step(abs(lz), 0.6);
+        float fl = 0.55 + 0.45 * step(0.18, h21(vec2(floor(uT * 9.0), c.x * 3.0 + c.y)));
+        float bars = 0.55 + 0.45 * step(0.45, fract(p.y * 2.6));
+        col += sgn * (h21(c + 2.0) > 0.55 ? YL : (h21(c + 2.0) > 0.25 ? RD : CY)) * 2.6 * fl * bars;
+        return col;
+      }
+      vec3 shadePart(vec3 p, vec3 n) {
+        float f = pow(1.0 - abs(n.z), 2.0);
+        return YL * (1.05 + 0.6 * f) + vec3(1.0) * 0.25 * step(0.9, abs(n.y));
+      }
+      vec3 shadeGroundEmit(vec3 p) {
+        vec3 col = vec3(0.01, 0.011, 0.018);
+        col += YL * step(abs(p.x), 0.07) * step(0.55, fract(p.z * 0.16)) * 1.1;
+        col += CY * step(abs(abs(p.x) - 5.4), 0.05) * 0.9;
+        vec2 gg = abs(fract(p.xz * 0.5) - 0.5);
+        col += CY * 0.05 * step(0.47, max(gg.x, gg.y));
+        return col;
+      }
+      vec3 surf(vec3 ro, vec3 rd, float t, float mat, vec2 cid, vec3 glow, bool allowRefl) {
+        if (mat < 0.0) return skyCol(rd) + glow;
+        vec3 p = ro + rd * t;
+        vec3 col;
+        if (mat > 1.5) col = shadePart(p, nrm(p));
+        else if (mat > 0.5) col = shadeBuilding(p, nrm(p), cid);
+        else col = shadeGroundEmit(p);
+        float fog = 1.0 - exp(-t * 0.016);
+        vec3 fogC = mix(vec3(0.07, 0.025, 0.11), vec3(0.18, 0.15, 0.02), smoothstep(0.6, 1.0, rd.z) * 0.4);
+        col = mix(col, fogC, fog);
+        return col + glow;
+      }
+      float rain(vec2 uv) {
+        float r = 0.0;
+        for (int k = 0; k < 3; k++) {
+          float fk = float(k);
+          float s = 34.0 + fk * 30.0;
+          vec2 q = vec2(uv.x * s + uv.y * s * 0.18, uv.y * s * 0.07);
+          float id = floor(q.x);
+          float on = step(0.62, h21(vec2(id, fk + 3.0)));
+          float y = fract(q.y + uT * (1.6 + fk * 0.7) + h21(vec2(id, fk)) * 7.0);
+          float xw = 1.0 - smoothstep(0.0, 0.09, abs(fract(q.x) - 0.5));
+          r += on * xw * smoothstep(0.78, 1.0, y) * (0.5 + 0.25 * fk);
+        }
+        return r;
+      }
+      void main() {
+        vec2 fc = gl_FragCoord.xy;
+        vec2 uv = (fc - 0.5 * uR) / uR.y;
+        float band = floor(fc.y / uR.y * 22.0 + floor(uT * 24.0) * 7.0);
+        float gs = h21(vec2(band, floor(uT * 24.0)));
+        uv.x += step(1.0 - uG * 0.8, gs) * (gs - 0.5) * 0.25 * uG;
+        vec3 fw = normalize(uTgt - uCam);
+        vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
+        vec3 up = cross(fw, rt);
+        vec3 rd = normalize(fw * 1.45 + uv.x * rt + uv.y * up);
+        vec3 glow = vec3(0.0); float mat; vec2 cid; float pid;
+        float t = march(uCam, rd, 150.0, 120, mat, cid, pid, glow);
+        vec3 col = surf(uCam, rd, t, mat, cid, glow * 0.6, true);
+        if (mat > -0.5 && mat < 0.5) {
+          vec3 p = uCam + rd * t;
+          vec3 n = vec3(0.0, 1.0, 0.0);
+          n.x += (h21(floor(p.xz * 3.0)) - 0.5) * 0.06;
+          n.z += (h21(floor(p.xz * 3.0) + 9.0) - 0.5) * 0.06;
+          n = normalize(n);
+          vec3 r = reflect(rd, n);
+          vec3 g2 = vec3(0.0); float m2; vec2 c2; float k2;
+          float t2 = march(p + n * 0.02, r, 80.0, 60, m2, c2, k2, g2);
+          vec3 rc = surf(p, r, t2, m2, c2, g2 * 0.5, false);
+          float fres = 0.35 + 0.55 * pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
+          float puddle = 0.55 + 0.45 * smoothstep(0.3, 0.7, h21(floor(p.xz * 0.7)));
+          col = mix(col, rc, fres * puddle);
+        }
+        col += vec3(0.75, 0.85, 1.0) * rain(uv) * 0.12;
+        float gl2 = step(1.0 - uG * 0.5, h21(vec2(band * 3.0, floor(uT * 30.0))));
+        col = mix(col, col.gbr * 1.4, gl2 * uG);
+        col *= uDim;
+        col = col / (1.0 + col * 0.65);
+        col = pow(col, vec3(0.88));
+        float vg = smoothstep(1.35, 0.35, length((fc - 0.5 * uR) / uR.y));
+        col *= mix(0.55, 1.0, vg);
+        gl_FragColor = vec4(col, 1.0);
+      }
+    </script>
+
+    <script>
+      (function () {
+        const TOTAL = 85;
+        const CUES = [];
+        window.__CUES = CUES;
+        const cue = (t, name, vol) => CUES.push({ t: +t.toFixed(3), name, vol: vol == null ? 1 : vol });
+        const H = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+        const $ = (s) => document.querySelector(s);
+        const el = (tag, cls, parent, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
+        const C = { y: "#fcee0a", c: "#00e5f0", r: "#ff4655", m: "#ff2fd6", g: "#4cc38a" };
+        const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+        // ---------- WebGL city ----------
+        const cv = $("#city");
+        const gl = cv.getContext("webgl", { preserveDrawingBuffer: true, antialias: false, alpha: false });
+        let U = null;
+        if (gl) {
+          const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s)); return s; };
+          const pr = gl.createProgram();
+          gl.attachShader(pr, sh(gl.VERTEX_SHADER, "attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }"));
+          gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, $("#city-fs").textContent));
+          gl.linkProgram(pr);
+          if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(pr));
+          gl.useProgram(pr);
+          const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+          const loc = gl.getAttribLocation(pr, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+          U = {}; ["uR", "uT", "uCam", "uTgt", "uG", "uDim", "uBeat", "uSpd"].forEach((n) => (U[n] = gl.getUniformLocation(pr, n)));
+          gl.viewport(0, 0, 1920, 1080);
+        }
+        // brightness of the city behind each section (text-heavy scenes sit darker)
+        const DIM = [[0, 0.5], [4, 0.36], [9, 0.55], [15, 0.4], [20, 0.4], [24, 0.8], [28, 0.9], [30, 0.62], [74.5, 0.55], [79, 0.62]];
+        const dimAt = (t) => { let v = DIM[0][1]; for (let i = 0; i < DIM.length; i++) { if (t >= DIM[i][0]) { const prev = i ? DIM[i - 1][1] : DIM[0][1]; v = prev + (DIM[i][1] - prev) * ss(DIM[i][0], DIM[i][0] + 0.6, t); } } return v; };
+        const beatAt = (t) => { const full = (t >= 4 && t < 23.5) || (t >= 79 && t < 83); const half = t >= 30 && t < 74.5; const e = Math.exp(-((t % 0.5) / 0.5) * 6); return full ? e : half ? e * 0.4 : 0.1; };
+        const camAt = (t) => {
+          const z = 6.5 * t + 3 * Math.sin(t * 0.21);
+          const lift = 6 * ss(23.6, 25.2, t) * (1 - ss(27.4, 29.0, t)) + 9 * ss(78.6, 81.5, t);
+          const x = 1.3 * Math.sin(t * 0.31);
+          const y = 2.3 + 0.5 * Math.sin(t * 0.47) + lift;
+          return { cam: [x, y, z], tgt: [x + 0.4 * Math.sin(t * 0.23), y - 0.12 - lift * 0.09, z + 1] };
+        };
+        const drawCity = (t, g) => {
+          if (!U) return;
+          const c = camAt(t);
+          gl.uniform2f(U.uR, 1920, 1080); gl.uniform1f(U.uT, t);
+          gl.uniform3f(U.uCam, c.cam[0], c.cam[1], c.cam[2]); gl.uniform3f(U.uTgt, c.tgt[0], c.tgt[1], c.tgt[2]);
+          gl.uniform1f(U.uG, g); gl.uniform1f(U.uDim, dimAt(t)); gl.uniform1f(U.uBeat, beatAt(t)); gl.uniform1f(U.uSpd, 15.0);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        };
+
+        function build() {
+          const tl = gsap.timeline({ paused: true });
+
+          // ---------- glitch windows + per-frame ticker (pure function of time) ----------
+          const GL = [];
+          const glitch = (t, dur, amp, sfx) => { GL.push({ t, dur: dur || 0.34, amp: amp || 1 }); if (sfx !== false) cue(t, "glitch", 0.55 * (amp || 1)); };
+          const stage = $("#stage");
+          const bars = [];
+          for (let i = 0; i < 7; i++) bars.push(el("div", "bar", $("#gl")));
+          const secs = [[0, "01 · THE PROBLEM"], [9, "02 · THE FIX"], [24, "03 · ENHANCED EXTRACT"], [28, "04 · HOW TO USE IT"], [74.5, "05 · FOR AGENTS"], [79, "06 · GET IT"]];
+          const hudSec = $("#hud-sec"), hudTc = $("#hud-tc"), hudDot = $("#hud-dot");
+          const tick = () => {
+            const t = tl.time();
+            let a = 0;
+            for (const g of GL) if (t >= g.t && t < g.t + g.dur) { const p = (t - g.t) / g.dur; a = Math.max(a, g.amp * (1 - p) * (1 - p)); }
+            const step = Math.floor(t / 0.04);
+            if (a > 0.01) {
+              const dx = a * (H(step) * 2 - 1) * 34, dy = a * (H(step + 5) * 2 - 1) * 8, sk = a * (H(step + 9) * 2 - 1) * 7;
+              stage.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) skewX(${sk.toFixed(2)}deg)`;
+              const k = (3 + a * 10).toFixed(1);
+              stage.style.filter = `drop-shadow(-${k}px 0 rgba(255,70,85,.75)) drop-shadow(${k}px 0 rgba(0,229,240,.75))`;
+              bars.forEach((b, i) => {
+                const on = H(step * 3 + i) > 0.3;
+                b.style.opacity = on ? (0.5 + 0.5 * a).toFixed(2) : "0";
+                b.style.top = Math.floor(H(step * 7 + i * 3) * 1060) + "px";
+                b.style.height = Math.floor(3 + H(step * 11 + i) * 46 * a) + "px";
+                b.style.left = Math.floor(H(step * 13 + i) * 900 - 300) + "px";
+                b.style.width = Math.floor(400 + H(step * 17 + i) * 1500) + "px";
+                b.style.background = [C.y, C.c, C.r, "#ffffff"][Math.floor(H(step * 19 + i) * 4)];
+              });
+            } else {
+              stage.style.transform = "none"; stage.style.filter = "none";
+              bars.forEach((b) => (b.style.opacity = "0"));
+            }
+            drawCity(t, a);
+            let s = secs[0][1]; for (const [st, lbl] of secs) if (t >= st) s = lbl;
+            if (hudSec.textContent !== s) hudSec.textContent = s;
+            const fr = Math.floor(t * 30) % 30, sc = Math.floor(t) % 60, mm = Math.floor(t / 60);
+            hudTc.textContent = `${String(mm).padStart(2, "0")}:${String(sc).padStart(2, "0")}:${String(fr).padStart(2, "0")}`;
+            hudDot.style.opacity = Math.floor(t * 2) % 2 ? "0.25" : "1";
+          };
+          const tk = { v: 0 };
+          tl.to(tk, { v: 1, duration: TOTAL, ease: "none", onUpdate: tick }, 0);
+
+          const flash = (t, peak, d) => tl.fromTo("#flash", { opacity: peak || 0.55 }, { opacity: 0, duration: d || 0.35, ease: "power2.out", immediateRender: false }, t);
+          const typeInto = (target, text, t0, cps, vol) => {
+            target.textContent = "";
+            const spans = [];
+            for (const ch of text) { const s = el("span", null, target); s.textContent = ch; spans.push(s); }
+            tl.set(spans, { display: "none" }, 0);
+            spans.forEach((s, i) => { const t = t0 + i / cps; tl.set(s, { display: "inline" }, t); if (text[i] !== " ") cue(t, "key", vol == null ? 0.5 : vol); });
+            return t0 + text.length / cps;
+          };
+          const caretBlink = (sel, t0, t1) => { const n = Math.max(0, Math.floor((t1 - t0) / 0.5)); for (let i = 0; i < n; i++) tl.set(sel, { opacity: i % 2 ? 1 : 0 }, t0 + i * 0.5); tl.set(sel, { opacity: 1 }, t1); };
+          const headIn = (sel, t) => { tl.fromTo(sel, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, t); cue(t, "pop", 0.35); };
+
+          // ================= S1 BOOT (0–4) =================
+          tl.fromTo("#s1 .prompt", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.1);
+          const t1end = typeInto($("#s1-typed"), "extract Ashen.Tide.v1.4.2.part01.rar", 0.4, 26);
+          caretBlink("#s1-caret", t1end, 2.05);
+          cue(2.05, "enter", 0.7);
+          tl.to("#s1 .prompt", { opacity: 0.4, duration: 0.25 }, 2.1);
+          tl.fromTo("#s1-out", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 2.2);
+          cue(2.25, "error", 0.6);
+          glitch(3.25, 0.22, 0.6, false);
+          glitch(3.72, 0.3, 1);
+
+          // ================= S2 PARTS (4–9) =================
+          const list = $("#s2-list");
+          for (let i = 1; i <= 24; i++) {
+            const r = el("div", "row", list);
+            el("span", "pill", r, `Ashen.Tide.v1.4.2.part${String(i).padStart(2, "0")}.rar`);
+            el("span", "meta", r, `D:\\Downloads · 1.97 GB`);
+          }
+          const rows = list.querySelectorAll(".row");
+          tl.fromTo(rows, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.3, stagger: 0.05, ease: "power2.out" }, 4.05);
+          tl.fromTo(list, { y: 40 }, { y: -(24 * 64 - 640), duration: 3.0, ease: "power1.inOut" }, 4.2);
+          const cnt = { n: 0 };
+          tl.to(cnt, { n: 24, duration: 2.6, ease: "power1.inOut", onUpdate: () => { $("#s2-cnt").textContent = Math.round(cnt.n) + " parts"; $("#s2-gb").textContent = (cnt.n * 47.3 / 24).toFixed(2) + " GB"; } }, 4.2);
+          for (let i = 0; i < 11; i++) cue(4.2 + i * 0.24, "tick", 0.25);
+          tl.fromTo("#s2 .hdr", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 4.0);
+          tl.to("#s2-dim", { opacity: 1, duration: 0.35 }, 6.75);
+          tl.to("#s2 .listwin", { opacity: 0, duration: 0.3 }, 6.75);
+          tl.fromTo("#s2-stamp", { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 6.85);
+          cue(6.85, "slam", 0.9);
+          glitch(6.85, 0.28, 0.7, false);
+          glitch(8.72, 0.3, 1);
+
+          // ================= S3 EXTRACTOR CORE (9–15) =================
+          {
+            const tiles = $("#s3-tiles"), files = $("#s3-files");
+            const TX0 = 150, TY0 = 250, TW = 96, TH = 56, GAP = 12, CX = 960, CY = 450;
+            const fsq = [];
+            for (let r = 0; r < 10; r++) for (let c = 0; c < 16; c++) { const q = el("div", "fsq", files); q.style.left = c * 24 + "px"; q.style.top = r * 24 + "px"; fsq.push(q); }
+            const order = fsq.map((q, i) => i).sort((a, b) => H(a * 3.1) - H(b * 3.1));
+            let fi = 0;
+            tl.fromTo("#s3 .hd, #s3 .stat, #s3 .corelab, #s3-chart, #s3-files", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.03, ease: "power3.out" }, 9.05);
+            tl.fromTo("#s3-core", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 9.0);
+            tl.fromTo("#s3-r1", { rotation: 0, svgOrigin: "210 210" }, { rotation: 300, svgOrigin: "210 210", duration: 6, ease: "none" }, 9.0);
+            tl.fromTo("#s3-r2", { rotation: 0, svgOrigin: "210 210" }, { rotation: -420, svgOrigin: "210 210", duration: 6, ease: "none" }, 9.0);
+            tl.fromTo("#s3-r3", { rotation: 0, svgOrigin: "210 210" }, { rotation: 60, svgOrigin: "210 210", duration: 6, ease: "power1.inOut" }, 9.0);
+            tl.set("#s3-glow", { opacity: 0.35 }, 0);
+            cue(9.0, "whoosh", 0.5); cue(9.05, "rise", 0.4);
+            let t = 9.7;
+            const pts = [[0, 160]];
+            const W = 1620 / 24;
+            for (let i = 0; i < 24; i++) {
+              const col = i % 4, row = Math.floor(i / 4);
+              const x = TX0 + col * (TW + GAP), y = TY0 + row * (TH + GAP);
+              const slot = el("div", "slot", tiles, "DEL"); slot.style.left = x + "px"; slot.style.top = y + "px";
+              const tile = el("div", "tile", tiles, String(i + 1).padStart(2, "0")); tile.style.left = x + "px"; tile.style.top = y + "px";
+              tl.fromTo(tile, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)" }, 9.1 + i * 0.02);
+              const dx = CX - (x + TW / 2), dy = CY - (y + TH / 2), fly = 0.45, arrive = t + fly;
+              tl.to(tile, { x: dx, duration: fly, ease: "power2.in" }, t);
+              tl.to(tile, { y: dy, duration: fly, ease: "power1.out" }, t);
+              tl.to(tile, { scale: 0.3, rotation: 90 + 30 * H(i), duration: fly, ease: "power2.in" }, t);
+              tl.set(tile, { opacity: 0 }, arrive);
+              tl.fromTo("#s3-glow", { scale: 1.35, opacity: 1 }, { scale: 1, opacity: 0.45, duration: 0.3, ease: "power2.out", immediateRender: false }, arrive);
+              tl.fromTo("#s3-logo", { scale: 1.12 }, { scale: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, arrive);
+              tl.to(slot, { borderColor: C.r, color: C.r, backgroundColor: "rgba(255,70,85,.18)", duration: 0.05 }, arrive + 0.05);
+              tl.to(slot, { borderColor: "rgba(255,70,85,.25)", color: "rgba(255,70,85,.35)", backgroundColor: "rgba(5,6,10,.6)", duration: 0.35 }, arrive + 0.3);
+              cue(arrive, i < 5 ? "plug" : "tick", i < 5 ? 0.5 : 0.3);
+              if (i < 3) cue(arrive + 0.08, "delete", 0.3);
+              const nd = i < 23 ? 5 : 20;
+              for (let k = 0; k < 6; k++) {
+                const dot = el("div", "dotp", $("#s3"));
+                const targets = [];
+                for (let m = 0; m < Math.ceil(nd / 6); m++) if (fi < order.length) targets.push(order[fi++]);
+                if (!targets.length) continue;
+                const q = fsq[targets[0]];
+                const fx = 1390 + parseFloat(q.style.left) + 3 - 954, fy = 250 + parseFloat(q.style.top) + 3 - 444;
+                tl.fromTo(dot, { x: 0, y: 0, opacity: 1, scale: 1.4 }, { x: fx, y: fy, scale: 0.8, duration: 0.42 + 0.06 * k, ease: "power2.out", immediateRender: false }, arrive + 0.02 * k);
+                tl.set(dot, { opacity: 0 }, arrive + 0.44 + 0.06 * k + 0.02 * k);
+                targets.forEach((ti) => tl.to(fsq[ti], { backgroundColor: C.c, borderColor: C.c, duration: 0.08 }, arrive + 0.42 + 0.08 * k));
+              }
+              const x0 = i * W;
+              pts.push([x0 + W * 0.55, 160 - (40 + 70 * H(i * 7.7))], [x0 + W, 160 - 8]);
+              t += Math.max(0.09, 0.42 * Math.pow(0.85, i));
+            }
+            while (fi < order.length) { const q = fsq[order[fi++]]; tl.to(q, { backgroundColor: C.c, borderColor: C.c, duration: 0.1 }, 13.7 + 0.004 * fi); }
+            const lastArrive = t - Math.max(0.09, 0.42 * Math.pow(0.85, 23)) + 0.45;
+            const line = $("#s3-line");
+            line.setAttribute("points", pts.map((p) => p.join(",")).join(" "));
+            const LEN = 6000;
+            line.setAttribute("stroke-dasharray", LEN);
+            tl.fromTo(line, { attr: { "stroke-dashoffset": LEN } }, { attr: { "stroke-dashoffset": 0 }, duration: lastArrive - 10.15, ease: "power1.in" }, 10.15);
+            const left = { v: 24 }, nf = { v: 0 }, fr = { v: 0 };
+            tl.to(left, { v: 0, duration: lastArrive - 10.15, ease: "power1.in", onUpdate: () => ($("#s3-left").textContent = Math.round(left.v)) }, 10.15);
+            tl.to(nf, { v: 1204, duration: lastArrive - 10.1, ease: "power1.in", onUpdate: () => ($("#s3-nf").textContent = Math.round(nf.v).toLocaleString("en-US")) }, 10.1);
+            tl.to(fr, { v: 47.3, duration: lastArrive - 10.3, ease: "power1.in", onUpdate: () => ($("#s3-freed").textContent = fr.v.toFixed(2) + " GB") }, 10.3);
+            tl.fromTo("#s3-pk", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 11.0);
+            headIn("#s3-head", Math.min(13.4, lastArrive - 0.2));
+            cue(lastArrive + 0.05, "success", 0.5);
+            flash(lastArrive, 0.25, 0.3);
+            tl.to("#s3 > *", { opacity: 0, duration: 0.3 }, 14.65);
+          }
+
+          // ================= S4 BARS (15–20) =================
+          tl.set(["#s4-fa", "#s4-fb"], { scaleX: 0 }, 0);
+          tl.fromTo("#s4 .title, #s4 .rowb", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.12, ease: "power3.out" }, 15.0);
+          tl.set("#s4-fa", { backgroundColor: C.r }, 15); tl.set("#s4-fb", { backgroundColor: C.r }, 15);
+          tl.to("#s4-fa", { scaleX: 53.1 / 82.7, duration: 0.8, ease: "power3.out" }, 15.3);
+          tl.to("#s4-fb", { scaleX: 50.78 / 82.7, duration: 0.8, ease: "power3.out" }, 15.45);
+          cue(15.3, "rise", 0.45);
+          cue(15.95, "error", 0.5);
+          const va = { v: 53.1 }, vb = { v: 50.78 };
+          const T4 = 16.45;
+          tl.to("#s4-fa", { scaleX: 7.77 / 82.7, backgroundColor: C.y, duration: 1.0, ease: "expo.inOut" }, T4);
+          tl.to("#s4-fb", { scaleX: 7.0 / 82.7, backgroundColor: C.y, duration: 1.0, ease: "expo.inOut" }, T4 + 0.15);
+          tl.to(va, { v: 7.77, duration: 1.0, ease: "expo.inOut", onUpdate: () => ($("#s4-va").firstChild.nodeValue = va.v.toFixed(2)) }, T4);
+          tl.to(vb, { v: 7.0, duration: 1.0, ease: "expo.inOut", onUpdate: () => ($("#s4-vb").firstChild.nodeValue = vb.v.toFixed(2)) }, T4 + 0.15);
+          tl.to("#s4-va, #s4-vb", { color: C.y, duration: 0.3 }, T4 + 0.7);
+          tl.to("#s4-a1, #s4-b1", { opacity: 0, y: -10, duration: 0.25 }, T4);
+          tl.fromTo("#s4-a2, #s4-b2", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 }, T4 + 0.2);
+          cue(T4, "shrink", 0.7);
+          glitch(T4, 0.2, 0.45, false);
+          tl.fromTo("#s4-pct", { opacity: 0, scale: 1.4 }, { opacity: 1, scale: 1, duration: 0.35, ease: "expo.out" }, 17.6);
+          tl.fromTo("#s4-pctl", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 17.7);
+          cue(17.6, "slam", 0.8);
+          tl.to("#s4 .title, #s4 .rowb, #s4-pct, #s4-pctl", { opacity: 0, duration: 0.3 }, 19.65);
+
+          // ================= S5 DIFF (20–24) =================
+          const lines = $("#s5-lines");
+          const L = [["part01.rar", "del"], ["part02.rar", "del"], ["part03.rar", "del"], ["part04.rar", "fly"], ["part05.rar", ""], ["part06.rar", ""]];
+          L.forEach(([n, k], i) => {
+            const ln = el("div", "ln" + (k === "del" ? " del" : ""), lines, `<span><span class="mk">${k === "del" ? "−" : " "}</span>Ashen.Tide.v1.4.2.${n}</span>${k === "fly" ? '<span class="tagx">IN USE</span>' : '<span class="sz">1.97 GB</span>'}`);
+            ln.id = "s5l" + i;
+          });
+          headIn("#s5-head", 20.05);
+          tl.fromTo("#s5-c1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 20.2);
+          tl.to("#s5 .ln.del", { backgroundColor: "rgba(255,70,85,.30)", duration: 0.2, stagger: 0.18 }, 20.9);
+          cue(20.9, "tick", 0.4); cue(21.08, "tick", 0.4); cue(21.26, "tick", 0.4);
+          tl.to("#s5 .ln.del", { height: 0, opacity: 0, duration: 0.45, ease: "power3.inOut", stagger: 0.12 }, 22.0);
+          cue(22.0, "delete", 0.6);
+          tl.fromTo("#s5-c2", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 22.35);
+          tl.to("#s5-c2", { y: -180, duration: 0.5, ease: "power3.inOut" }, 22.5);
+          cue(22.4, "pop", 0.4);
+          glitch(23.45, 0.4, 1.2);
+          flash(23.75, 0.3, 0.25);
+
+          // ================= S6 LOGO (24–28) =================
+          tl.fromTo("#s6-logo", { opacity: 0, scale: 2.4, rotation: -8 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.55, ease: "expo.out" }, 24.0);
+          cue(24.0, "hit", 1.0);
+          flash(24.02, 0.75, 0.6);
+          glitch(24.05, 0.45, 1.1, false);
+          tl.fromTo("#s6-word", { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.6, ease: "power4.inOut" }, 24.55);
+          cue(24.55, "whoosh", 0.45);
+          const tagEnd = typeInto($("#s6-tag"), "Big games. Small drives.", 25.35, 26, 0.35);
+          tl.fromTo("#s6-sub", { opacity: 0, scaleX: 1.25 }, { opacity: 1, scaleX: 1, duration: 0.7, ease: "power3.out" }, tagEnd + 0.1);
+          tl.to("#s6-logo", { scale: 1.06, duration: 1.6, ease: "sine.inOut" }, 26.2);
+          glitch(27.7, 0.25, 0.7);
+
+          // ================= S7 HOW TO (28–30) =================
+          tl.fromTo("#s7-panel", { x: -1980 }, { x: 0, duration: 0.42, ease: "expo.out" }, 28.0);
+          cue(28.0, "whoosh2", 0.8);
+          tl.fromTo("#s7-big", { x: -120, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "expo.out" }, 28.12);
+          tl.fromTo("#s7-meta", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 28.5);
+          cue(28.45, "slam", 0.6);
+          tl.to("#s7-panel", { x: 1980, duration: 0.4, ease: "expo.in" }, 29.6);
+          cue(29.65, "whoosh", 0.5);
+
+          // ================= TUTORIAL =================
+          const VW = 1240, VH = 775, S0 = VW / 2400;
+          const STEPS = [
+            { id: "t1", n: "01", si: 0, title: "Open your downloads", body: "Point it at the folder your games download into." },
+            { id: "t2", n: "02", si: 1, title: "Check the space", body: "Pick a set. Both space figures come straight from the archive." },
+            { id: "t3", n: "03", si: 2, title: "Start and confirm", body: "You see exactly what gets deleted before anything is." },
+            { id: "t4", n: "04", si: 3, title: "Let it run", body: "Progress, time left and freed space, live." },
+            { id: "t5", n: "05", si: 4, title: "Install from an ISO", body: "Same idea for disc images: the ISO shrinks while setup reads it." },
+          ];
+          const T = {};
+          STEPS.forEach((s) => {
+            const root = $("#" + s.id);
+            el("div", "scrim", root);
+            const side = el("div", "side", root);
+            el("div", "stepk", side, `STEP ${s.n} / 05`);
+            const segs = el("div", "segs", side);
+            for (let k = 0; k < 5; k++) el("div", "seg" + (k < s.si ? " done" : k === s.si ? " now" : ""), segs);
+            el("div", "num", side, s.n);
+            el("div", "ttl", side, s.title);
+            el("div", "body", side, s.body);
+            const tips = el("div", "tips", side);
+            const vpo = el("div", "vpout", root);
+            vpo.innerHTML = `<svg viewBox="0 0 1248 783"><polygon points="25,2 1246,2 1246,757 1221,781 2,781 2,25" fill="none" stroke="${C.y}" stroke-width="2.5" opacity=".9"/><polyline points="2,60 2,25 25,2 70,2" fill="none" stroke="${C.c}" stroke-width="5"/><polyline points="1178,781 1221,781 1246,757 1246,716" fill="none" stroke="${C.c}" stroke-width="5"/></svg>`;
+            const vp = el("div", "vp", root);
+            const layer = el("div", "layer", vp);
+            const cap = el("div", "cap", root, `<span>ENHANCEDEXTRACT.EXE</span><span>LIVE UI · STEP ${s.n}</span>`);
+            const cur = el("div", "cur", layer, `<svg viewBox="0 0 60 76" width="60" height="76"><polygon points="3,3 3,62 18,48 29,72 40,67 29,44 50,44" fill="#07080d" stroke="${C.y}" stroke-width="4" stroke-linejoin="round"/></svg>`);
+            T[s.id] = { root, side, tips, vpo, vp, layer, cur, cap, imgs: {}, start: +root.dataset.start, dur: +root.dataset.duration };
+          });
+          const plate = (st, name) => { const im = el("img", "plate", st.layer); im.src = `assets/ui/${name}.png`; im.alt = name; st.layer.insertBefore(im, st.cur); st.imgs[name] = im; return im; };
+          const cam = (st, t, cx, cy, k, dur, ease) => {
+            const s = S0 * k; let x = VW / 2 - cx * s, y = VH / 2 - cy * s;
+            x = Math.min(0, Math.max(VW - 2400 * s, x)); y = Math.min(0, Math.max(VH - 1500 * s, y));
+            if (!dur) tl.set(st.layer, { x, y, scale: s }, t); else tl.to(st.layer, { x, y, scale: s, duration: dur, ease: ease || "power3.inOut" }, t);
+          };
+          const tip = (st, t, html) => { const d = el("div", "tip", st.tips, `<i>›</i><span>${html}</span>`); tl.fromTo(d, { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out" }, t); cue(t, "tip", 0.3); return d; };
+          const move = (st, t, x, y, d) => tl.to(st.cur, { x, y, duration: d || 0.6, ease: "power2.inOut" }, t);
+          const click = (st, t, x, y, snd) => {
+            const r = el("div", "rip", st.layer); r.style.left = x - 55 + "px"; r.style.top = y - 55 + "px";
+            tl.fromTo(r, { opacity: 1, scale: 0.2 }, { opacity: 0, scale: 1.6, duration: 0.5, ease: "power2.out" }, t);
+            tl.to(st.cur, { scale: 0.82, duration: 0.07, yoyo: true, repeat: 1 }, t - 0.05);
+            cue(t, snd || "click", 0.7);
+          };
+          const hl = (st, t, x, y, w, h, kind, label, below, out, chipX) => {
+            const b = el("div", "hl" + (kind ? " " + kind : "") + (below ? " below" : ""), st.layer);
+            Object.assign(b.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+            if (label) { const c = el("div", "chip", b, label); if (chipX != null) c.style.left = chipX + "px"; }
+            tl.fromTo(b, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out" }, t);
+            if (out) tl.to(b, { opacity: 0, duration: 0.25 }, out);
+            cue(t, "hl", 0.35);
+            return b;
+          };
+          const xfade = (st, from, to, t, d) => { tl.set(st.imgs[to], { opacity: 0 }, 0); tl.to(st.imgs[to], { opacity: 1, duration: d || 0.25 }, t); if (from) tl.to(st.imgs[from], { opacity: 0, duration: d || 0.25 }, t); };
+          const enter = (st) => {
+            const t = st.start;
+            tl.fromTo(st.side.children, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.45, stagger: 0.06, ease: "power3.out" }, t + 0.05);
+            tl.fromTo([st.vp, st.vpo], { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, t);
+            tl.fromTo(st.cap, { opacity: 0 }, { opacity: 1, duration: 0.4 }, t + 0.3);
+            cue(t, "whoosh", 0.35);
+          };
+          const exit = (st) => glitch(st.start + st.dur - 0.18, 0.32, 0.85);
+          const curStart = (st, x, y) => tl.set(st.cur, { x, y, scale: 1 }, 0);
+
+          // ---- T1 Library ----
+          {
+            const st = T.t1, o = st.start; plate(st, "library_0"); enter(st); cam(st, 0, 1200, 750, 1, 0); curStart(st, 1500, 1400);
+            move(st, o + 0.6, 2060, 170, 0.8); click(st, o + 1.5, 2098, 184);
+            hl(st, o + 1.55, 1990, 152, 216, 66, "yel", null, false, o + 2.4);
+            tip(st, o + 1.5, "Press <b>Change folder</b> and pick your downloads.");
+            hl(st, o + 2.3, 156, 248, 2184, 212, "", "4 ready · 2 running · 1 needs you", true, o + 3.4);
+            tip(st, o + 2.4, "Every RAR set and ISO shows up, with its size and state.");
+            move(st, o + 2.6, 1300, 1020, 0.6);
+            cam(st, o + 3.2, 1250, 960, 1.45, 0.9);
+            hl(st, o + 4.1, 174, 1068, 2148, 102, "red", "part 4 is missing", false, o + 5.4, 1300);
+            tip(st, o + 4.1, "Missing parts are flagged <b>before</b> you start.");
+            tip(st, o + 4.9, "Or just drop a <b>.rar</b> or <b>.iso</b> on the window.");
+            cam(st, o + 5.3, 1900, 560, 1.8, 0.8);
+            hl(st, o + 5.9, 1792, 526, 520, 44, "yel", "drag a file onto the window", true);
+            exit(st);
+          }
+          // ---- TX Explorer right-click ----
+          {
+            const o = +$("#tx").dataset.start, d = +$("#tx").dataset.duration;
+            const listEl = $("#tx-list");
+            const rar = `<svg class="ic" viewBox="0 0 20 20"><rect x="3" y="2" width="14" height="5" fill="#7b3fb8"/><rect x="3" y="7.5" width="14" height="5" fill="#2f6fd6"/><rect x="3" y="13" width="14" height="5" fill="#c23b6b"/><rect x="9" y="1" width="2.5" height="18" fill="#d9c27a"/></svg>`;
+            for (let i = 1; i <= 9; i++) el("div", "xp-row", listEl, `<span>${rar}Ashen.Tide.v1.4.2.part${String(i).padStart(2, "0")}.rar</span><span class="dim">06/11/2026 03:12</span><span class="dim">WinRAR archive</span><span class="dim">2,065,695 KB</span>`);
+            el("div", "xp-row", listEl, `<span><svg class="ic" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#9aa3b5"/><circle cx="10" cy="10" r="2.5" fill="#191919"/></svg>Vigil.of.Ostra.iso</span><span class="dim">05/11/2026 22:40</span><span class="dim">Disc Image File</span><span class="dim">75,098,112 KB</span>`);
+            const side = $("#tx-side"), tips = $("#tx-tips");
+            const txTip = (t, html) => { const e = el("div", "tip", tips, `<i>›</i><span>${html}</span>`); tl.fromTo(e, { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out" }, t); cue(t, "tip", 0.3); };
+            tl.fromTo(side.children, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.45, stagger: 0.06, ease: "power3.out" }, o + 0.05);
+            tl.fromTo(["#tx-vp", "#tx-vpo"], { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, o);
+            tl.fromTo("#tx .cap", { opacity: 0 }, { opacity: 1, duration: 0.4 }, o + 0.3);
+            cue(o, "whoosh", 0.35);
+            tl.set("#tx-xl", { x: 0, y: 0, scale: 1 }, 0);
+            tl.set("#tx-cur", { x: 900, y: 640 }, 0);
+            tl.set(["#tx-cm1", "#tx-cm2"], { opacity: 0 }, 0);
+            const xclick = (rip, t, x, y, snd) => { tl.set(rip, { left: x - 22, top: y - 22 }, 0); tl.fromTo(rip, { opacity: 1, scale: 0.3 }, { opacity: 0, scale: 1.6, duration: 0.45, ease: "power2.out" }, t); tl.to("#tx-cur", { scale: 0.82, duration: 0.07, yoyo: true, repeat: 1 }, t - 0.05); cue(t, snd, 0.6); };
+            txTip(o + 0.5, "Right-click part 1 of any RAR set.");
+            tl.to("#tx-cur", { x: 460, y: 150, duration: 0.7, ease: "power2.inOut" }, o + 0.4);
+            tl.fromTo("#tx-sel", { opacity: 0 }, { opacity: 1, duration: 0.1 }, o + 1.05);
+            xclick("#tx-rip1", o + 1.2, 460, 150, "click");
+            tl.fromTo("#tx-cm1", { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out" }, o + 1.25);
+            cue(o + 1.25, "popup", 0.6);
+            tl.to("#tx-cur", { x: 560, y: 210, duration: 0.45, ease: "power2.inOut" }, o + 1.5);
+            tl.fromTo("#tx-eehv", { opacity: 0 }, { opacity: 1, duration: 0.08 }, o + 1.9);
+            tl.fromTo("#tx-cm2", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.2, ease: "power2.out" }, o + 2.05);
+            cue(o + 2.05, "toggle", 0.6);
+            txTip(o + 1.7, "Open <b>EnhancedExtract</b> in the menu (Show more options).");
+            tl.to("#tx-xl", { x: -520, y: -150, scale: 1.55, duration: 0.8, ease: "power3.inOut" }, o + 2.2);
+            tl.to("#tx-cur", { x: 820, y: 210, duration: 0.3, ease: "power2.out" }, o + 2.3);
+            tl.to("#tx-cur", { x: 860, y: 248, duration: 0.35, ease: "power2.inOut" }, o + 2.65);
+            tl.fromTo("#tx-frhv", { opacity: 0 }, { opacity: 1, duration: 0.08 }, o + 2.95);
+            txTip(o + 3.0, "Pick <b>Extract</b>, or <b>Extract and free space</b>. Deleting still asks first.");
+            xclick("#tx-rip2", o + 3.6, 860, 248, "confirm");
+            tl.to(["#tx-cm1", "#tx-cm2"], { opacity: 0, duration: 0.15 }, o + 3.75);
+            tl.to("#tx-xl", { x: 0, y: 0, scale: 1, duration: 0.6, ease: "power3.inOut" }, o + 3.9);
+            flash(o + 3.75, 0.25, 0.3);
+            glitch(o + d - 0.18, 0.32, 0.85);
+          }
+          // ---- T2 Space ----
+          {
+            const st = T.t2, o = st.start; plate(st, "rar_0"); enter(st); cam(st, 0, 1200, 750, 1, 0); curStart(st, 1700, 1300);
+            cam(st, o + 0.4, 1690, 400, 1.7, 0.9);
+            move(st, o + 0.5, 1093, 330, 0.8); click(st, o + 1.45, 1093, 324, "toggle");
+            hl(st, o + 1.55, 1066, 294, 1244, 128, "yel", "delete each part once it's used", false, o + 4.3);
+            tip(st, o + 1.5, "Choose <b>Delete each part once it's used</b>.");
+            cam(st, o + 2.0, 560, 470, 1.9, 0.6);
+            hl(st, o + 2.45, 196, 424, 340, 100, "", "7.77 GB needed", true, o + 4.3);
+            cam(st, o + 3.0, 1690, 440, 1.7, 0.6);
+            hl(st, o + 3.45, 1066, 444, 1244, 104, "red", "keep every part: 53.10 GB", true, o + 4.3);
+            tip(st, o + 2.4, "Peak space: <b>7.77 GB</b> instead of 53.10 GB.");
+            tip(st, o + 4.0, "Keep <b>Verify</b> on: a bad part stops the job before anything is deleted.");
+            move(st, o + 3.8, 2276, 870, 0.9);
+            cam(st, o + 4.3, 1800, 880, 1.55, 0.9);
+            click(st, o + 5.3, 2276, 866, "toggle");
+            hl(st, o + 5.35, 1290, 836, 1030, 86, "", "verify first", false);
+            exit(st);
+          }
+          // ---- T3 Confirm ----
+          {
+            const st = T.t3, o = st.start; plate(st, "rar_0"); plate(st, "rar_confirm"); plate(st, "rar_confirm_ticked");
+            enter(st); cam(st, 0, 1200, 750, 1, 0); curStart(st, 1700, 1000);
+            tl.set([st.imgs.rar_confirm, st.imgs.rar_confirm_ticked], { opacity: 0 }, 0);
+            move(st, o + 0.3, 2250, 190, 0.7); click(st, o + 1.05, 2267, 186);
+            hl(st, o + 1.1, 2190, 156, 156, 62, "yel", null, false, o + 1.5);
+            tip(st, o + 0.9, "Press <b>START</b>.");
+            xfade(st, null, "rar_confirm", o + 1.3, 0.2); cue(o + 1.3, "popup", 0.8);
+            cam(st, o + 1.6, 1200, 760, 1.65, 0.8);
+            move(st, o + 1.7, 850, 805, 0.8); click(st, o + 2.6, 850, 799, "toggle");
+            xfade(st, "rar_confirm", "rar_confirm_ticked", o + 2.62, 0.08);
+            tip(st, o + 2.4, "Tick the box. It names every part that will be deleted.");
+            move(st, o + 2.9, 1454, 880, 0.6); click(st, o + 3.6, 1454, 877, "confirm");
+            hl(st, o + 3.65, 1340, 846, 228, 62, "red", "start and delete", true);
+            tip(st, o + 3.7, "Nothing is removed without that tick.");
+            exit(st);
+          }
+          // ---- T4 Running ----
+          {
+            const st = T.t4, o = st.start; plate(st, "rarJob_0"); plate(st, "rarJob_1"); plate(st, "rarJob_2");
+            enter(st); cam(st, 0, 1200, 750, 1, 0); curStart(st, 2600, 1600);
+            xfade(st, "rarJob_0", "rarJob_1", o + 1.1, 0.3); xfade(st, "rarJob_1", "rarJob_2", o + 2.4, 0.3);
+            cam(st, o + 0.6, 1250, 440, 1.3, 1.0);
+            hl(st, o + 1.0, 156, 250, 2184, 404, "yel", "progress · time left · files", true, o + 2.9, 260);
+            tip(st, o + 0.9, "Watch progress, time left and files done.");
+            for (let i = 0; i < 6; i++) cue(o + 0.8 + i * 0.75, "beep", 0.18);
+            tip(st, o + 2.5, "Each part is deleted the moment it's used.");
+            cam(st, o + 3.0, 1880, 820, 1.6, 0.9);
+            hl(st, o + 3.8, 1500, 780, 820, 230, "", "parts deleted as they're used", true);
+            tip(st, o + 3.4, "Close the window: the job <b>keeps running</b> in the background.");
+            exit(st);
+          }
+          // ---- T5 ISO ----
+          {
+            const st = T.t5, o = st.start; plate(st, "iso_0"); plate(st, "iso_filled"); plate(st, "isoJob_1");
+            enter(st); cam(st, 0, 1200, 750, 1, 0); curStart(st, 1100, 1300);
+            tl.set([st.imgs.iso_filled, st.imgs.isoJob_1], { opacity: 0 }, 0);
+            cue(o + 0.05, "whoosh2", 0.45);
+            cam(st, o + 0.5, 700, 520, 1.6, 0.9);
+            move(st, o + 0.4, 420, 500, 0.8); click(st, o + 1.3, 420, 485);
+            const ty = el("div", "typed", st.layer); Object.assign(ty.style, { left: "214px", top: "467px", width: "384px", height: "40px", background: "#fffbd6" });
+            tl.set(ty, { opacity: 0 }, 0); tl.set(ty, { opacity: 1 }, o + 1.4);
+            typeInto(ty, "52000", o + 1.45, 9, 0.5);
+            tip(st, o + 1.3, "Type the size setup asks for: <b>“at least … MB”</b>.");
+            glitch(o + 2.15, 0.25, 0.6, false); cue(o + 2.15, "glitch", 0.35);
+            xfade(st, "iso_0", "iso_filled", o + 2.2, 0.1); tl.set(ty, { opacity: 0 }, o + 2.2);
+            cam(st, o + 2.3, 560, 420, 1.8, 0.6);
+            hl(st, o + 2.9, 196, 330, 345, 140, "", "7.00 GB needed", true, o + 5.0);
+            cam(st, o + 3.35, 1690, 430, 1.7, 0.6);
+            hl(st, o + 3.8, 1072, 440, 1236, 104, "red", "normal install doesn't fit", true, o + 5.0);
+            cue(o + 3.8, "error", 0.5);
+            tip(st, o + 3.0, "Needs <b>7.00 GB</b> instead of 50.78 GB.");
+            move(st, o + 3.6, 2176, 190, 1.4);
+            cam(st, o + 4.8, 1500, 600, 1.05, 0.7);
+            tip(st, o + 5.0, "Press <b>Mount and install</b>. Setup runs silently.");
+            click(st, o + 5.4, 2176, 185, "confirm");
+            hl(st, o + 5.45, 2014, 156, 330, 62, "yel", null, false, o + 5.85);
+            xfade(st, "iso_filled", "isoJob_1", o + 5.8, 0.25); cue(o + 5.8, "popup", 0.6);
+            cam(st, o + 5.95, 980, 380, 1.55, 0.8);
+            tip(st, o + 5.9, "Needs admin and the bundled <b>WinFsp</b> driver. It offers both.");
+            hl(st, o + 6.7, 750, 290, 470, 140, "", "22.37 GB already given back", true);
+            exit(st);
+          }
+          // ---- T6 CLI ----
+          {
+            const o = +$("#t6").dataset.start, d = +$("#t6").dataset.duration;
+            tl.fromTo("#t6 .side > *", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.45, stagger: 0.06, ease: "power3.out" }, o + 0.05);
+            tl.fromTo("#t6-term", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, o);
+            cue(o, "whoosh", 0.35);
+            const e = typeInto($("#t6-cmd"), "python cli.py --json rar extract Game.part1.rar --delete --dry-run", o + 0.45, 46, 0.3);
+            cue(e + 0.05, "enter", 0.5);
+            tl.set("#t6-caret", { opacity: 0 }, e + 0.05);
+            tl.fromTo("#t6-o1", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 }, e + 0.25);
+            tl.fromTo("#t6-o2", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 }, e + 0.55);
+            cue(e + 0.25, "tick", 0.4); cue(e + 0.55, "success", 0.55);
+            glitch(o + d - 0.25, 0.35, 1.1);
+            flash(o + d - 0.05, 0.4, 0.3);
+          }
+
+          // ================= S8 CTA =================
+          {
+            const o = +$("#s8").dataset.start;
+            tl.fromTo("#s8-logo", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, o + 0.05);
+            cue(o + 0.05, "hit", 0.9);
+            glitch(o + 0.1, 0.4, 0.9, false);
+            tl.fromTo("#s8-word", { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.6, ease: "power4.inOut" }, o + 0.45);
+            tl.fromTo("#s8-c1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, o + 1.1);
+            tl.fromTo("#s8-c2", { opacity: 0 }, { opacity: 1, duration: 0.4 }, o + 1.5);
+            tl.fromTo("#s8-c3", { opacity: 0 }, { opacity: 1, duration: 0.4 }, o + 1.8);
+            tl.fromTo("#s8-btn", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.5)" }, o + 2.2);
+            cue(o + 2.2, "pop", 0.6);
+            tl.to("#s8-btn", { scale: 1.05, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut" }, o + 2.8);
+            glitch(o + 5.0, 0.3, 0.8);
+            tl.to("#s8 > *", { opacity: 0, duration: 0.35, stagger: 0.03 }, o + 5.3);
+          }
+
+          window.__timelines["main"] = tl;
+          if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+        }
+
+        window.__timelines = window.__timelines || {};
+        document.fonts.ready.then(build);
+      })();
+    </script>
+  </body>
+</html>
