@@ -36,7 +36,7 @@ EXIT = {
 }
 SETUP_SILENT = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
 DONE_MARKER = ".enhancedextract-done.json"      # left in the destination by `rar extract --delete`
-PROG = "EnhancedExtract.exe --cli" if paths.FROZEN else "python cli.py"
+PROG = f"{os.path.basename(sys.executable)} --cli" if paths.FROZEN else "python cli.py"
 
 # Text mode: these event types are the command's data and go to stdout; everything else
 # (progress, logs, warnings, errors) goes to stderr so stdout can be piped.
@@ -312,7 +312,7 @@ def cmd_system_check(args, out):
     hints = {
         "unrar": "Install WinRAR, or put UnRAR.exe on PATH (needed for rar commands).",
         "winfsp": f"Install the driver (as administrator): {PROG} system install-winfsp",
-        "fusepy": "Install the Python package: python -m pip install fusepy",
+        "fusepy": f"Install the Python package: {PROG} system install-fusepy",
         "admin": "Not administrator: iso install can't run setup.exe from here (setups elevate "
                  "themselves and can't see a drive mounted by a normal process).",
     }
@@ -341,6 +341,28 @@ def cmd_system_install_winfsp(args, out):
     return {"ok": True, "already_installed": False}
 
 
+def cmd_system_install_fusepy(args, out):
+    if fusepy_available():
+        out("event", "fusepy is already installed.")
+        return {"ok": True, "already_installed": True}
+    pip = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "fusepy"]
+    if args.dry_run:
+        out("plan", f"Would run: {subprocess.list2cmdline(pip)}")
+        return {"ok": True, "dry_run": True}
+    out("event", f"Installing fusepy into {sys.executable}...")
+    r = subprocess.run(pip, capture_output=True, text=True)
+    if r.returncode != 0 and not iso.is_admin():
+        # A Python installed for all users can't be written without admin; fall back to the user site.
+        r = subprocess.run(pip[:-1] + ["--user", "fusepy"], capture_output=True, text=True)
+    importlib.invalidate_caches()
+    if r.returncode != 0 or not fusepy_available():
+        tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["pip found no fusepy afterwards"]
+        raise Stop(5, f"fusepy install failed: {tail[0]}",
+                   fix=f"{subprocess.list2cmdline(pip[:3])} install fusepy")
+    out("event", "fusepy installed.")
+    return {"ok": True, "already_installed": False}
+
+
 # ---------- rar ----------
 def read_password(args):
     if getattr(args, "password_stdin", False):
@@ -352,26 +374,104 @@ def archive_dest(args, first):
     return os.path.abspath(args.dest) if getattr(args, "dest", None) else ex.default_dest(first)
 
 
+def engine_errors(args):
+    """Turns extractor errors into Stops with the right exit code and fix."""
+    class Guard:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, kind, e, tb):
+            if isinstance(e, ex.PasswordError):
+                argv = [a for a in args.argv if a != args.archive]
+                raise Stop(3, str(e), fix=f"echo <password> | {command_line(argv, args.archive, '--password-stdin')}")
+            if isinstance(e, ex.ExtractError):
+                if "UnRAR.exe not found" in str(e):
+                    raise Stop(5, str(e), fix=f"{PROG} system check")
+                raise Stop(1, str(e))
+            return False
+    return Guard()
+
+
 def load_archive(args):
     path = os.path.abspath(args.archive)
     if not os.path.isfile(path):
         raise Stop(2, f"Archive not found: {path}",
                    fix=f"Pass the first part of the set: {PROG} {args.group} {args.cmd} \"D:\\Games\\Game.part1.rar\"")
-    try:
+    with engine_errors(args):
         return ex.inspect(path, args.pw)
-    except ex.PasswordError as e:
-        argv = [a for a in args.argv if a != args.archive]
-        raise Stop(3, str(e), fix=f"echo <password> | {command_line(argv, args.archive, '--password-stdin')}")
-    except ex.ExtractError as e:
-        if "UnRAR.exe not found" in str(e):
-            raise Stop(5, str(e), fix=f"{PROG} system check")
-        raise Stop(1, str(e))
 
 
-def space_report(info, dest, delete):
-    need = ex.space_needed(info, dest, delete)
+def load_set(args):
+    """(info, journal). A `--delete` run that was stopped or crashed leaves a journal next to
+    the parts; then the set is rebuilt from it and extraction continues at the first part left."""
+    path = os.path.abspath(args.archive)
+    journal = ex.read_journal(path)
+    if journal and (getattr(args, "delete", False) or journal.get("deleted")):
+        folder = os.path.dirname(path)
+        volumes = [os.path.join(folder, n) for n in journal["parts"]]
+        deleted = set(journal.get("deleted", []))
+        left = [v for v in volumes if os.path.basename(v) not in deleted]
+        missing = [os.path.basename(v) for v in left if not os.path.exists(v)]
+        if missing:
+            raise Stop(1, f"Cannot resume: {missing[0]} is missing. It was not extracted yet; put it back "
+                          "next to the other parts.")
+        sizes = journal.get("sizes") or []
+        for v in left:
+            i = volumes.index(v)
+            if i < len(sizes) and os.path.getsize(v) != sizes[i]:
+                raise Stop(1, f"Cannot resume: {os.path.basename(v)} changed since the extraction started.")
+        info = ex.ArchiveInfo(volumes[0], volumes, journal.get("unpacked", 0), journal.get("files", 0),
+                              args.pw, start=left[0] if left else volumes[-1])
+        if left:
+            with engine_errors(args):
+                info.layout()
+        return info, journal
+    info = load_archive(args)
+    if getattr(args, "delete", False):
+        with engine_errors(args):
+            info.layout()
+    return info, None
+
+
+def skipped(journal):
+    """Files a resumed run leaves alone: those done, and those lost to a part deleted early."""
+    if not journal:
+        return set(), []
+    done = set(journal.get("done", []))
+    return done, sorted(set(journal.get("at_risk", [])) - done)
+
+
+def space_plan(info, dest, delete, early=False, journal=None):
+    done, lost = skipped(journal)
     free = ex.free_space(dest)
-    return {"dest": dest, "needed": need, "free": free, "enough": free >= need}
+    if not delete:
+        need = ex.space_needed(info, dest, False)
+        return {"dest": dest, "needed": need, "free": free, "enough": free >= need, "mode": "keep"}
+    skip = done | set(lost)
+    safe = ex.space_needed(info, dest, True, ex.SAFE, skip)
+    fast = ex.space_needed(info, dest, True, ex.EARLY, skip)
+    need = fast if early else safe
+    return {"dest": dest, "needed": need, "free": free, "enough": free >= need,
+            "mode": ex.EARLY if early else ex.SAFE, "needed_safe": safe, "needed_early": fast,
+            "early_fits": free >= fast, "solid": info.layout().solid}
+
+
+def space_stop(args, space):
+    dest, need, free = space["dest"], space["needed"], space["free"]
+    if space["mode"] == ex.SAFE and space["early_fits"]:
+        return Stop(4, f"Not enough free space to extract safely: needs {ex.human(need)}, {ex.human(free)} free. "
+                       f"Deleting each part as soon as it is read needs only {ex.human(space['needed_early'])}, "
+                       "but a stop or crash midway then loses the file being extracted.",
+                    fix=command_line(args.argv, "--early-delete"), **space)
+    return Stop(4, f"Not enough free space for {dest}: {ex.human(need - free)} short.",
+                fix=f"Free some space, or try anyway: {command_line(args.argv, '--ignore-space')}", **space)
+
+
+def space_text(space):
+    text = f"Extract to {space['dest']}: free {ex.human(space['free'])}, needed {ex.human(space['needed'])}"
+    if space["mode"] != "keep":
+        text += f" ({space['mode']} delete)"
+    return text + f" ({'OK' if space['enough'] else 'NOT ENOUGH'})"
 
 
 def archive_event(out, info):
@@ -381,16 +481,16 @@ def archive_event(out, info):
 
 
 def cmd_rar_inspect(args, out):
-    info = load_archive(args)
-    dest = archive_dest(args, info.first)
-    space = space_report(info, dest, args.delete)
+    info, journal = load_set(args)
+    dest = journal["dest"] if journal else archive_dest(args, info.first)
+    space = space_plan(info, dest, args.delete or bool(journal), args.early_delete, journal)
     archive_event(out, info)
-    out("space", f"Extract to {dest}: free {ex.human(space['free'])}, needed {ex.human(space['needed'])} "
-                 f"({'OK' if space['enough'] else 'NOT ENOUGH'})", **space)
+    out("space", space_text(space), **space)
     return {"ok": True, "parts": len(info.volumes), "unpacked": info.unpacked, "dest": dest,
-            "space_ok": space["enough"],
+            "space_ok": space["enough"], "resume": bool(journal),
             "next": command_line(["rar", "extract", info.first, "--dest", dest]
-                                 + (["--delete"] if args.delete else []) + ["--dry-run"])}
+                                 + (["--delete"] if args.delete or journal else [])
+                                 + (["--early-delete"] if args.early_delete else []) + ["--dry-run"])}
 
 
 class Progress:
@@ -510,60 +610,92 @@ def already_extracted(args):
 
 
 def cmd_rar_extract(args, out):
-    done = already_extracted(args)
-    if done:
-        dest = archive_dest(args, os.path.abspath(args.archive))
-        out("event", f"Already extracted to {dest} (the parts were deleted then).")
-        return {"ok": True, "already_done": True, "dest": dest,
-                **{k: done[k] for k in ("files", "unpacked") if k in done}}
-    info = load_archive(args)
-    dest = archive_dest(args, info.first)
-    space = space_report(info, dest, args.delete)
-    out("space", f"Free {ex.human(space['free'])}, needed {ex.human(space['needed'])}", **space)
+    info, journal = load_set(args) if ex.read_journal(args.archive) else (None, None)
+    if not journal:
+        done = already_extracted(args)
+        if done:
+            dest = archive_dest(args, os.path.abspath(args.archive))
+            out("event", f"Already extracted to {dest} (the parts were deleted then).")
+            return {"ok": True, "already_done": True, "dest": dest,
+                    **{k: done[k] for k in ("files", "unpacked") if k in done}}
+        info, journal = load_set(args)
+    delete = args.delete or bool(journal)
+    done, lost = skipped(journal)
+    if journal:
+        dest = journal["dest"]
+        if args.dest and os.path.normcase(os.path.abspath(args.dest)) != os.path.normcase(dest):
+            out("event", f"Resuming into {dest}, where this extraction started.")
+        out("event", f"Resuming: {len(done)} of {info.files} files are already extracted.")
+        if lost:
+            out("warning", f"{len(lost)} file(s) cannot be recovered: their start was in a part deleted "
+                           f"early. First: {lost[0]}")
+    else:
+        dest = archive_dest(args, info.first)
+    if args.early_delete and not delete:
+        raise Stop(2, "--early-delete only applies with --delete.", fix=command_line(args.argv, "--delete"))
+    space = space_plan(info, dest, delete, args.early_delete, journal)
+    out("space", space_text(space), **space)
     if not space["enough"] and not args.ignore_space:
-        raise Stop(4, f"Not enough free space for {dest}: {ex.human(space['needed'] - space['free'])} short.",
-                   fix=f"Free some space, or try anyway: {command_line(args.argv, '--ignore-space')}", **space)
+        raise space_stop(args, space)
+    remaining = [v for v in info.volumes if os.path.exists(v)]
+    mode = space["mode"]
     if args.dry_run:
         archive_event(out, info)
-        steps = ([] if args.no_verify else ["verify every part"]) + [f"extract to {dest}"]
-        if args.delete:
-            steps.append(f"delete the {len(info.volumes)} parts as they are used")
-        out("plan", "Would " + ", then ".join(steps) + ".", steps=steps,
-            deletes=info.volumes if args.delete else [])
+        steps = ([f"skip the {len(done)} files already extracted"] if journal else []) \
+            + ([] if args.no_verify else ["verify the parts left" if journal else "verify every part"]) \
+            + [f"extract to {dest}"]
+        if mode == ex.SAFE:
+            steps.append(f"delete each of the {len(remaining)} parts once every file in it is extracted")
+        elif mode == ex.EARLY:
+            steps.append(f"delete each of the {len(remaining)} parts as soon as it is read")
+        out("plan", "Would " + ", then ".join(steps) + ".", steps=steps, mode=mode,
+            deletes=remaining if delete else [], resume=bool(journal), lost=lost, done=len(done), files=info.files)
         real = [a for a in args.argv if a != "--dry-run"] + ["--background"]
-        return {"ok": True, "dry_run": True, "dest": dest, "needs_yes": args.delete,
-                "next": command_line(real, *(["--yes"] if args.delete else []))}
-    if args.delete and not args.yes:
-        raise Stop(6, "--delete removes each part once it is extracted; if extraction fails midway, the "
-                      "deleted parts are gone.", fix=with_yes(args))
-    if args.delete and args.no_verify:
+        return {"ok": True, "dry_run": True, "dest": dest, "needs_yes": delete, "mode": mode,
+                "resume": bool(journal), "next": command_line(real, *(["--yes"] if delete else []))}
+    if delete and not args.yes:
+        raise Stop(6, ("--delete --early-delete removes each part as soon as it is read; if extraction stops "
+                       "midway, the file being extracted is lost." if mode == ex.EARLY else
+                       "--delete removes each part once every file in it is extracted; a stopped run can "
+                       "be resumed by running the same command again."), fix=with_yes(args))
+    if delete and args.no_verify:
         out("warning", "Verification is off: a corrupt part would only be found after earlier parts "
                        "were deleted.")
     if args.background:
         return start_background(args, out)
     progress = Progress(out, info, args.progress_every)
     runner = ex.Runner(log=unrar_log(out, progress, args.verbose), progress=progress, password=args.pw)
+    result = {}
 
     def job():
         if not args.no_verify:
             progress.start("Verifying")
-            runner.verify(info)
+            runner.verify(info, sorted(done | set(lost)))
             progress.emit(done=True)
         progress.start("Extracting")
-        runner.extract(info, dest, args.delete)
+        result["freer"] = runner.extract(info, dest, delete, mode if delete else ex.SAFE, journal)
         progress.emit(done=True)
 
     try:
-        run_job(runner, job)
+        if remaining:
+            run_job(runner, job)
+        elif delete:                    # stopped after the last part went: only the wrap-up was left
+            result["freer"] = ex.PartFreer(info, dest, mode, lambda t: out("log", t), journal)
+            result["freer"].finish()
     except Stop as e:
-        e.extra.update(parts_left=len(ex.remaining_parts(info)), parts=len(info.volumes))
+        resumable = delete and os.path.exists(ex.journal_path(info.first))
+        e.extra.update(parts_left=len(ex.remaining_parts(info)), parts=len(info.volumes), resumable=resumable)
+        if resumable:
+            e.fix = command_line([a for a in args.argv if a != "--background"])
         raise
-    if args.delete:
+    freer = result.get("freer")
+    lost = freer.lost if freer else []
+    if delete:
         with open(os.path.join(dest, DONE_MARKER), "w", encoding="utf-8") as f:
             json.dump({"archive": os.path.basename(info.first), "files": info.files,
                        "unpacked": info.unpacked}, f)
-    return {"ok": True, "dest": dest, "files": info.files, "unpacked": info.unpacked,
-            "parts_left": len(ex.remaining_parts(info))}
+    return {"ok": True, "dest": dest, "files": info.files, "unpacked": info.unpacked, "mode": mode,
+            "parts": len(info.volumes), "parts_left": len(ex.remaining_parts(info)), "lost": lost}
 
 
 # ---------- iso ----------
@@ -666,11 +798,14 @@ def report_drive(drive, out, msgs, status_every, last):
     key = (overall, st["bytes_read"], freed, st["installed"], st["paused"], st["violations"])
     if key == last["key"] and since < STATUS_HEARTBEAT and status_every:
         return ended, last
+    # The big files, for a per-file view (read position, freed bytes); small files are left out.
+    bins = [{"path": p, "size": f["size"], "read": min(f["hwm"], f["size"]), "freed": f["freed"]}
+            for p, f in sorted(st["files"].items()) if f["size"] >= 256 * iso.MB]
     out("status", f"{overall:.0f}% of the ISO read by setup: read {iso.human(st['bytes_read'])}, freed "
                   f"{iso.human(freed)}, installed {iso.human(st['installed'])}"
                   + (", FREEING STOPPED" if st["paused"] else ""),
         overall=overall, bytes_read=st["bytes_read"], freed=freed, installed=st["installed"],
-        paused=st["paused"], violations=st["violations"], max_back=st["max_back"])
+        paused=st["paused"], violations=st["violations"], max_back=st["max_back"], bins=bins)
     return ended, {"t": time.time(), "key": key}
 
 
@@ -693,7 +828,7 @@ def iso_preflight(args, out, path, files):
     if not iso.winfsp_installed():
         raise Stop(5, "WinFsp is not installed.", fix=f"{PROG} system install-winfsp   (as administrator)")
     if not fusepy_available():
-        raise Stop(5, "fusepy is not installed.", fix="python -m pip install fusepy")
+        raise Stop(5, "fusepy is not installed.", fix=f"{PROG} system install-fusepy")
     if run_setup and not any(e.path.lower() == "/setup.exe" for e in files):
         raise Stop(2, "No setup.exe in the ISO root.", fix=command_line(args.argv, "--no-setup"))
     if run_setup and not iso.is_admin():
@@ -943,6 +1078,10 @@ def build_parser():
             "install the bundled WinFsp driver (needs admin; no-op if installed)",
             examples("system install-winfsp", "system install-winfsp --dry-run"))
     p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
+    p = add(system, "install-fusepy", cmd_system_install_fusepy,
+            "pip-install fusepy into the Python running this (no-op if installed)",
+            examples("system install-fusepy", "system install-fusepy --dry-run"))
+    p.add_argument("--dry-run", action="store_true", help="say what would happen, change nothing")
 
     p = add(sub, "scan", cmd_scan, "find RAR sets (first parts) and ISOs in a folder; reads no archive",
             examples("scan D:\\Downloads", "--json scan D:\\Downloads --depth 3"))
@@ -982,7 +1121,7 @@ def build_parser():
               "rar inspect Game.part1.rar --dest \"D:\\Games\\Game\" --delete"]),
             ("verify", cmd_rar_verify, "test every part's checksums; writes nothing",
              ["rar verify Game.part1.rar", "echo secret | rar verify Game.part1.rar --password-stdin"]),
-            ("extract", cmd_rar_extract, "verify, then extract; with --delete each part is removed once used",
+            ("extract", cmd_rar_extract, "verify, then extract; with --delete each part is removed once its files are out",
              ["rar extract Game.part1.rar --dest \"D:\\Games\\Game\"",
               "rar extract Game.part1.rar --delete --dry-run",
               "rar extract Game.part1.rar --delete --yes",
@@ -995,7 +1134,12 @@ def build_parser():
         p.epilog += "\n\nThe password can also come from the EE_PASSWORD environment variable."
         if name != "verify":
             p.add_argument("--dest", help="extract into this folder (default: next to the archive, named after it)")
-            p.add_argument("--delete", action="store_true", help="delete each part once it has been extracted")
+            p.add_argument("--delete", action="store_true",
+                           help="delete each part once every file in it is extracted; a stopped run resumes "
+                                "when the same command is run again")
+            p.add_argument("--early-delete", action="store_true",
+                           help="with --delete: delete each part as soon as it is read. Needs less free space, "
+                                "but a stop or crash loses the file being extracted")
         if name == "extract":
             p.add_argument("--no-verify", action="store_true", help="skip the checksum pass before extracting")
             p.add_argument("--ignore-space", action="store_true", help="start even if free space looks too low")
