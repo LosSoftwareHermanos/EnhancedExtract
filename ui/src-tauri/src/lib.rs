@@ -10,6 +10,29 @@ use serde_json::Value;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use tauri::Manager;
+mod shell;
+
+#[tauri::command]
+fn shell_request() -> Result<Option<shell::ShellRequest>, String> {
+    shell::parse(&std::env::args().skip(1).collect::<Vec<_>>())
+}
+
+#[tauri::command]
+fn shell_destination(reserve: bool) -> Result<String, String> {
+    let request = shell_request()?.ok_or("This window was not opened from Explorer.")?;
+    let path = std::fs::canonicalize(&request.archive)
+        .map_err(|_| format!("First archive part not found: {}", request.archive))?;
+    shell::destination(&shell::ordinary_path(path), reserve).map(|p| p.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+fn open_output(path: String) -> Result<(), String> {
+    let path = std::fs::canonicalize(path).map_err(|e| e.to_string())?;
+    if !path.is_dir() { return Err("Output folder not found.".into()); }
+    Command::new("explorer.exe").arg(shell::ordinary_path(path)).spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 #[derive(Serialize)]
 pub struct EngineOutput {
@@ -185,9 +208,39 @@ mod tests {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _shell_lock = match shell_request() {
+        Ok(Some(request)) if std::path::Path::new(&request.archive).is_file() => {
+            match shell::session_lock(&request.archive) {
+                Ok(lock) => Some(lock),
+                Err(error) => {
+                    #[cfg(windows)] unsafe {
+                        use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONINFORMATION};
+                        let text: Vec<u16> = error.encode_utf16().chain(Some(0)).collect();
+                        let title: Vec<u16> = "EnhancedExtract".encode_utf16().chain(Some(0)).collect();
+                        MessageBoxW(std::ptr::null_mut(), text.as_ptr(), title.as_ptr(), MB_OK | MB_ICONINFORMATION);
+                    }
+                    return;
+                }
+            }
+        }
+        _ => None,
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![engine, disk_space, relaunch_as_admin])
+        .setup(|app| {
+            if std::env::args().any(|a| a.starts_with("--shell-")) {
+                if let Some(w) = app.get_webview_window("main") {
+                    w.set_min_size(Some(tauri::LogicalSize::new(520.0, 420.0)))?;
+                    let height = if std::env::args().any(|a| a == "--shell-extract-delete") { 680.0 } else { 520.0 };
+                    w.set_size(tauri::LogicalSize::new(620.0, height))?;
+                    w.set_decorations(true)?;
+                    w.set_title("EnhancedExtract — Quick extract")?;
+                    w.center()?;
+                }
+            }
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![engine, disk_space, relaunch_as_admin, shell_request, shell_destination, open_output])
         .run(tauri::generate_context!())
         .expect("error while running EnhancedExtract");
 }

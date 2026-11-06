@@ -10,9 +10,18 @@ import "@fontsource/bai-jamjuree/500.css";
 import "@fontsource/bai-jamjuree/600.css";
 import "./styles.css";
 import { App } from "./App";
+import { QuickExtract, type ShellRequest } from "./QuickExtract";
+import { inTauri } from "./engine";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+async function launch() {
+  const root = createRoot(document.getElementById("root")!);
+  try {
+    const request = inTauri ? await (await import("@tauri-apps/api/core")).invoke<ShellRequest | null>("shell_request") : null;
+    root.render(<StrictMode>{request ? <QuickExtract request={request} /> : <App />}</StrictMode>);
+  } catch (error) {
+    root.render(<main style={{ padding: 32 }} role="alert">Could not start EnhancedExtract: {String(error)}</main>);
+  } finally {
+    if (inTauri) await (await import("@tauri-apps/api/window")).getCurrentWindow().show();
+  }
+}
+void launch();
