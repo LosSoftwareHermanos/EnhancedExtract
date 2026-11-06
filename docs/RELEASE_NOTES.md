@@ -1,4 +1,18 @@
-# EnhancedExtract 0.1.0
+# EnhancedExtract 0.1.1
+
+## What's new in 0.1.1
+
+- **New installer look.** Setup now uses the EnhancedExtract theme: dark pages, the brand fonts and logo, and the app icon on the installer and uninstaller.
+- **Install options page.** Choose the folder, whether to add the Explorer right-click menu, and whether to make a desktop shortcut. Setup says upfront that the shortcuts start the app as administrator, which ISO installs need.
+- **Desktop shortcut fix.** The desktop shortcut now starts the app as administrator, like the Start menu shortcut. In 0.1.0 it did not.
+- **Live ISO mount check.** The ISO set-up screen shows whether Windows has the ISO mounted (new `iso status` CLI command).
+- Settings > Apps now lists the publisher and links to this repository.
+
+Upgrading from 0.1.0: run the new installer and choose **Remove the old version first** or **Install over it**. Your archives and extracted files are not touched.
+
+---
+
+## About EnhancedExtract
 
 Windows archive extraction for tight disk space, with a desktop dashboard, Explorer integration and a standalone CLI.
 
@@ -14,8 +28,8 @@ The desktop app uses Tauri and Rust, with a React interface and a bundled Python
 
 ## Downloads
 
-- `EnhancedExtract_0.1.0_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
-- `EnhancedExtract-CLI-0.1.0-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
+- `EnhancedExtract_0.1.1_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
+- `EnhancedExtract-CLI-0.1.1-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
 - `SHA256SUMS.txt`: SHA-256 checksums for the installer, CLI ZIP and notices.
 - `THIRD_PARTY_NOTICES.txt`: bundled component notices and licences.
 
