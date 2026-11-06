@@ -1,6 +1,6 @@
 // The bridge to the Python engine. In the Tauri app every call runs `<engine> --cli --json <args>`;
 // in a plain browser (npm run dev) a mock answers instead, so the UI can be built and checked without Rust.
-import { mock, mockDisk } from "./mock";
+import { mock, mockDestination, mockDisk } from "./mock";
 
 export type Ev = { type: string; msg?: string; [k: string]: any };
 export interface EngineOutput { code: number; events: Ev[]; result: Ev | null; stderr: string }
@@ -53,6 +53,25 @@ export async function relaunchAsAdmin(): Promise<void> {
   await invoke("relaunch_as_admin");
 }
 
+/** Explorer quick extract: the next free "<archive name> (n)" folder beside the archive; `reserve` creates it. */
+export async function shellDestination(reserve: boolean): Promise<string> {
+  if (!inTauri) return mockDestination();
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("shell_destination", { reserve });
+}
+
+export async function openFolder(path: string): Promise<void> {
+  if (!inTauri) return;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("open_output", { path });
+}
+
+export async function closeWindow(): Promise<void> {
+  if (!inTauri) return;
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().close();
+}
+
 export async function pickFolder(defaultPath?: string): Promise<string | null> {
   if (!inTauri) return window.prompt("Folder", defaultPath ?? "") || null;
   const { open } = await import("@tauri-apps/plugin-dialog");
@@ -71,7 +90,12 @@ export async function pickArchive(): Promise<string | null> {
 export interface RarSet { first: string; parts: number; size: number; missing: number[] }
 export interface FoundIso { path: string; size: number; was_freed: boolean }
 export interface Archive { first: string; volumes: string[]; files: number; packed: number; unpacked: number }
-export interface Space { dest?: string; needed: number; free: number; enough: boolean; growth?: number }
+/** With --delete: `mode` "safe" (a part goes once every file in it is out; a stop resumes) or "early"
+ *  (each part goes as soon as it is read), and what each would need. */
+export interface Space {
+  dest?: string; needed: number; free: number; enough: boolean; growth?: number;
+  mode?: "safe" | "early" | "keep"; needed_safe?: number; needed_early?: number; early_fits?: boolean; solid?: boolean;
+}
 export interface IsoInfo { path: string; files: number; size: number; has_setup: boolean; freeable: string[] }
 export interface Bin { path: string; size: number; read: number; freed: number }
 export interface Progress {

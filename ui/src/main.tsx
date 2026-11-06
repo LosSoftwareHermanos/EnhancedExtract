@@ -12,11 +12,12 @@ import "./styles.css";
 import { App } from "./App";
 import { QuickExtract, type ShellRequest } from "./QuickExtract";
 import { inTauri } from "./engine";
+import { mockShellRequest } from "./mock";
 
 async function launch() {
   const root = createRoot(document.getElementById("root")!);
   try {
-    const request = inTauri ? await (await import("@tauri-apps/api/core")).invoke<ShellRequest | null>("shell_request") : null;
+    const request = inTauri ? await (await import("@tauri-apps/api/core")).invoke<ShellRequest | null>("shell_request") : mockShellRequest();
     root.render(<StrictMode>{request ? <QuickExtract request={request} /> : <App />}</StrictMode>);
   } catch (error) {
     root.render(<main style={{ padding: 32 }} role="alert">Could not start EnhancedExtract: {String(error)}</main>);

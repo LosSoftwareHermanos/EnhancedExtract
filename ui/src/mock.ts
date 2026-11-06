@@ -24,7 +24,7 @@ const ISOS = [{ path: `E:\\Downloads\\Vigil.of.Ostra.iso`, size: 71.62 * G, was_
 const LOCKED = "Cinder.Pass";
 const PASSWORD = "harbor";
 
-interface MockJob { id: string; argv: string[]; start: number; seconds: number; end?: { code: number; fields: any }; stopped?: boolean; pw?: boolean }
+interface MockJob { id: string; argv: string[]; start: number; seconds: number; end?: { code: number; fields: any }; progress?: Record<string, any>; stopped?: boolean; pw?: boolean }
 const stamp = (minsAgo: number, tag: string) => {
   const d = new Date(T0 - minsAgo * 60000);
   const p = (n: number) => String(n).padStart(2, "0");
@@ -44,14 +44,25 @@ const jobs: MockJob[] = [
 function snap(j: MockJob) {
   const t = now() - j.start;
   const frac = Math.min(1, t / j.seconds);
-  if (!j.end && frac >= 1) j.end = { code: 0, fields: j.argv[0] === "rar" ? { dest: "D:\\Games\\Ashen Tide", files: 1204 } : { setup_exit_code: 0, problems: [] } };
+  if (!j.end && frac >= 1) {
+    const info = j.argv[0] === "rar" ? archive(j.argv[2]) : null;
+    const dest = j.argv.includes("--dest") ? j.argv[j.argv.indexOf("--dest") + 1] : "D:\\Games\\Ashen Tide";
+    j.end = { code: 0, fields: info ? { dest, files: info.files, unpacked: info.unpacked, parts: info.volumes.length,
+      parts_left: j.argv.includes("--delete") ? 0 : info.volumes.length } : { setup_exit_code: 0, problems: [] } };
+  }
   const state = j.end ? (j.end.code === 0 ? "done" : "failed") : "running";
   const s: any = { id: j.id, state, command: j.argv.join(" "), argv: j.argv, elapsed_s: Math.round(j.end ? j.seconds : t) };
   if (state === "running") {
     if (j.argv[0] === "rar") {
-      const verify = j.argv[1] === "verify";
-      s.progress = { phase: verify ? "verifying" : "extracting", overall: +(frac * 100).toFixed(1), part: Math.min(24, Math.floor(frac * 24) + 1), parts: 24,
-        part_percent: Math.round((frac * 24 % 1) * 100), files_done: Math.round(1204 * frac), files: 1204, elapsed_s: Math.round(t), eta_s: Math.round(j.seconds - t) };
+      // Like the engine: an extract verifies first, and each phase counts 0-100 % on its own.
+      const verifyFirst = j.argv[1] === "extract" && !j.argv.includes("--no-verify");
+      const verify = j.argv[1] === "verify" || (verifyFirst && frac < 0.3);
+      const [from, to] = verifyFirst ? (verify ? [0, 0.3] : [0.3, 1]) : [0, 1];
+      const f = (frac - from) / (to - from);
+      const parts = archive(j.argv[2]).volumes.length;
+      s.progress = { phase: verify ? "verifying" : "extracting", overall: +(f * 100).toFixed(1), part: Math.min(parts, Math.floor(f * parts) + 1), parts,
+        part_percent: Math.round((f * parts % 1) * 100), files_done: verify ? 0 : Math.round(1204 * f), files: 1204, elapsed_s: Math.round(t),
+        eta_s: f > 0.02 ? Math.round(j.seconds * (to - from) * (1 - f)) : null };
     } else {
       const sizes = [24 * G, 24 * G, 23.59 * G], total = sizes.reduce((a, b) => a + b);
       const read = total * frac, buffer = 5 * G;
@@ -65,6 +76,8 @@ function snap(j: MockJob) {
         paused: false, violations: 0, max_back: 120 * 1024 ** 2, bins };
     }
   }
+  if (s.progress) j.progress = s.progress;
+  else if (j.progress) s.progress = j.progress;
   if (j.end) { s.job_exit_code = j.end.code; s.result = { exit_code: j.end.code, ok: j.end.code === 0, ...j.end.fields }; }
   return s;
 }
@@ -110,7 +123,11 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
     return delay(ok({ id: j.id }, list.map((e) => ({ type: "job_event", msg: e.msg, event: e }))), 100);
   }
   if (a === "jobs" && b === "stop") {
-    const j = find(args[2]); if (j && !j.end) j.end = { code: 130, fields: { error: "Stopped with Ctrl+C." } };
+    const j = find(args[2]);
+    if (j && !j.end) {
+      snap(j);
+      j.end = { code: 130, fields: { error: "Stopped with Ctrl+C.", resumable: j.argv.includes("--delete") } };
+    }
     return delay(ok({ state: "failed" }), 600);
   }
   if (a === "rar") {
@@ -123,16 +140,34 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
     const dest = val("--dest") ?? first.replace(/\.part\d+\.rar$/i, "");
     const largest = info.packed / info.volumes.length;
     const needed = (has("--delete") ? info.unpacked - info.packed + largest : info.unpacked) + 1 * G;
-    const space = { type: "space", dest, needed, free: 82.7 * G, enough: needed <= 82.7 * G };
-    if (b === "inspect") return delay(ok({ parts: info.volumes.length, unpacked: info.unpacked, dest }, [{ type: "archive", ...info }, space]), 500);
+    const freeGB = first.includes("Hollow") ? 30 : 82.7;
+    const space = { type: "space", dest, needed, free: freeGB * G, enough: needed <= freeGB * G };
+    // Like the engine: "safe" keeps a file's parts until it is out; Hollow Meridian has one file too
+    // big for that, so only --early-delete fits. Kestrel Run was stopped halfway and resumes.
+    const tight = first.includes("Hollow"), resume = first.includes("Kestrel");
+    const mode = !has("--delete") && !resume ? "keep" : has("--early-delete") ? "early" : "safe";
+    const neededSafe = tight ? 33.2 * G : needed + 2.1 * G;
+    const plan = mode === "keep" ? { ...space, mode }
+      : { ...space, mode, needed: mode === "safe" ? neededSafe : needed, enough: (mode === "safe" ? neededSafe : needed) <= space.free,
+          needed_safe: neededSafe, needed_early: needed, early_fits: true, solid: false };
+    const resumeDest = `${DL}\\Kestrel.Run.v2.0`;
+    if (b === "inspect")
+      return delay(ok({ parts: info.volumes.length, unpacked: info.unpacked, dest: resume ? resumeDest : dest, resume },
+        [{ type: "archive", ...info }, resume ? { ...plan, dest: resumeDest } : plan]), 500);
     if (has("--background")) {
       const id = stamp(0, Math.random().toString(16).slice(2, 6));
-      jobs.unshift({ id, argv: args.filter((x) => x !== "--background"), start: now(), seconds: b === "verify" ? 60 : 180 });
+      jobs.unshift({ id, argv: args.filter((x) => x !== "--background"), start: now(), seconds: b === "verify" ? 60 : 90 });
       return delay(ok({ job: id, state: "running" }, [{ type: "event", msg: `Started background job ${id}.`, job: id }]));
     }
-    if (b === "extract" && has("--dry-run"))
-      return delay(ok({ dry_run: true, dest, needs_yes: has("--delete") }, [space, { type: "archive", ...info },
-        { type: "plan", steps: [...(has("--no-verify") ? [] : ["verify every part"]), `extract to ${dest}`, ...(has("--delete") ? [`delete the ${info.volumes.length} parts as they are used`] : [])] }]));
+    if (b === "extract" && has("--dry-run")) {
+      if (!plan.enough)
+        return delay({ code: 4, events: [plan],
+          result: { ...plan, type: "result", exit_code: 4, ok: false, error: "Not enough free space to extract safely." }, stderr: "" });
+      const left = resume ? info.volumes.slice(6) : info.volumes;
+      return delay(ok({ dry_run: true, dest: resume ? resumeDest : dest, needs_yes: mode !== "keep", mode, resume },
+        [plan, { type: "archive", ...info },
+          { type: "plan", steps: [], mode, resume, done: resume ? 640 : 0, files: info.files, lost: [], deletes: mode === "keep" ? [] : left }]));
+    }
   }
   if (a === "iso") {
     const path = args[2];
@@ -152,6 +187,19 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
     }
   }
   return delay(fail(2, `Mock engine has no answer for: ${args.join(" ")}`));
+}
+
+/** `?quick=delete|extract|locked|missing` opens the Explorer quick-extract window in the browser. */
+export function mockShellRequest(): { archive: string; delete: boolean } | null {
+  const mode = new URLSearchParams(window.location.search).get("quick");
+  if (!mode) return null;
+  const set = { locked: SETS[5], missing: SETS[4], tight: SETS[1], resume: SETS[3] }[mode] ?? SETS[2];
+  return { archive: set.first, delete: mode !== "extract" };
+}
+
+export async function mockDestination() {
+  const archive = mockShellRequest()?.archive ?? SETS[2].first;
+  return delay(archive.replace(/\.part\d+\.rar$/i, "").replace(/\.rar$/i, ""), 60);
 }
 
 export async function mockDisk(path: string) {

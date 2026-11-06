@@ -58,8 +58,9 @@ The Windows installer adds entries to a single `.rar` file's classic context men
 - **Extract with EnhancedExtract** verifies all parts and extracts into a new folder beside
   the archive. It keeps the source archives and starts without opening the dashboard.
 - **Extract and free space with EnhancedExtract...** shows the engine's dry-run plan,
-  required/free space and the parts to delete. A checkbox and explicit confirmation are
-  required before verification and delete-as-you-go extraction start.
+  required/free space and the parts to delete. Safe mode starts with **Extract & delete**;
+  it holds each file's parts until the file is extracted and flushed. If only early deletion
+  fits, a separate warning checkbox is required because interruption can lose a file.
 
 Selecting a later `.partN.rar` resolves to the first volume, including zero-padded names.
 If `Game` already exists, output goes to `Game (2)`, then `Game (3)`, etc. Folder reservation
@@ -71,7 +72,7 @@ handle lock prevents competing quick-extract windows for the same archive while 
 Passwords remain in memory and travel over stdin, then the existing background-job environment.
 
 The installer registers a per-user collapsible **EnhancedExtract** submenu (with a third item,
-**Open EnhancedExtract dashboard**) under `SystemFileAssociations\.rar\shell`, without changing default
+**Open with EnhancedExtract**) under `SystemFileAssociations\.rar\shell`, without changing default
 file associations. It avoids `AppliesTo` filters, which do not show on stripped-down Windows builds.
 Uninstallation removes only that key. The installer also marks the Desktop and Start Menu shortcuts
 "Run as administrator" (needed for ISO install); right-click extraction stays unelevated.
@@ -79,6 +80,14 @@ Registration is in `src-tauri/windows/hooks.nsh`. The UI executable accepts
 `--shell-extract "C:\Downloads\Game.rar"` and
 `--shell-extract-delete "C:\Downloads\Game.rar"`; the latter still requires confirmation.
 ZIP support is not included: the engine currently extracts RAR archives.
+
+Both the dashboard and compact window support resuming a stopped delete run. Keep the
+`<set>.ee-resume.json` journal beside the remaining parts and reopen the set. The original
+destination is retained, completed files are skipped, and early-mode losses are listed.
+Safe mode retains every part of a solid set until extraction finishes. The dashboard compares
+safe, early, and keep estimates; it selects early deletion when safe does not fit, with a
+separate confirmation before starting. Job snapshots retain their last recorded progress
+after a stop or failure, including when the dashboard is reopened.
 
 Check with `npm run build`, `cargo test --lib` from `src-tauri`, and
 `python -m unittest discover -s tests` from the repository root. For a packaged smoke test,
@@ -90,15 +99,16 @@ and completion. Use disposable fixtures for destructive-mode tests.
 
 - Every action shows its own busy state on its button; nothing blocks the window.
 - Errors appear inside the block that failed, with the engine's `fix` when it has one, and a retry.
-- Anything that deletes data (delete-as-you-go, freeing an ISO, deleting an ISO, force stop) asks first,
-  names what goes, and needs an explicit tick. The safe button has focus.
+- Deletion choices name what goes. Safe RAR deletion starts from the selected action;
+  early RAR deletion, ISO freeing, and ISO deletion require separate confirmation.
 - Every disabled button says why (tooltip and, on ISO set-up, a status line).
 - Real engine numbers only: both space figures come from `rar inspect`, ISO space from `iso inspect`.
 - Dialogs trap focus, close on Esc, and return focus. Progress bars use `role="progressbar"`; job
   results are announced through a polite live region. Reduced motion is respected.
 - Shortcuts: Ctrl+O opens a .rar or .iso, F5 rescans the Library. Drag a file onto the window to set it up.
-- The app does not start elevated, because Windows blocks drag and drop into elevated windows; ISO
-  set-up offers "Restart as admin" when it's needed.
+- The executable starts unelevated by default, supporting Explorer drag and drop. Installed
+  shortcuts request administrator rights for ISO installs; an unelevated dashboard also offers
+  "Restart as admin" when needed.
 - Choices are remembered (folder, verify/delete, buffer, silent setup).
 - Fonts are bundled; the app makes no network requests.
 

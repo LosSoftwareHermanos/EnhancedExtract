@@ -9,6 +9,7 @@ export function dur(seconds: number | null | undefined): string {
   const s = Math.max(0, Math.round(seconds));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
   if (h) return `${h} h ${String(m).padStart(2, "0")} m`;
+  if (!m) return `${r} s`;
   return `${m} m ${String(r).padStart(2, "0")} s`;
 }
 

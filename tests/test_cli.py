@@ -208,6 +208,7 @@ class RarCli(unittest.TestCase):
         self.assertEqual(code, 0, events[-1])
         self.assertEqual(events[-1]["state"], "done")
         self.assertEqual(events[-1]["result"]["parts_left"], 0)
+        self.assertEqual(events[-1]["progress"]["overall"], 100)
         self.assert_same_files(dest)
         code, events = cli("jobs", "logs", job, "--type", "result")
         self.assertEqual(events[-1]["shown"], 1)
@@ -247,6 +248,109 @@ class RarCli(unittest.TestCase):
         code, events = cli("rar", "extract", first, "--dest", os.path.join(self.tmp, "out"), "--delete", "--yes")
         self.assertEqual(code, 1)
         self.assertEqual(events[-1]["parts_left"], 5)
+
+
+@unittest.skipUnless(os.path.isfile(RAR), "needs WinRAR's Rar.exe to build test archives")
+class ResumableDelete(unittest.TestCase):
+    """Delete mode stopped partway, then resumed by running the same command again.
+
+    The set: 5 parts of 1 MB, stored, with b.bin running across parts 1-3 and c.bin across
+    parts 3-4. The run is stopped from inside (UnRAR killed) when it reaches a given part."""
+
+    FILES = {"a.txt": 100_000, "b.bin": 2_500_000, "c.bin": 700_000, "d.bin": 900_000}
+
+    def setUp(self):
+        sys.path.insert(0, APP)
+        import extractor
+        self.ex = extractor
+        self.tmp = tempfile.mkdtemp()
+        self.src = os.path.join(self.tmp, "src")
+        os.makedirs(self.src)
+        for name, size in self.FILES.items():
+            with open(os.path.join(self.src, name), "wb") as f:
+                f.write(os.urandom(size))
+        subprocess.run([RAR, "a", "-m0", "-v1m", "-ep1", "-idq", os.path.join(self.tmp, "set.rar"),
+                        *[os.path.join(self.src, n) for n in self.FILES]], check=True)
+        self.first = os.path.join(self.tmp, "set.part1.rar")
+        self.dest = os.path.join(self.tmp, "out")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def parts(self):
+        return sorted(f for f in os.listdir(self.tmp) if f.endswith(".rar"))
+
+    def stop_at(self, part, mode):
+        info = self.ex.inspect(self.first)
+        runner = None
+
+        def progress(pct, at, total):
+            if at >= part:
+                runner.stop()
+        runner = self.ex.Runner(log=lambda t: None, progress=progress)
+        with self.assertRaises(self.ex.ExtractError):
+            runner.extract(info, self.dest, True, mode)
+
+    def resume(self, path=None):
+        return cli("rar", "extract", path or self.first, "--delete", "--yes")
+
+    def assert_extracted(self, skip=()):
+        for name in self.FILES:
+            if name in skip:
+                continue
+            with open(os.path.join(self.src, name), "rb") as a, open(os.path.join(self.dest, name), "rb") as b:
+                self.assertEqual(a.read(), b.read(), name)
+
+    def test_safe_mode_keeps_every_part_of_a_file_still_being_extracted(self):
+        self.stop_at(3, self.ex.SAFE)               # inside b.bin, which started in part 1
+        self.assertEqual(len(self.parts()), 5)       # nothing of b.bin was deleted
+        code, events = self.resume()
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(self.parts(), [])
+        self.assertEqual(events[-1]["lost"], [])
+        self.assert_extracted()
+        self.assertFalse(os.path.exists(self.ex.journal_path(self.first)))
+
+    def test_resume_after_parts_were_deleted_skips_the_finished_files(self):
+        self.stop_at(4, self.ex.SAFE)               # b.bin done, parts 1-2 deleted, inside c.bin
+        self.assertEqual(self.parts(), ["set.part3.rar", "set.part4.rar", "set.part5.rar"])
+        code, events = cli("rar", "extract", self.first, "--delete", "--dry-run")
+        self.assertEqual(code, 0, events[-1])
+        self.assertTrue(events[-1]["resume"])
+        self.assertEqual(events[-1]["dest"], self.dest)
+        # any part left works as the starting point, as from Explorer
+        code, events = self.resume(os.path.join(self.tmp, "set.part3.rar"))
+        self.assertEqual(code, 0, events[-1])
+        self.assertTrue(any("Resuming" in e.get("msg", "") for e in events))
+        self.assertEqual(self.parts(), [])
+        self.assert_extracted()
+
+    def test_early_mode_loses_only_the_file_split_across_a_deleted_part(self):
+        self.stop_at(3, self.ex.EARLY)              # parts 1-2 gone with the start of b.bin
+        self.assertEqual(self.parts(), ["set.part3.rar", "set.part4.rar", "set.part5.rar"])
+        code, events = self.resume()
+        self.assertEqual(code, 0, events[-1])
+        self.assertEqual(events[-1]["lost"], ["b.bin"])
+        self.assertFalse(os.path.exists(os.path.join(self.dest, "b.bin")))
+        self.assert_extracted(skip={"b.bin"})
+
+    def test_safe_mode_needs_room_for_the_largest_file_early_mode_for_one_part(self):
+        info = self.ex.inspect(self.first)
+        safe = self.ex.space_needed(info, self.dest, True, self.ex.SAFE) - self.ex.SAFETY_MARGIN
+        early = self.ex.space_needed(info, self.dest, True, self.ex.EARLY) - self.ex.SAFETY_MARGIN
+        keep = self.ex.space_needed(info, self.dest, False) - self.ex.SAFETY_MARGIN
+        self.assertLess(early, safe)
+        self.assertLess(safe, keep)
+        self.assertGreaterEqual(safe, 2_500_000)    # b.bin's three parts are held until it is out
+
+    def test_solid_set_deletes_nothing_until_the_end_in_safe_mode(self):
+        solid = os.path.join(self.tmp, "solid.rar")
+        subprocess.run([RAR, "a", "-s", "-m1", "-v1m", "-ep1", "-idq", solid,
+                        *[os.path.join(self.src, n) for n in self.FILES]], check=True)
+        info = self.ex.inspect(os.path.join(self.tmp, "solid.part1.rar"))
+        layout = info.layout()
+        self.assertTrue(layout.solid)
+        self.assertEqual(self.ex.deletable_parts(layout, 3, self.ex.SAFE), [])
 
 
 def winfsp_ready():

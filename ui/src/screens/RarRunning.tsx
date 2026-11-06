@@ -16,6 +16,9 @@ export function RarRunning({ id }: { id: string }) {
   const argv = s?.argv ?? [];
   const path = argv[2] ?? "";
   const del = argv.includes("--delete");
+  const early = argv.includes("--early-delete");
+  const resumable = !!s?.result?.resumable;
+  const lost = Array.isArray(s?.result?.lost) ? (s.result.lost as string[]) : [];
   const verifyJob = argv[1] === "verify";
   const dest = flag(argv, "--dest") ?? (s?.result?.dest as string | undefined) ?? "";
   const p = s?.progress;
@@ -43,25 +46,33 @@ export function RarRunning({ id }: { id: string }) {
   const name = path ? setName(path) : "…";
   const pct = s?.state === "done" ? 100 : p?.overall ?? 0;
   const phase = s?.state === "done" ? "done" : p?.phase ?? (verifyJob ? "verifying" : "extracting");
-  // Progress only exists while running; a finished job reports its totals in the result.
+  // Keep the last recorded position after a stop; successful jobs use result totals.
   const parts = p?.parts ?? (s?.result?.parts as number | undefined) ?? 0, part = p?.part ?? 0;
 
   return (
     <Page title={name}
-      sub={<>{verifyJob ? "Verifying" : <>Extracting to <span className="mono">{dest || "…"}</span></>} · job <span className="mono">{shortId(s?.id ?? id)}</span> · started {jobStarted(s?.id ?? id)}{del ? " · parts are deleted as they're used" : ""}</>}
+      sub={<>{verifyJob ? "Verifying" : <>Extracting to <span className="mono">{dest || "…"}</span></>} · job <span className="mono">{shortId(s?.id ?? id)}</span> · started {jobStarted(s?.id ?? id)}{del ? (early ? " · each part is deleted as soon as it's read" : " · parts are deleted as their files finish") : ""}</>}
       actions={<>
         <button className="tlink" onClick={() => nav({ name: "library" })}>Back to library</button>
         {running && <button className="btn btn-danger" onClick={() => setStopAsk(true)}>Stop</button>}
       </>}>
       <ErrorNote error={job.error} onRetry={job.refresh} />
-      {s && (s.state === "failed" || s.state === "died") && (
+      {s && (s.state === "failed" || s.state === "died") && (resumable ? (
+        <div className="notice" role="alert">
+          <span>{s.job_exit_code === 130 ? "Stopped." : s.result?.error ?? "The job stopped."} Files extracted so far are kept{early ? ", except the one that was being extracted" : ""}. Resume continues where it left off.</span>
+          {path && <button className="btn" onClick={() => nav({ name: "rar", path })}>Resume</button>}
+        </div>
+      ) : (
         <ErrorNote error={new EngineError(s.job_exit_code ?? 1, s.result?.error ?? s.stderr ?? "The job stopped.", s.result?.fix)}
           onRetry={path ? () => nav({ name: "rar", path }) : undefined} />
-      )}
+      ))}
       {s?.state === "done" && (
         <div className="notice ok" role="status">
           <span>{verifyJob ? "Every part checked out. Nothing was written." : <>Done: {s.result?.files != null ? `${int(s.result.files)} files` : "all files"} in <span className="mono">{dest}</span>{del ? ", and every part was deleted." : "."}</>}</span>
         </div>
+      )}
+      {s?.state === "done" && lost.length > 0 && (
+        <div className="notice" role="alert"><span>{lost.length} file{lost.length === 1 ? "" : "s"} couldn't be recovered: the start was in a part deleted early. First: <span className="mono">{lost[0]}</span></span></div>
       )}
 
       <section className="hero brand" aria-label="Progress">
@@ -87,13 +98,13 @@ export function RarRunning({ id }: { id: string }) {
               {del && <span className="tab" aria-current={phase === "done" ? "step" : undefined}>Parts deleted</span>}
             </div>
           ) : <span />}
-          <span className="small" style={{ fontWeight: 600 }}>{parts ? `${parts} parts${del ? " · each deleted once used" : ""}` : ""}</span>
+          <span className="small" style={{ fontWeight: 600 }}>{parts ? `${parts} parts${del ? (early ? " · each deleted once read" : " · each deleted once its files are out") : ""}` : ""}</span>
         </div>
         {parts > 0 && (
           <div className="tape" style={{ marginTop: 14 }} role="img" aria-label={`${parts} parts: ${s?.state === "done" ? parts : Math.max(0, part - 1)} used${running ? `, part ${part} reading now` : ""}`}>
             {Array.from({ length: parts }, (_, i) => i + 1).map((n) => {
               const used = s?.state === "done" || n < part, now = running && n === part;
-              return <i key={n} style={{ ["--i" as string]: n }} title={`Part ${n}: ${used ? (del && phase !== "verifying" ? "used and deleted" : "used") : now ? "reading now" : "waiting"}`}
+              return <i key={n} style={{ ["--i" as string]: n }} title={`Part ${n}: ${used ? (del && phase !== "verifying" ? (early ? "read and deleted" : "read; deleted once its files are out") : "used") : now ? "reading now" : "waiting"}`}
                 className={used ? (del && phase !== "verifying" ? "gone" : "used") : now ? "now" : ""} />;
             })}
           </div>
@@ -118,7 +129,9 @@ export function RarRunning({ id }: { id: string }) {
           <button className="btn" data-autofocus onClick={() => setStopAsk(false)}>Keep going</button>
           <button className="btn btn-danger solid" onClick={() => stop.run()} disabled={stop.busy}><Busy busy={stop.busy}>Stop</Busy></button>
         </>}>
-          <p className="soft">{del ? `Parts already used are deleted and stay deleted; the ${Math.max(0, parts - part + 1)} parts not yet used are kept. The files extracted so far stay in the folder.` : "The parts are kept. The files extracted so far stay in the folder."}</p>
+          <p className="soft">{!del ? "The parts are kept. The files extracted so far stay in the folder."
+            : early ? `The file being extracted now is lost: its first parts are already deleted. Everything else extracted so far stays, and the ${Math.max(0, parts - part + 1)} parts not yet read are kept, so the rest can be resumed.`
+            : "Nothing is lost. Files extracted so far stay in the folder, and every part still needed is kept. Open the set again to resume where it left off."}</p>
           <ErrorNote error={stop.error} />
         </Dialog>
       )}

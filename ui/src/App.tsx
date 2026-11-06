@@ -60,6 +60,12 @@ export function App() {
     else announce("Drop a .rar part or an .iso file.");
   }, [nav, announce]);
 
+  // Explorer "Open with EnhancedExtract" launches with --open <file>: go straight to its screen.
+  useEffect(() => {
+    if (!inTauri) return;
+    void import("@tauri-apps/api/core").then(({ invoke }) => invoke<string | null>("open_request")).then((p) => { if (p) openPath(p); }).catch(() => {});
+  }, [openPath]);
+
   // A job that finishes while you look elsewhere is announced once.
   const [seen, setSeen] = useState<Record<string, string>>({});
   useEffect(() => {

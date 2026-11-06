@@ -18,11 +18,25 @@ fn shell_request() -> Result<Option<shell::ShellRequest>, String> {
     shell::parse(&std::env::args().skip(1).collect::<Vec<_>>())
 }
 
+/// `--open <file>` (Explorer "Open with EnhancedExtract"): the dashboard starts on that file's screen.
+#[tauri::command]
+fn open_request() -> Option<String> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.as_slice() {
+        [flag, path] if flag == "--open" => Some(shell::ordinary_path(std::fs::canonicalize(path).unwrap_or_else(|_| path.into())).to_string_lossy().into_owned()),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 fn shell_destination(reserve: bool) -> Result<String, String> {
     let request = shell_request()?.ok_or("This window was not opened from Explorer.")?;
-    let path = std::fs::canonicalize(&request.archive)
-        .map_err(|_| format!("First archive part not found: {}", request.archive))?;
+    // A resumed delete-mode extraction has already removed the first part, so resolve its folder.
+    let archive = std::path::Path::new(&request.archive);
+    let path = std::fs::canonicalize(archive).or_else(|_| {
+        let folder = archive.parent().ok_or(())?;
+        Ok::<_, ()>(std::fs::canonicalize(folder).map_err(|_| ())?.join(archive.file_name().ok_or(())?))
+    }).map_err(|_| format!("Archive folder not found: {}", request.archive))?;
     shell::destination(&shell::ordinary_path(path), reserve).map(|p| p.to_string_lossy().into_owned())
 }
 
@@ -230,9 +244,9 @@ pub fn run() {
         .setup(|app| {
             if std::env::args().any(|a| a.starts_with("--shell-")) {
                 if let Some(w) = app.get_webview_window("main") {
-                    w.set_min_size(Some(tauri::LogicalSize::new(520.0, 420.0)))?;
-                    let height = if std::env::args().any(|a| a == "--shell-extract-delete") { 680.0 } else { 520.0 };
-                    w.set_size(tauri::LogicalSize::new(620.0, height))?;
+                    w.set_min_size(Some(tauri::LogicalSize::new(480.0, 400.0)))?;
+                    let height = if std::env::args().any(|a| a == "--shell-extract-delete") { 500.0 } else { 460.0 };
+                    w.set_size(tauri::LogicalSize::new(580.0, height))?;
                     w.set_decorations(true)?;
                     w.set_title("EnhancedExtract — Quick extract")?;
                     w.center()?;
@@ -240,7 +254,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![engine, disk_space, relaunch_as_admin, shell_request, shell_destination, open_output])
+        .invoke_handler(tauri::generate_handler![engine, disk_space, relaunch_as_admin, shell_request, open_request, shell_destination, open_output])
         .run(tauri::generate_context!())
         .expect("error while running EnhancedExtract");
 }
