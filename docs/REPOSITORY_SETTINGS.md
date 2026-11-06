@@ -14,4 +14,4 @@ Suggested topics:
 
 Release downloads: https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.2
 
-No open-source licence has been selected. Public visibility does not itself grant an open-source licence, and bundled third-party components keep their own terms.
+EnhancedExtract is licensed under the MIT License (`LICENSE` at the repository root). Bundled third-party components keep their own terms; see `docs/THIRD_PARTY_NOTICES.txt`.

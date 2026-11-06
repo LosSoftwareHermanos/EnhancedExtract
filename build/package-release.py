@@ -28,6 +28,7 @@ def main():
             if path.is_file():
                 archive.write(path, f"{cli_name}/{path.relative_to(engine).as_posix()}")
         archive.write(notices, f"{cli_name}/THIRD_PARTY_NOTICES.txt")
+        archive.write(ROOT / "LICENSE", f"{cli_name}/LICENSE.txt")
         archive.writestr(f"{cli_name}/GETTING_STARTED.txt", f"""EnhancedExtract {version} for Windows x64
 
 Unpack this whole folder before running the CLI. Keep _internal beside ee-engine.exe.
@@ -50,7 +51,7 @@ freeing is experimental. See the user guide before using it.
 
 User guide: https://github.com/gustavofring1483369/EnhancedExtract/blob/v{version}/docs/USER_GUIDE.md
 Issues: https://github.com/gustavofring1483369/EnhancedExtract/issues
-Third-party licences: THIRD_PARTY_NOTICES.txt
+Licence: MIT (LICENSE.txt). Third-party licences: THIRD_PARTY_NOTICES.txt
 """)
     assets = [output / installer.name, cli_zip, output / notices.name]
     hashes = []
