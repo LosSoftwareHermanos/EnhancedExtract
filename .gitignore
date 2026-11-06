@@ -15,3 +15,9 @@ videos/**/.hyperframes/
 .taste-skill/
 .claude/
 .pytest_cache/
+# Old single-exe build output (build/build.bat); binaries go on the Releases page
+build/EnhancedExtract.exe
+# Editor and OS clutter
+desktop.ini
+*.prproj
+Adobe Premiere Pro Auto-Save/

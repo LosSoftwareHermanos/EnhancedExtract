@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    name: Engine and CLI tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # RAR and ISO tests skip themselves when WinRAR or WinFsp are missing.
+      - run: python -m unittest discover -s tests -v
+
+  ui:
+    name: Desktop UI and Rust shell
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ui/src-tauri
+      # tauri-build checks that bundle resources exist; the real engine is built only
+      # for releases (build/build-engine.bat), so stand in an empty folder for it.
+      - name: Placeholder for the bundled engine
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ../build/dist/ee-engine | Out-Null
+          Set-Content ../build/dist/ee-engine/README.txt "CI placeholder"
+      - run: cargo test --locked
+        working-directory: ui/src-tauri
