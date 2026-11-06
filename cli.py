@@ -909,6 +909,20 @@ def install_size(args):
     return int(args.install_size_mb * iso.MB) if args.install_size_mb else None
 
 
+def cmd_iso_status(args, out):
+    """Lightweight status check used while the ISO setup screen is open."""
+    path = os.path.abspath(args.iso)
+    exists = os.path.isfile(path)
+    attached = iso.iso_attached(path) if exists else False
+    message = ("ISO is mounted by Windows" if attached else
+               "ISO file is unavailable" if not exists else
+               "Windows has not mounted this ISO")
+    out("check", message, name="iso_mount", path=path, exists=exists,
+        windows_mounted=attached)
+    return {"ok": True, "path": path, "exists": exists,
+            "windows_mounted": attached}
+
+
 def cmd_iso_inspect(args, out):
     path, files = load_iso(args.iso)
     total = sum(e.size for e in files)
@@ -1361,6 +1375,10 @@ def build_parser():
                 p.add_argument("--background", action="store_true", help=background_help)
 
     isos = group("iso", "install a game from an ISO while freeing the ISO behind setup")
+    p = add(isos, "status", cmd_iso_status, "check whether Windows has mounted an ISO",
+            examples("iso status Game.iso", "--json iso status Game.iso"))
+    p.add_argument("iso", help="the game ISO")
+
     p = add(isos, "inspect", cmd_iso_inspect, "files in the ISO and the free space an install needs",
             examples("iso inspect Game.iso", "iso inspect Game.iso --install-size-mb 52000 --buffer-gb 5",
                      "--json iso inspect Game.iso --files"))

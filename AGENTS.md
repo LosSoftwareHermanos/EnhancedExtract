@@ -9,6 +9,7 @@ JSON document (about 10 KB); `python cli.py <group> <command> --help` shows one 
 ```
 python cli.py --json scan D:\Downloads                         # find RAR sets / ISOs; each has "next"
 python cli.py --json rar inspect D:\Downloads\Game.part1.rar   # sizes, free space, "next"
+python cli.py --json iso status D:\Downloads\Game.iso         # quick Windows mount check
 python cli.py --json rar extract D:\Downloads\Game.part1.rar --delete --dry-run   # the plan
 #   show the plan to the user; only with their OK:
 python cli.py --json rar extract D:\Downloads\Game.part1.rar --delete --yes --background
@@ -24,6 +25,7 @@ id at once, keep running after your tool call ends, and are followed with
 python cli.py --json system check | install-winfsp [--dry-run] | install-fusepy [--dry-run]
 python cli.py --json scan FOLDER [--depth N]
 python cli.py --json rar inspect|verify|extract ARCHIVE [--dest DIR] [--delete [--early-delete]] [--dry-run] [--yes] [--background]
+python cli.py --json iso status ISO
 python cli.py --json iso inspect ISO [--install-size-mb N] [--files]
 python cli.py --json iso install ISO --install-dir DIR --install-size-mb N --silent [--dry-run] [--yes] [--background]
 python cli.py --json iso install ISO --no-free --no-setup --background   # mount only; `jobs stop` unmounts
