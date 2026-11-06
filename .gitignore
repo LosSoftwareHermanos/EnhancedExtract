@@ -17,3 +17,9 @@ videos/**/.hyperframes/
 .pytest_cache/
 .wrangler/
 .dev.vars*
+# Old single-exe build output (build/build.bat); binaries go on the Releases page
+build/EnhancedExtract.exe
+# Editor and OS clutter
+desktop.ini
+*.prproj
+Adobe Premiere Pro Auto-Save/

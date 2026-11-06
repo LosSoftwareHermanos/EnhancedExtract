@@ -9,7 +9,7 @@
 
 <br>
 
-[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.2-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli)
+[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.2-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli) [![License](https://img.shields.io/badge/LICENSE-MIT-fcee0a?style=for-the-badge&labelColor=0b0c12)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/gustavofring1483369/EnhancedExtract/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=0b0c12&color=fcee0a)](https://github.com/gustavofring1483369/EnhancedExtract/actions/workflows/ci.yml)
 
 <br>
 
@@ -696,12 +696,22 @@ Yes. Long work always runs as a detached engine job. Reopen the app and the **Jo
 - **[WinFsp](https://winfsp.dev/)** by Bill Zissimopoulos, and **[fusepy](https://github.com/fusepy/fusepy)**.
 - **[Tauri](https://tauri.app/)**, **[React](https://react.dev/)**, **[Vite](https://vite.dev/)**.
 - Type: **Oxanium**, **Bai Jamjuree** and **Rajdhani**, all under the SIL Open Font License ([`fonts/OFL.txt`](fonts/OFL.txt)).
+- UI sounds from **[Kenney](https://kenney.nl/)** (CC0) and **[Pixabay](https://pixabay.com/)** contributors (Pixabay Content License).
 
-## `▚▚ 12` // LICENSE
+## `▚▚ 12` // CONTRIBUTING
+
+EnhancedExtract is open source and contributions are welcome: bug reports, fixes, tests and docs.
+
+- Read **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, tests and how to open a pull request.
+- Found a bug or have an idea? [Open an issue](https://github.com/gustavofring1483369/EnhancedExtract/issues/new/choose). Questions go to [Discussions](https://github.com/gustavofring1483369/EnhancedExtract/discussions).
+- Security problems: report them privately, see **[SECURITY.md](SECURITY.md)**.
+- Everyone taking part follows the **[Code of Conduct](CODE_OF_CONDUCT.md)**.
+
+## `▚▚ 13` // LICENSE
 
 EnhancedExtract is open source under the [MIT License](LICENSE). Copyright (c) 2026 Sibgha Alfirdausi Rambe.
 
-Bundled third-party components keep their own licenses: UnRAR (RARLAB freeware licence), 7-Zip (LGPL, with the unRAR restriction), WinFsp (GPLv3 with a FLOSS exception), fusepy (ISC) and the fonts (SIL OFL). See [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The landing page in `site/` also uses GSAP under GreenSock's own licence.
+Bundled third-party components keep their own licenses: UnRAR (RARLAB freeware licence), 7-Zip (LGPL, with the unRAR restriction), WinFsp (GPLv3 with a FLOSS exception), fusepy (ISC), the fonts (SIL OFL) and the UI sounds (Kenney CC0, Pixabay Content License). See [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The landing page in `site/` also uses GSAP under GreenSock's own licence.
 
 <br>
 
