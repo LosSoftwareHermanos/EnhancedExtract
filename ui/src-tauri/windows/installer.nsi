@@ -467,7 +467,10 @@ Var AppStartMenuFolder
 !insertmacro MUI_PAGE_FINISH
 
 Function RunMainBinary
-  nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" ""
+  ; EnhancedExtract: nsis_tauri_utils::RunAsUser could hang the Finish page with the app
+  ; never starting. This installer runs unelevated (per-user install), so a plain Exec
+  ; already starts the app as the user.
+  Exec '"$INSTDIR\${MAINBINARYNAME}.exe"'
 FunctionEnd
 
 ; Uninstaller Pages
