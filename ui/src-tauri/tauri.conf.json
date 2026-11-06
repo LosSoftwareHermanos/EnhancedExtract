@@ -19,6 +19,7 @@
         "minHeight": 680,
         "decorations": false,
         "dragDropEnabled": true,
+        "visible": false,
         "backgroundColor": "#171719"
       }
     ],
@@ -32,7 +33,7 @@
     "icon": ["icons/icon.png", "icons/icon.ico"],
     "resources": { "../../build/dist/ee-engine/": "engine/" },
     "windows": {
-      "nsis": { "installMode": "currentUser" }
+      "nsis": { "installMode": "currentUser", "installerHooks": "windows/hooks.nsh" }
     }
   }
 }

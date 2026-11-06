@@ -19,7 +19,7 @@ the JSON lines it prints; the last line is always `{"type": "result", "exit_code
 Long work always runs as an engine background job, so it keeps going if the window closes and the UI
 only polls. Passwords go over stdin (`--password-stdin`), never on the command line.
 
-The Rust side (`src-tauri/src/lib.rs`) has three commands: `engine` (run the CLI, return its events),
+The Rust side (`src-tauri/src/lib.rs`) exposes `engine` (run the CLI, return its events),
 `disk_space` (free/total bytes of a drive) and `relaunch_as_admin` (UAC prompt, for ISO installs).
 It finds the engine in this order:
 
@@ -49,6 +49,42 @@ engine in `engine\` beside `EnhancedExtract.exe`. Jobs and logs of the installed
 `%LOCALAPPDATA%\EnhancedExtract`.
 
 In the browser preview, `#rar`, `#rarJob`, `#iso`, `#isoJob` and `#jobs` open a screen directly.
+
+## Explorer quick extraction
+
+The Windows installer adds entries to a single `.rar` file's classic context menu
+(**Show more options** on Windows 11):
+
+- **Extract with EnhancedExtract** verifies all parts and extracts into a new folder beside
+  the archive. It keeps the source archives and starts without opening the dashboard.
+- **Extract and free space with EnhancedExtract...** shows the engine's dry-run plan,
+  required/free space and the parts to delete. A checkbox and explicit confirmation are
+  required before verification and delete-as-you-go extraction start.
+
+Selecting a later `.partN.rar` resolves to the first volume, including zero-padded names.
+If `Game` already exists, output goes to `Game (2)`, then `Game (3)`, etc. Folder reservation
+uses atomic directory creation so existing output is never selected for overwriting.
+The compact window handles passwords, progress, stop confirmation, errors, and opening the
+completed output folder. Closing it leaves the engine job running; the main app's Jobs screen
+can follow it. Reopening a running extraction attaches to the existing job. A Windows file
+handle lock prevents competing quick-extract windows for the same archive while one is open.
+Passwords remain in memory and travel over stdin, then the existing background-job environment.
+
+The installer registers a per-user collapsible **EnhancedExtract** submenu (with a third item,
+**Open EnhancedExtract dashboard**) under `SystemFileAssociations\.rar\shell`, without changing default
+file associations. It avoids `AppliesTo` filters, which do not show on stripped-down Windows builds.
+Uninstallation removes only that key. The installer also marks the Desktop and Start Menu shortcuts
+"Run as administrator" (needed for ISO install); right-click extraction stays unelevated.
+Registration is in `src-tauri/windows/hooks.nsh`. The UI executable accepts
+`--shell-extract "C:\Downloads\Game.rar"` and
+`--shell-extract-delete "C:\Downloads\Game.rar"`; the latter still requires confirmation.
+ZIP support is not included: the engine currently extracts RAR archives.
+
+Check with `npm run build`, `cargo test --lib` from `src-tauri`, and
+`python -m unittest discover -s tests` from the repository root. For a packaged smoke test,
+install the built NSIS installer, right-click a disposable multipart RAR, and check later-part
+selection, existing destination preservation, password retry, deletion-plan cancellation,
+and completion. Use disposable fixtures for destructive-mode tests.
 
 ## UX rules this follows
 

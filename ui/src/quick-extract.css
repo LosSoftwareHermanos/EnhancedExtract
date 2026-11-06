@@ -1,0 +1,13 @@
+.quick-extract { height: 100%; overflow: auto; padding: 28px; }
+.quick-brand { color: var(--accent); font: 600 15px var(--brand); margin-bottom: 24px; }
+.quick-brand span { color: var(--muted); font: 400 11px var(--font); margin-left: 12px; }
+.quick-extract h1 { font-size: 26px; line-height: 32px; margin-bottom: 8px; }
+.quick-path { overflow-wrap: anywhere; color: var(--soft); }
+.quick-content { margin-top: 24px; display: grid; gap: 14px; }
+.quick-content p, .quick-content ol { margin: 0; }
+.quick-warning { color: var(--pill-warning-ink); background: var(--pill-warning-bg); padding: 12px; border-radius: 4px; overflow-wrap: anywhere; }
+.quick-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.quick-content progress { width: 100%; height: 18px; accent-color: var(--accent); }
+.quick-content label { display: block; }
+.quick-content input[type=password] { display: block; width: 100%; margin-top: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--control); border-radius: 4px; }
+.quick-content input[type=checkbox] { accent-color: var(--accent); margin-right: 6px; }
