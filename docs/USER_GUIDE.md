@@ -20,8 +20,6 @@
 
 <div align="center">
   <img src="../docs/assets/launch-intro.webp" width="100%" alt="EnhancedExtract launch film: a 24-part RAR set unpacking while each part is deleted, then the logo and 'Big games. Small drives.'">
-  <br>
-  <sub><code>// FILM</code> opening of the launch film (v2) · the problem, the fix, the brand · demo data</sub>
 </div>
 
 <a id="why"></a>
@@ -233,8 +231,6 @@ The launch film's walkthrough: **5 steps + a shortcut**.
 
 <div align="center">
   <img src="../docs/assets/film-rclick.webp" width="100%" alt="Launch film shortcut scene: right-click a RAR part, Show more options, EnhancedExtract submenu">
-  <br>
-  <sub><code>// FILM</code> the shortcut scene from the launch film</sub>
 </div>
 
 <br>
@@ -285,9 +281,9 @@ The same actions from a script:
 <td width="58%"><img src="../docs/assets/film-cli.webp" alt="Launch film CLI scene: a JSON dry run printing the plan and the result line"></td>
 <td valign="top">
 
-**`// FILM` For scripts and AI agents**
+**Automate extraction with commands**
 
-Every screen in the app runs the same JSON command line underneath. Dry-run first, then confirm:
+You can use terminal commands to run the same tasks as the desktop app. Scripts and AI tools can read the results in a structured format called JSON, shown below. Use `--dry-run` to preview the steps without changing any files. If the steps include deleting files, review the plan before adding `--yes` to approve it.
 
 ```text
 {"type": "plan", "steps": [...]}
@@ -311,7 +307,6 @@ The engine is a plain command-line program. The desktop app is just one of its c
 
 ```powershell
 python cli.py <group> <command> [flags]                 # from source
-EnhancedExtract.exe --cli <group> <command> [flags]     # classic single-file exe
 ee-engine.exe --cli <group> <command> [flags]           # engine shipped with the desktop app
 ```
 
@@ -507,16 +502,14 @@ With `--json`, every stdout line is one object with `type` and `ts`. The **last 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#fcee0a','primaryTextColor':'#0b0c12','primaryBorderColor':'#fcee0a','lineColor':'#00e5f0','secondaryColor':'#13141c','tertiaryColor':'#13141c','fontFamily':'monospace'}}}%%
 flowchart LR
-    subgraph FRONT["front ends"]
-        UI["Tauri app<br/>React + Rust"]
+    subgraph FRONT["Ways to use EnhancedExtract"]
+        UI["Desktop app<br/>Tauri + Rust"]
         SH["Explorer<br/>right-click"]
-        TK["Tkinter app<br/>app.py"]
         AG["you / scripts / agents"]
     end
     UI -->|"--cli --json"| ENG
     SH --> UI
     AG -->|"cli.py"| ENG
-    TK --> CORE
     ENG["ee-engine<br/>cli.py · jobs.py"] --> CORE["extractor.py · isocore.py"]
     CORE -->|"-vp pause per volume"| UNRAR["UnRAR.exe"]
     CORE --> VD["vdrive.py<br/>WinFsp + fusepy"]
@@ -554,18 +547,17 @@ A read that touches freed data **fails with an I/O error** instead of returning 
 ```text
 EnhancedExtract/
 ├─ cli.py            terminal front end: every command, --json, jobs, exit codes
-├─ engine.py         entry point of ee-engine (CLI + virtual drive, no Tk)
+├─ engine.py         entry point of ee-engine (CLI + virtual drive)
 ├─ extractor.py      RAR: list, verify, extract, delete-as-you-go
 ├─ isocore.py        ISO: checks, space maths, virtual drive process, setup verdict
 ├─ vdrive.py         WinFsp filesystem that frees the ISO behind setup
 ├─ sparse.py         NTFS sparse-file helpers
 ├─ udf.py            reads UDF ISOs without mounting
 ├─ jobs.py           detached background jobs and their logs
-├─ app.py            classic Tkinter app (+ theme.py, install_tab.py, dialogs.py …)
 ├─ ui/               Tauri 2 desktop app (React 19, Vite, Rust)
 │  ├─ src/              screens, quick-extract window, motion
 │  └─ src-tauri/        engine bridge, shell integration, NSIS hooks
-├─ build/            PyInstaller specs: classic exe, ee-engine
+├─ build/            build scripts and packaging for ee-engine
 ├─ deps/             bundled WinFsp installer, fusepy package
 ├─ tests/            unittest suite for the CLI
 └─ AGENTS.md         the brief for coding agents
@@ -612,7 +604,7 @@ cd ui\src-tauri; cargo test --lib         # engine bridge + Explorer integration
 | `EE_PASSWORD` | archive password (instead of `--password`) |
 | `EE_DATA_DIR` | where jobs and logs live (default: next to the source, or `%LOCALAPPDATA%\EnhancedExtract` when packaged) |
 | `EE_ENGINE` | desktop app: path to an engine exe to use |
-| `EE_PYTHON` | desktop app in development: the Python that runs `app.py` |
+| `EE_PYTHON` | Python interpreter used by the engine bridge during development |
 
 </details>
 
