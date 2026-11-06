@@ -31,10 +31,10 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
-    "resources": { "../../build/dist/ee-engine/": "engine/" },
+    "resources": { "../../build/dist/ee-engine/": "engine/", "../../LICENSE": "LICENSE.txt" },
     "publisher": "EnhancedExtract",
     "homepage": "https://github.com/gustavofring1483369/EnhancedExtract",
-    "copyright": "© 2026 EnhancedExtract",
+    "copyright": "© 2026 Sibgha Alfirdausi Rambe",
     "windows": {
       "nsis": {
         "installMode": "currentUser",
