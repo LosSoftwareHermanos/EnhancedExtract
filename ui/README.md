@@ -1,11 +1,11 @@
 # EnhancedExtract UI (Tauri)
 
-A new desktop front end for EnhancedExtract, built alongside the original Tkinter app (`app.py`), which
-is unchanged. The UI has no Python in it: it drives the existing engine through its JSON CLI.
+The EnhancedExtract desktop app is built with Tauri and Rust, with a React interface.
+It runs extraction and installation tasks through the bundled Python engine using its JSON command line.
 
 ## How it talks to the engine
 
-Every action runs `<engine> --cli --json <command ...>` (see `python app.py --cli schema`) and reads
+Every action runs `<engine> --cli --json <command ...>` (see `python cli.py --json schema`) and reads
 the JSON lines it prints; the last line is always `{"type": "result", "exit_code": ...}`.
 
 | Screen | Engine commands |
@@ -25,10 +25,11 @@ It finds the engine in this order:
 
 1. `EE_ENGINE`: path to an engine exe.
 2. `engine\ee-engine.exe` next to the app (where the installer puts it), or `ee-engine.exe` beside it.
-   `build\build-engine.bat` builds it from `engine.py` (CLI and virtual drive, no Tk) as a folder, not
+   `build\build-engine.bat` builds it from `engine.py` (CLI and virtual drive) as a folder, not
    one file (the UI calls it about once a second), and **without** `uac_admin`, or Windows refuses to
    start it from a normal process.
-3. Development: `python ../../app.py` (set `EE_PYTHON` to use a venv's python).
+
+For development, set `EE_PYTHON` to choose the Python interpreter used by the engine bridge.
 
 ## Run it
 

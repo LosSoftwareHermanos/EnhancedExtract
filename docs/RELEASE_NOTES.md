@@ -3,6 +3,8 @@
 Windows archive extraction for tight disk space, with Explorer integration, a desktop
 dashboard, and a standalone CLI.
 
+The desktop app uses Tauri and Rust, with a React interface and a bundled Python engine.
+
 - Multipart RAR extraction with verification, disk-space estimates, and resumable deletion.
 - Compact right-click extraction; open the dashboard when you want more options.
 - Standalone CLI ZIP with Python and UnRAR bundled.
