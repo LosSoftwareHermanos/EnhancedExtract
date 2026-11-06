@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EngineError } from "../engine";
+import { scaled, size, unitFor } from "../format";
 
 const PATHS: Record<string, string> = {
   library: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
@@ -130,11 +131,11 @@ export function SpaceCompare({ free, rows, onChoose, label }: { free: number; ro
         return (
           <Tag className={`cmp${onChoose ? " choice" : ""}`} key={r.label} {...(onChoose ? { type: "button" as const, role: "radio", "aria-checked": r.chosen, onClick: () => onChoose(i) } : {})}>
             <div className="top2"><span className={r.chosen ? "" : "soft"}>{onChoose && <span className="radio" aria-hidden="true" />}{r.label}</span>
-              <span className="num">{(r.needed / 1024 ** 3).toFixed(2)}<span className="muted"> GB needed</span></span></div>
-            <div className="cmpbar" role="img" aria-label={`${r.label}: needs ${(r.needed / 1024 ** 3).toFixed(2)} GB, ${(free / 1024 ** 3).toFixed(2)} GB free`}>
+              <span className="num">{scaled(r.needed, unitFor(r.needed))}<span className="muted"> {unitFor(r.needed)} needed</span></span></div>
+            <div className="cmpbar" role="img" aria-label={`${r.label}: needs ${size(r.needed)}, ${size(free)} free`}>
               <span data-chosen={over ? undefined : String(r.chosen)} style={{ width: `${pct}%`, background: over ? "var(--negative)" : r.chosen ? "var(--accent)" : "var(--control)" }} />
             </div>
-            {over ? <span className="small" style={{ color: "var(--negative)" }}>Doesn't fit: <span className="num">{((r.needed - free) / 1024 ** 3).toFixed(2)}</span> GB short</span>
+            {over ? <span className="small" style={{ color: "var(--negative)" }}>Doesn't fit: <span className="num">{scaled(r.needed - free, unitFor(r.needed - free))}</span> {unitFor(r.needed - free)} short</span>
               : r.note && <span className="small muted">{r.note}</span>}
           </Tag>
         );

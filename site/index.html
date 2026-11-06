@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>EnhancedExtract: big games, small drives</title>
+  <meta name="description" content="Extract multi-part RAR game sets on a nearly full Windows drive. EnhancedExtract deletes archive parts once their files are safely on disk. Version 0.1.0 for Windows 10 and 11.">
+  <meta property="og:title" content="EnhancedExtract: big games, small drives">
+  <meta property="og:description" content="Extract RAR, ZIP, 7z and TAR archives with a Windows desktop app and CLI. Version 0.1.0 with bundled archive tools.">
+  <meta property="og:image" content="assets/media/shot-rar-running.jpg">
+  <meta name="theme-color" content="#0b0c12">
+  <link rel="icon" href="assets/media/logo.png" type="image/png">
+  <link rel="preload" href="assets/fonts/oxanium-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/bai-jamjuree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/scenes/stage.css">
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+  <canvas class="backdrop" data-backdrop aria-hidden="true"></canvas>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav wrap" id="top">
+    <a class="brand" href="#top" aria-label="EnhancedExtract, back to top">
+      <img src="assets/media/logo.png" width="36" height="36" alt="">
+      <span>EnhancedExtract</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#safety">Safety</a>
+      <a href="#explorer">Explorer</a>
+      <a href="#cli">CLI</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-sm" href="#download">Download</a>
+  </header>
+
+  <main id="main">
+    <!-- HERO: the sentence is the layout; the product's own controls sit around it -->
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-stage">
+        <h1 class="hero-title lines" id="hero-title">
+          <span class="line"><span data-line style="--i:0">Big games<span class="slot cut" aria-hidden="true"><video src="assets/media/film-parts.mp4" poster="assets/media/film-parts.jpg" muted loop playsinline preload="metadata" data-autoplay></video></span></span></span>
+          <span class="line"><span data-line style="--i:1">small drives</span></span>
+        </h1>
+
+        <div class="chip chip-a cut" data-ui>
+          <span class="chip-label">Space needed on D:</span>
+          <span class="chip-value"><b data-needed>9.87</b><small>GB</small></span>
+        </div>
+        <div class="chip chip-b cut" data-ui>
+          <span class="chip-label">Free on D:</span>
+          <span class="chip-value"><b>12.00</b><small>GB</small><span class="state is-ok" data-fit>Fits</span></span>
+        </div>
+        <label class="chip chip-c cut" data-ui>
+          <span class="chip-label">Delete parts as their files finish</span>
+          <span class="switch">
+            <input type="checkbox" role="switch" checked data-delete-toggle>
+            <span class="switch-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
+
+      <div class="hero-copy">
+        <p class="lede">EnhancedExtract unpacks multi-part RAR game sets on a nearly full Windows drive, deleting each part once its files are safely on disk. ZIP, 7z, TAR and other common archives are supported too.</p>
+      </div>
+
+      <div class="dl dl-hero" data-ui id="get-now">
+        <div class="dl-os">
+          <span class="os is-on"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.2 6.5 1.3v6.2H0zM7.3 1.2 16 0v7.5H7.3zM0 8.3h6.5v6.3L0 13.7zM7.3 8.3H16V16l-8.7-1.2z"/></svg>Windows</span>
+        </div>
+        <div class="dl-rows">
+          <div class="dl-row">
+            <span class="dl-name">Installer</span>
+            <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">13.1&nbsp;MB, version 0.1.0</span></span>
+            <a class="btn dl-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.0/EnhancedExtract_0.1.0_x64-setup.exe" aria-label="Download for Windows: EnhancedExtract_0.1.0_x64-setup.exe, 13.1 MB">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>Download
+            </a>
+          </div>
+          <div class="dl-row">
+            <span class="dl-name">PowerShell</span>
+            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.0/EnhancedExtract_0.1.0_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
+            <button class="icon-btn" type="button" data-copy="ps" aria-label="Copy the PowerShell install command">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 7h9v9H7zM4 13V4h9"/></svg>
+            </button>
+          </div>
+        </div>
+        <p class="copied" aria-live="polite" data-copied></p>
+      </div>
+      <p class="meta"><a class="tlink" href="#download">Checksums and the CLI zip</a> <a class="tlink" href="#demo">Watch it run</a></p>
+      <p class="small-print release-note">Free download. No GitHub account required.</p>
+
+      <div class="demo-wrap" id="demo">
+        <figure class="demo frame" data-demo data-reveal>
+          <video src="assets/media/demo-run.mp4" poster="assets/media/demo-run.jpg" muted playsinline preload="none" width="1920" height="1200" aria-label="Screen recording of the EnhancedExtract demo engine using sample data: the library of RAR sets, the space check for Ashen Tide, then the job verifying all 24 parts, unpacking them and deleting each part as it is used."></video>
+          <button class="demo-play" type="button" data-demo-play>
+            <span class="demo-play-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg></span>
+            <span class="demo-play-text"><b data-demo-label>Watch it run</b><small>42 seconds, no sound</small></span>
+          </button>
+          <button class="demo-toggle" type="button" data-demo-pause hidden>Pause</button>
+        </figure>
+        <p class="caption">The real app UI running its demo engine with sample data, at 6× speed. Illustrates the workflow; no real archive is extracted in this recording.</p>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS: the app's progress bar, enlarged to span the page, and scrubbable -->
+    <section class="how field-yellow scene" id="how" data-scene="space-back" data-options='{"hold":2}' aria-labelledby="how-title">
+      <div class="scene-stage"><div class="wrap">
+        <div class="how-head">
+          <h2 id="how-title" class="h2" data-reveal>Watch the space come back</h2>
+          <p class="how-intro" data-reveal>An illustrative 24-part, 47&nbsp;GB set on a drive with 12&nbsp;GB free. Drag through the simulation.</p>
+        </div>
+
+        <div class="sim" data-ui data-sim>
+          <div class="stages" aria-hidden="true">
+            <div class="stage stage-verify"><span class="stage-word">Reads 47.30&nbsp;GB</span></div>
+            <div class="stage stage-extract">
+              <span class="stage-word">Writes 52.10&nbsp;GB, frees 47.30&nbsp;GB</span>
+              <div class="parts" data-parts></div>
+            </div>
+            <div class="stage stage-done"><span class="stage-word">Seconds</span></div>
+            <span class="playhead" data-playhead></span>
+          </div>
+
+          <div class="stage-notes">
+            <p class="note-verify"><b>First</b> every checksum is tested.</p>
+            <p class="note-extract"><b>Then</b> each part is unpacked, flushed and deleted.</p>
+            <p class="note-done"><b>Last</b> the journal goes.</p>
+          </div>
+
+          <div class="scrub">
+            <label for="scrub" class="scrub-label">Job progress</label>
+            <input id="scrub" type="range" min="0" max="1000" value="652" step="1" data-scrub>
+            <button class="btn btn-ink" type="button" data-play>Play</button>
+          </div>
+
+          <div class="readouts">
+            <div class="readout">
+              <span class="r-label" data-phase>Extracting</span>
+              <span class="r-big"><b data-pct>42</b>%</span>
+              <span class="r-sub"><span data-files>506</span> of 1,204 files, <span data-left>14</span> of 24 parts left</span>
+            </div>
+            <div class="readout">
+              <span class="r-label">Free on D: with EnhancedExtract</span>
+              <span class="r-big"><b data-ee>9.83</b> GB</span>
+              <span class="r-sub">Lowest point of the whole job: 5.23&nbsp;GB</span>
+            </div>
+            <div class="readout readout-usual" data-usual-box>
+              <span class="r-label">Free on D: the usual way</span>
+              <span class="r-big" data-usual>Disk full</span>
+              <span class="r-sub" data-usual-sub>Ran out at 23%. Every part stays until the end.</span>
+            </div>
+          </div>
+          <p class="sr-only" aria-live="polite" data-sim-live></p>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- SAFETY: one paragraph does the work of a feature grid -->
+    <section class="safety wrap" id="safety" aria-labelledby="safety-title">
+      <h2 class="h2" id="safety-title" data-reveal>Nothing goes until it’s safe</h2>
+      <p class="statement" data-reveal>Every part is checked<span class="pw pw-switch" data-ui aria-hidden="true"><i></i></span> before a byte is written, deleted only once its files are on disk<span class="pw pw-strip" data-ui aria-hidden="true"><i class="d"></i><i class="d"></i><i class="d"></i><i class="n"></i><i></i><i></i></span>, and a stopped job resumes<span class="pw pw-resume" data-ui aria-hidden="true">Resume</span> from what’s left.</p>
+
+      <div class="safety-proof">
+        <figure class="frame safety-shot" data-reveal>
+          <img src="assets/media/shot-rar-setup.jpg" width="2560" height="1600" loading="lazy" alt="The set-up screen for Ashen Tide: 9.87 GB needed when parts are deleted as their files finish, 7.77 GB when each is deleted as soon as it is read, and 53.10 GB to keep every part. Verification is switched on.">
+        </figure>
+        <div class="safety-text" data-reveal>
+          <figure class="bars" data-ui>
+            <figcaption>Space needed on D: for Ashen Tide, 24 parts</figcaption>
+            <div class="bar-row"><span class="bar-name">Safe mode</span><span class="bar"><i style="--w:18.6%"></i></span><b>9.87&nbsp;GB</b></div>
+            <div class="bar-row"><span class="bar-name">Early mode</span><span class="bar"><i style="--w:14.6%"></i></span><b>7.77&nbsp;GB</b></div>
+            <div class="bar-row is-keep"><span class="bar-name">Keep every part</span><span class="bar"><i style="--w:100%"></i></span><b>53.10&nbsp;GB</b></div>
+          </figure>
+          <p>Early mode needs the least, but a stop can lose the file in flight, so it asks first. Output never overwrites anything.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIBRARY: the real app, large -->
+    <section class="library wrap" id="library" aria-labelledby="library-title">
+      <div class="library-head">
+        <h2 class="h2" id="library-title" data-reveal>Your downloads folder, sorted</h2>
+        <p class="body-lg" data-reveal>Every archive and ISO in your downloads, with size and state. Missing parts are flagged before you start.</p>
+      </div>
+      <div class="mosaic">
+        <figure class="frame m-main" data-reveal>
+          <img src="assets/media/shot-library.jpg" width="2560" height="1600" loading="lazy" alt="The Library: six RAR sets and one ISO in D:\Downloads with sizes and states, one extracting at 42%, one ISO installing, and Low Orbit flagged with part 4 missing.">
+          <figcaption>Library. Low Orbit is missing part 4.</figcaption>
+        </figure>
+        <figure class="frame m-side" data-reveal>
+          <img src="assets/media/shot-iso-running.jpg" width="2560" height="1600" loading="lazy" alt="An ISO install in progress: setup reading the Vigil of Ostra ISO while the parts it has finished with are freed behind it.">
+          <figcaption>ISO install, freeing as it reads.</figcaption>
+        </figure>
+        <figure class="frame m-side" data-reveal>
+          <img src="assets/media/shot-jobs.jpg" width="2560" height="1600" loading="lazy" alt="The Jobs screen: running, finished, failed and stopped jobs with their logs.">
+          <figcaption>Jobs, with every log.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- EXPLORER: the headline is an input -->
+    <section class="explorer wrap" id="explorer" aria-labelledby="explorer-title">
+      <h2 class="h2" id="explorer-title" data-reveal>Right-click any part</h2>
+      <div class="type-line" data-ui>
+        <label for="partname" class="sr-only">Archive file name</label>
+        <input id="partname" class="type-input" type="text" value="Ashen.Tide.part07.rar" spellcheck="false" autocomplete="off" autocapitalize="off" data-partname>
+      </div>
+
+      <div class="explorer-grid">
+        <div class="answer" data-ui>
+          <dl class="answer-rows" data-answer aria-live="polite">
+            <div><dt>Starts from</dt><dd>Ashen.Tide.part01.rar</dd></div>
+            <div><dt>Extracts to</dt><dd>D:\Downloads\Ashen.Tide</dd></div>
+            <div><dt>In the menu</dt><dd>Extract, Extract and free space, Open dashboard</dd></div>
+          </dl>
+          <pre class="cmd"><code data-cmd>python cli.py rar extract "D:\Downloads\Ashen.Tide.part01.rar" --delete --dry-run</code></pre>
+          <div class="examples">
+            <span class="examples-label">Try</span>
+            <button type="button" class="ex" data-example="Cinder.Pass.part1.rar">Cinder.Pass.part1.rar</button>
+            <button type="button" class="ex" data-example="Vigil.of.Ostra.iso">Vigil.of.Ostra.iso</button>
+            <button type="button" class="ex" data-example="Kestrel.Run.v2.0.zip">Kestrel.Run.v2.0.zip</button>
+          </div>
+        </div>
+        <div class="explorer-media">
+          <figure class="frame explorer-shot" data-reveal>
+            <img src="assets/media/explorer-menu.webp" width="810" height="668" loading="lazy" alt="Windows 11 classic context menu on Cinder.Pass.part1.rar with the EnhancedExtract submenu: Extract with EnhancedExtract, Extract and free space (delete parts), Open EnhancedExtract dashboard.">
+          </figure>
+          <figure class="frame explorer-quick" data-reveal>
+            <img src="assets/media/shot-quick-delete.jpg" width="1120" height="1000" loading="lazy" alt="The compact quick extract window: output folder, the steps it will take, space needed and free, and a tick box before deleting the archive parts.">
+          </figure>
+        </div>
+      </div>
+      <p class="explorer-note">Windows&nbsp;11: <b>Show more options</b>, or <kbd>Shift</kbd>+right-click.</p>
+    </section>
+
+    <!-- CLI: statement left, proof right -->
+    <section class="cli wrap" id="cli" aria-labelledby="cli-title">
+      <div class="cli-text">
+        <h2 class="h2" id="cli-title" data-reveal>Scripts and agents welcome</h2>
+        <p class="body-lg" data-reveal>The app runs a plain command-line engine you can use too. Every input is a flag, nothing prompts, and <code>--json</code> ends with the result and the next command.</p>
+        <pre class="cmd cmd-block" data-reveal tabindex="0"><code>python cli.py scan D:\Downloads
+python cli.py rar extract Game.part1.rar --delete --dry-run
+python cli.py rar extract Game.part1.rar --delete --yes --background
+python cli.py jobs wait --timeout 60</code></pre>
+        <p class="small-print" data-reveal>Deleting needs <code>--yes</code>, so an agent has to show you the plan first.</p>
+      </div>
+      <figure class="frame cli-shot" data-reveal>
+        <img src="assets/media/terminal.webp" width="1324" height="800" loading="lazy" alt="A real PowerShell session: system check, scan, a dry run that prints the plan and the next command, a background job, then jobs wait reporting exit code 0.">
+      </figure>
+    </section>
+
+    <!-- REQUIREMENTS: statement, table pushed right -->
+    <section class="needs wrap" id="needs" aria-labelledby="needs-title">
+      <h2 class="h2 needs-title" id="needs-title" data-reveal>12 MB, everything included</h2>
+      <div class="needs-grid">
+        <figure class="frame needs-shot" data-reveal>
+          <img src="assets/media/shot-iso-setup.jpg" width="2560" height="1600" loading="lazy" alt="The ISO install set-up screen for Vigil of Ostra: the install size typed from setup, the install folder, a 5 GB safety buffer and silent setup switched on.">
+        </figure>
+        <div class="table-wrap">
+          <span class="table-name" aria-hidden="true">Needs</span>
+          <table class="needs-table">
+            <caption class="sr-only">What EnhancedExtract needs and what comes with it</caption>
+            <tbody>
+              <tr><th scope="row">System</th><td>Windows 10 or 11</td><td>64-bit</td></tr>
+              <tr><th scope="row">Desktop app</th><td>WebView2</td><td>Built into Windows 11</td></tr>
+              <tr><th scope="row">RAR sets</th><td>UnRAR</td><td>Bundled</td></tr>
+              <tr><th scope="row">ZIP, 7z, TAR and more</th><td>7-Zip</td><td>Bundled in 0.1.0</td></tr>
+              <tr class="group"><th scope="row">ISO installs</th><td>WinFsp driver</td><td>Installer bundled</td></tr>
+              <tr><th scope="row">ISO installs</th><td>Administrator</td><td>Shortcut starts as admin</td></tr>
+              <tr><th scope="row">Extraction</th><td>Administrator</td><td>Never needed</td></tr>
+              <tr class="group"><th scope="row">Installer</th><td>For your user only</td><td>13.1&nbsp;MB</td></tr>
+              <tr><th scope="row">CLI zip</th><td>Python, UnRAR and 7-Zip</td><td>13.3&nbsp;MB</td></tr>
+              <tr><th scope="row">Not yet</th><td>macOS, Linux</td><td>Windows only</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ: questions on the left, the download check beside them -->
+    <section class="faq wrap" id="faq" aria-labelledby="faq-title">
+      <div class="faq-main">
+        <h2 class="h2 faq-title" id="faq-title" data-reveal>Before you press start</h2>
+        <div class="faq-list">
+          <details open>
+            <summary>Will Windows warn me about the installer?</summary>
+            <div class="answer-text"><p>The Windows binaries are unsigned, so Windows may show an unknown-publisher or SmartScreen warning. Verify the file against <code>SHA256SUMS.txt</code> and make sure it came from this project’s release page.</p></div>
+          </details>
+          <details>
+            <summary>What if the extraction stops halfway?</summary>
+            <div class="answer-text"><p>Run it again. For RAR sets, a journal beside the parts remembers every finished file, so it picks up from the parts that are left. ZIP, 7z and TAR keep their archives until extraction finishes cleanly. After a stop, retry from the beginning. Version 0.1.0 includes all of these formats.</p></div>
+          </details>
+          <details>
+            <summary>Can I close the window while it runs?</summary>
+            <div class="answer-text"><p>Yes. Jobs keep running, and the Jobs screen picks them back up.</p></div>
+          </details>
+          <details>
+            <summary>Does it need administrator rights?</summary>
+            <div class="answer-text"><p>Only for ISO installs. Extracting archives never does.</p></div>
+          </details>
+          <details>
+            <summary>How do ISO installs save space?</summary>
+            <div class="answer-text"><p>Setup runs from the ISO as a virtual drive, and the parts it has read are freed behind it, keeping a 5&nbsp;GB buffer. ISO space freeing is experimental.</p></div>
+          </details>
+          <details>
+            <summary>What does it change on my PC?</summary>
+            <div class="answer-text"><p>Version 0.1.0 installs for your user only and adds right-click menus for RAR, ZIP, 7z, TAR and the other supported archive extensions. It leaves your default archive app alone.</p></div>
+          </details>
+        </div>
+      </div>
+
+      <aside class="faq-side" aria-labelledby="check-title" data-reveal>
+        <h3 class="side-title" id="check-title">Check your download</h3>
+        <ol class="check-steps">
+          <li><span>Run in the folder with the installer</span><pre class="cmd" tabindex="0"><code>Get-FileHash .\EnhancedExtract_0.1.0_x64-setup.exe</code></pre></li>
+          <li><span>The hash should read</span><code class="hash-chip">c961cf…f8b9b7</code></li>
+          <li><span>If SmartScreen appears</span><span class="ss"><b>More info</b><i aria-hidden="true">→</i><b>Run anyway</b></span></li>
+        </ol>
+        <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/issues/new">Something else? Open an issue</a>
+      </aside>
+    </section>
+
+    <!-- DOWNLOAD: the platform panel -->
+    <section class="get wrap" id="download" aria-labelledby="get-title">
+      <div class="get-head">
+        <h2 class="h2 get-title" id="get-title" data-reveal>Get it for Windows</h2>
+        <p class="body-lg" data-reveal>Version 0.1.0. Free for Windows 10 and 11, 64-bit. RAR, ZIP, 7z, TAR and other common archives, with the tools bundled.</p>
+      </div>
+
+      <div class="dl" data-ui>
+        <div class="dl-os">
+          <span class="os is-on"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.2 6.5 1.3v6.2H0zM7.3 1.2 16 0v7.5H7.3zM0 8.3h6.5v6.3L0 13.7zM7.3 8.3H16V16l-8.7-1.2z"/></svg>Windows</span>
+        </div>
+        <div class="dl-rows">
+          <div class="dl-row">
+            <span class="dl-name">Installer</span>
+            <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">13.1&nbsp;MB. Adds the app, the engine and the right-click menu.</span></span>
+            <a class="icon-btn icon-btn-solid" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.0/EnhancedExtract_0.1.0_x64-setup.exe" aria-label="Download the installer, EnhancedExtract_0.1.0_x64-setup.exe, 13.1 MB">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
+            </a>
+          </div>
+          <div class="dl-row">
+            <span class="dl-name">PowerShell</span>
+            <code class="dl-cmd" data-ps tabindex="0">powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.0/EnhancedExtract_0.1.0_x64-setup.exe -OutFile $env:TEMP\EnhancedExtract-setup.exe -ErrorAction Stop; Start-Process $env:TEMP\EnhancedExtract-setup.exe"</code>
+            <button class="icon-btn" type="button" data-copy="ps" aria-label="Copy the PowerShell install command">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 7h9v9H7zM4 13V4h9"/></svg>
+            </button>
+          </div>
+          <div class="dl-row">
+            <span class="dl-name">CLI zip</span>
+            <span class="dl-what"><span class="arch">x64</span><span class="dl-desc">13.3&nbsp;MB. Unpack and run <i>ee-engine.exe</i>, no install.</span></span>
+            <a class="icon-btn" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/download/v0.1.0/EnhancedExtract-CLI-0.1.0-windows-x64.zip" aria-label="Download the CLI zip, 13.3 MB">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
+            </a>
+          </div>
+        </div>
+        <p class="copied" aria-live="polite" data-copied></p>
+      </div>
+
+      <div class="hashes">
+        <p><span>Installer SHA-256</span> <code>0d65c0ee20aaa2ef79e979bc590d0d9348ae5148197c48bf26041902dc1fdd91</code></p>
+        <p><span>CLI zip SHA-256</span> <code>8d643b6a227a632e7da2f56e331ea34d19a4eabc4a6b4e4733e3c01f3109623e</code></p>
+        <p class="get-links"><a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.0">Release notes</a> <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">Source on GitHub</a></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER: contact as the headline, on the brand's yellow -->
+  <footer class="foot field-yellow">
+    <div class="wrap foot-inner">
+      <div class="foot-top">
+        <img src="assets/media/title-ink.png" width="1018" height="276" alt="EnhancedExtract" class="foot-mark">
+        <p>Version 0.1.0 for Windows 10 and 11. Desktop app in Tauri and Rust over a Python engine.</p>
+        <p>Found a bug, or a set it can’t handle? Tell us.</p>
+        <a class="tlink tlink-ink foot-up" href="#top">Back to top</a>
+      </div>
+      <a class="foot-contact" href="https://github.com/gustavofring1483369/EnhancedExtract/issues/new">Open an issue</a>
+      <div class="foot-meta">
+        <p><a class="tlink tlink-ink" href="https://github.com/gustavofring1483369/EnhancedExtract">GitHub</a> <a class="tlink tlink-ink" href="https://github.com/gustavofring1483369/EnhancedExtract/blob/main/docs/USER_GUIDE.md">User guide</a></p>
+        <p>UnRAR by RARLAB. WinFsp by Bill Zissimopoulos. Type: Oxanium and Bai Jamjuree, SIL OFL.</p>
+        <p>All rights reserved, 2026</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script src="assets/vendor/SplitText.min.js"></script>
+  <script src="assets/vendor/lenis.min.js"></script>
+  <script src="assets/scenes/stage.js"></script>
+  <script src="main.js"></script>
+  <script src="motion.js"></script>
+  <script type="module" src="backdrop.js"></script>
+</body>
+</html>

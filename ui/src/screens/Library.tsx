@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Num } from "../fx/motion";
 import { Page, jobRoute, useApp } from "../App";
-import { call, diskSpace, inTauri, installFusepy, ofType, pickFolder, type FoundIso, type JobSnap, type RarSet } from "../engine";
-import { basename, drive, gb, setName } from "../format";
+import { call, diskSpace, inTauri, installFusepy, ofType, pickFolder, type FoundIso, type JobSnap, type OtherArchive, type RarSet } from "../engine";
+import { archiveFormat, basename, drive, gb, setName } from "../format";
 import { useAction, useStored } from "../hooks";
 import { Busy, ErrorNote } from "../components/ui";
 import logo from "../assets/logo.png";
 
-interface Row { key: string; name: string; kind: "RAR" | "ISO"; detail: string; file: string; size: number; count: number; missing: number[]; wasFreed?: boolean }
+/** `label` is what the row shows as its type: RAR, ISO, ZIP, 7Z, TAR.GZ ... */
+interface Row { key: string; name: string; kind: "RAR" | "ISO" | "OTHER"; label: string; detail: string; file: string; size: number; count: number; missing: number[]; wasFreed?: boolean }
 
 export function Library() {
   const { nav, jobs } = useApp();
@@ -20,11 +21,15 @@ export function Library() {
     if (!folder) return;
     const out = await call(["scan", folder, "--depth", "2"]);
     const sets = ofType(out, "rar_set") as unknown as RarSet[];
+    const others = ofType(out, "archive_set") as unknown as OtherArchive[];
     const isos = ofType(out, "found_iso") as unknown as FoundIso[];
     setRows([
-      ...sets.map((s) => ({ key: s.first, name: setName(s.first), kind: "RAR" as const, file: basename(s.first), size: s.size, count: s.parts + s.missing.length, missing: s.missing,
+      ...sets.map((s) => ({ key: s.first, name: setName(s.first), kind: "RAR" as const, label: "RAR", file: basename(s.first), size: s.size, count: s.parts + s.missing.length, missing: s.missing,
         detail: s.missing.length ? `${s.parts} of ${s.parts + s.missing.length} parts` : `${s.parts} parts` })),
-      ...isos.map((i) => ({ key: i.path, name: setName(i.path), kind: "ISO" as const, file: basename(i.path), size: i.size, count: 0, missing: [], wasFreed: i.was_freed, detail: "ISO image" })),
+      ...others.map((o) => ({ key: o.first, name: setName(o.first), kind: "OTHER" as const, label: archiveFormat(o.first), file: basename(o.first), size: o.size,
+        count: o.parts + o.missing.length, missing: o.missing,
+        detail: o.missing.length ? `${o.parts} of ${o.parts + o.missing.length} parts` : o.parts > 1 ? `${o.parts} parts` : "single file" })),
+      ...isos.map((i) => ({ key: i.path, name: setName(i.path), kind: "ISO" as const, label: "ISO", file: basename(i.path), size: i.size, count: 0, missing: [], wasFreed: i.was_freed, detail: "ISO image" })),
     ]);
     setScannedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     setDisk(await diskSpace(folder));
@@ -48,10 +53,10 @@ export function Library() {
           <img className="logo" src={logo} alt="" />
           <div>
             <h2 id="first">Point it at your downloads</h2>
-            <p className="soft" style={{ maxWidth: "52ch", marginBottom: 20 }}>EnhancedExtract lists every multi-part RAR set and game ISO in a folder, checks each one, and unpacks it while giving the space back as it goes. Nothing is read until you pick a set.</p>
+            <p className="soft" style={{ maxWidth: "52ch", marginBottom: 20 }}>EnhancedExtract lists every archive (RAR, ZIP, 7z, TAR and more) and game ISO in a folder, checks each one, and unpacks it. RAR sets give the space back as they go. Nothing is read until you pick one.</p>
             <div className="acts" style={{ justifyContent: "flex-start" }}>
               <button className="btn btn-primary" onClick={choose}>Choose folder</button>
-              <span className="muted">or drop a .rar part or an .iso on the window · Ctrl+O</span>
+              <span className="muted">or drop an archive or an .iso on the window · Ctrl+O</span>
             </div>
           </div>
         </section>
@@ -81,7 +86,7 @@ export function Library() {
       </section>
       <SystemNotice />
       <section className="card" aria-labelledby="lib">
-        <div className="ch"><h2 id="lib">Sets</h2><span className="meta">Drop a .rar or .iso on the window to add one · F5 rescans</span></div>
+        <div className="ch"><h2 id="lib">Archives</h2><span className="meta">F5 rescans</span></div>
         <ErrorNote error={scan.error} onRetry={() => scan.run()} />
         {!scan.error && <SetTable rows={rows} jobFor={jobFor} />}
       </section>
@@ -103,15 +108,18 @@ function SystemNotice() {
     announce("fusepy installed.");
   }, [recheck, announce]));
 
-  if (!system || (system.unrar && system.winfsp && system.fusepy)) return null;
+  if (!system || (system.unrar && system.sevenzip && system.winfsp && system.fusepy)) return null;
   const busy = check.busy || fuse.busy;
+  // Missing extraction tools come first: they stop archives from opening at all.
+  const tools = [!system.unrar && "UnRAR wasn't found, so RAR archives can't be opened. Install WinRAR.",
+    !system.sevenzip && "7-Zip wasn't found, so zip, 7z, tar and similar archives can't be opened. Install 7-Zip."].filter(Boolean).join(" ");
   return (
     <>
       <div className="notice err" role="status">
-        <span style={{ flex: 1 }}>{!system.unrar ? "UnRAR wasn't found, so RAR sets can't be opened. Install WinRAR, then check again."
-          : "ISO installs need the virtual drive: " + [!system.winfsp && "WinFsp isn't installed", !system.fusepy && "the fusepy package is missing"].filter(Boolean).join(" and ") + ". RAR extraction works."}
+        <span style={{ flex: 1 }}>{tools ? `${tools} Then check again.`
+          : "ISO installs need the virtual drive: " + [!system.winfsp && "WinFsp isn't installed", !system.fusepy && "the fusepy package is missing"].filter(Boolean).join(" and ") + ". Extracting archives works."}
           {checkedAt && !busy && <span className="muted"> Still missing at {checkedAt}.</span>}</span>
-        {system.unrar && !system.fusepy && (
+        {system.unrar && system.sevenzip && !system.fusepy && (
           <button className="tlink" onClick={() => fuse.run()} disabled={busy}><Busy busy={fuse.busy}>{fuse.busy ? "Installing fusepy" : "Install fusepy"}</Busy></button>
         )}
         <button className="tlink" onClick={() => check.run()} disabled={busy}><Busy busy={check.busy}>{check.busy ? "Checking" : "Check again"}</Busy></button>
@@ -126,10 +134,10 @@ function SetTable({ rows, jobFor }: { rows: Row[] | null; jobFor: (p: string) =>
   if (rows == null)
     return <div className="rows">{[0, 1, 2, 3].map((i) => <div key={i} className="lib-row" style={{ height: 72 }}><span className="skel" style={{ width: "50%" }} /><span className="skel" style={{ width: "100%" }} /><span className="skel" /><span className="skel" /><span /></div>)}</div>;
   if (rows.length === 0)
-    return <div className="empty">No RAR sets or ISOs here (two folder levels deep). Choose another folder, or drop a file on the window.</div>;
+    return <div className="empty">No archives or ISOs here (two folder levels deep). Choose another folder, or drop a file on the window.</div>;
   return (
     <>
-      <div className="lib-row small muted" style={{ paddingBottom: 10 }}><span>Set</span><span>Parts</span><span style={{ textAlign: "right" }}>Packed</span><span>State</span><span /></div>
+      <div className="lib-row small muted" style={{ paddingBottom: 10 }}><span>Archive</span><span>Parts</span><span style={{ textAlign: "right" }}>Packed</span><span>State</span><span /></div>
       <div className="rows stagger">
         {rows.map((r, ri) => {
           const job = jobFor(r.key);
@@ -140,19 +148,20 @@ function SetTable({ rows, jobFor }: { rows: Row[] | null; jobFor: (p: string) =>
           const [label, go] = job ? ["Open", () => nav(jobRoute(job))]
             : r.missing.length ? ["Details", () => nav({ name: "rar", path: r.key })]
             : [r.kind === "ISO" ? "Install" : "Extract", () => nav(r.kind === "ISO" ? { name: "iso", path: r.key } : { name: "rar", path: r.key })];
-          const usedParts = job && r.kind === "RAR" ? Math.max(0, (job.progress?.part ?? 1) - 1) : 0;
+          const multi = r.kind !== "ISO" && r.count > 1;
+          const usedParts = job && multi && !job.progress?.whole ? Math.max(0, (job.progress?.part ?? 1) - 1) : 0;
           return (
             <div key={r.key} className="lib-row row-link" style={{ height: 72, margin: "0 -12px", padding: "0 12px", ["--i" as string]: ri }} onClick={go}>
               <div style={{ minWidth: 0 }}>
                 <div className="set-name ellipsis">{r.name}</div>
-                <div className="muted small ellipsis">{r.kind} · {r.detail} · {r.file}</div>
+                <div className="muted small ellipsis">{r.label} · {r.detail} · {r.file}</div>
               </div>
-              {r.kind === "RAR" ? (
+              {multi ? (
                 <div className="tape mini" role="img" aria-label={r.missing.length ? `${r.count} parts, part ${r.missing.join(", ")} missing` : `${r.count} parts, all present`}>
                   {Array.from({ length: Math.min(r.count, 40) }, (_, i) => i + 1).map((n) =>
                     <i key={n} style={{ ["--i" as string]: ri * 3 + n }} className={r.missing.includes(n) ? "missing" : n <= usedParts ? "done" : ""} />)}
                 </div>
-              ) : <span className="muted small">single image</span>}
+              ) : <span className="muted small">{r.kind === "ISO" ? "single image" : "single file"}</span>}
               <span className="num" style={{ textAlign: "right", fontSize: 15 }}>{gb(r.size)}<span className="unit">GB</span></span>
               <span><span className={`pill ${cls}`}>{text}</span></span>
               <span style={{ textAlign: "right" }}>

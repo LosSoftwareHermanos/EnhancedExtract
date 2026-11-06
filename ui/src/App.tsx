@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { inTauri, jobsList, pickArchive, systemCheck, type JobSnap, type SystemCheck } from "./engine";
 import { useAction, usePoll, useStored } from "./hooks";
-import { Backdrop } from "./fx/Backdrop";
+import { isArchive, isIso } from "./format";
 import { Boot, Decode, FxContext } from "./fx/motion";
 import { Icon } from "./components/ui";
 import { Library } from "./screens/Library";
@@ -55,9 +55,9 @@ export function App() {
   const nav = useCallback((r: Route) => { setRoute(r); document.querySelector<HTMLElement>(".canvas")?.scrollTo(0, 0); }, []);
   const announce = useCallback((m: string) => { setLive(""); setTimeout(() => setLive(m), 50); }, []);
   const openPath = useCallback((p: string) => {
-    if (/\.iso$/i.test(p)) nav({ name: "iso", path: p });
-    else if (/\.(rar|r\d\d)$/i.test(p)) nav({ name: "rar", path: p });
-    else announce("Drop a .rar part or an .iso file.");
+    if (isIso(p)) nav({ name: "iso", path: p });
+    else if (isArchive(p)) nav({ name: "rar", path: p });
+    else announce("Drop an archive (.rar, .zip, .7z, .tar.gz and more) or an .iso file.");
   }, [nav, announce]);
 
   // Explorer "Open with EnhancedExtract" launches with --open <file>: go straight to its screen.
@@ -78,7 +78,7 @@ export function App() {
     setSeen(next);
   }, [jobs.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Drag and drop from Explorer: a .rar part or .iso opens its set-up screen.
+  // Drag and drop from Explorer: an archive or .iso opens its set-up screen.
   useEffect(() => {
     if (!inTauri) return;
     let unlisten: (() => void) | undefined;
@@ -106,7 +106,6 @@ export function App() {
   return (
     <AppCtx.Provider value={ctx}>
       <FxContext.Provider value={fx}>
-        <Backdrop energy={running ? 1 : 0} enabled={fx} />
         <div className={`app${fx ? "" : " fx-off"}`}>
           <Rail running={running} />
           <TitleBar />
@@ -114,7 +113,7 @@ export function App() {
           <main className="canvas" id="main" key={JSON.stringify(route)}>{screen(route)}</main>
         </div>
         <div className="sr-only" aria-live="polite">{live}</div>
-        {dragging && <div className="drop"><img src={logo} alt="" style={{ width: 64, height: 64 }} />Drop a .rar part or an .iso to set it up</div>}
+        {dragging && <div className="drop"><img src={logo} alt="" style={{ width: 64, height: 64 }} />Drop an archive or an .iso to set it up</div>}
         {booting && <Boot onDone={bootDone} />}
       </FxContext.Provider>
     </AppCtx.Provider>
@@ -155,13 +154,13 @@ function Rail({ running }: { running: number }) {
       <Icon name={id} />{badge && <span className={`badge ${badge === "bad" ? "bad" : ""}`} aria-hidden="true" />}<span className="tip">{label}</span>
     </button>
   );
-  const sysBad = system && (!system.unrar || !system.winfsp || !system.fusepy);
+  const sysBad = system && (!system.unrar || !system.sevenzip || !system.winfsp || !system.fusepy);
   const [sysOpen, setSysOpen] = useState(false);
   return (
     <nav className="rail" aria-label="Main">
       <button className="mark" aria-label="EnhancedExtract, Library" onClick={() => nav({ name: "library" })}><img src={logo} alt="" /></button>
       {item("library", "Library", { name: "library" })}
-      {item("extract", "Extract RAR", { name: "rar" })}
+      {item("extract", "Extract archive", { name: "rar" })}
       {item("disc", "Install from ISO", { name: "iso" })}
       {item("jobs", running ? `Jobs, ${running} running` : "Jobs", { name: "jobs" }, running > 0 ? "now" : "")}
       <span className="rail-ind" aria-hidden="true" style={{ transform: `translateY(${64 + Math.max(0, idx) * 48 + 12}px)`, opacity: idx < 0 ? 0 : 1 }} />
@@ -193,6 +192,7 @@ function SystemPanel({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   const rows: [string, boolean | undefined, string][] = [
     ["UnRAR", system?.unrar, "needed for RAR sets"],
+    ["7-Zip", system?.sevenzip, "needed for zip, 7z, tar and the other formats"],
     ["WinFsp driver", system?.winfsp, "needed for ISO installs"],
     ["fusepy", system?.fusepy, "needed for ISO installs"],
     ["Administrator", system?.admin, "needed for ISO installs"],

@@ -6,7 +6,7 @@ import { usePoll } from "../hooks";
 import { ErrorNote } from "../components/ui";
 
 type Tab = "all" | "running" | "done" | "failed";
-const KIND: Record<string, string> = { "rar extract": "Extract", "rar verify": "Verify", "iso install": "Install", "iso delete": "Delete ISO", "system install-winfsp": "Install WinFsp" };
+const KIND: Record<string, string> = { "rar extract": "Extract", "rar verify": "Verify", "archive extract": "Extract", "archive verify": "Verify", "iso install": "Install", "iso delete": "Delete ISO", "system install-winfsp": "Install WinFsp" };
 const PROBLEMS = ["warning", "error"];
 
 export function Jobs({ initial }: { initial?: string }) {

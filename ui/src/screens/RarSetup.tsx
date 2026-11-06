@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Num } from "../fx/motion";
 import { Page, useApp } from "../App";
 import { EXIT, EngineError, call, first, pickArchive, pickFolder, type Archive, type Space } from "../engine";
-import { basename, drive, dur, gb, int, setName } from "../format";
+import { archiveFormat, basename, drive, dur, int, scaled, setName, size, unitFor } from "../format";
 import { useAction, useStored } from "../hooks";
 import { Busy, ConfirmDelete, ErrorNote, PasswordDialog, SpaceCompare, Toggle, Warn } from "../components/ui";
 
@@ -26,7 +26,7 @@ export function RarSetup({ path }: { path?: string }) {
   const inspect = useCallback(async (destArg: string, password: string | null) => {
     if (!path) return;
     setLoadError(null);
-    const base = ["rar", "inspect", path, ...(destArg ? ["--dest", destArg] : []), ...pwArgs(password)];
+    const base = ["archive", "inspect", path, ...(destArg ? ["--dest", destArg] : []), ...pwArgs(password)];
     try {
       const [a, b] = await Promise.all([call([...base, "--delete"], { stdin: password ?? undefined }), call(base, { stdin: password ?? undefined })]);
       setInfo(first(a, "archive") as unknown as Archive);
@@ -53,8 +53,10 @@ export function RarSetup({ path }: { path?: string }) {
   }, [dest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const deleting = del || resume;
-  const how = !deleting ? "keep" : early ? "early" : "safe";
-  const cmd = (extra: string[]) => ["rar", "extract", path!, "--dest", dest, ...(deleting ? ["--delete"] : []), ...(how === "early" ? ["--early-delete"] : []),
+  // Archives that are not RAR can't be freed while they are read: the whole archive goes once it is out.
+  const generic = !!space?.del.generic;
+  const how = !deleting ? "keep" : generic ? "after" : early ? "early" : "safe";
+  const cmd = (extra: string[]) => ["archive", "extract", path!, "--dest", dest, ...(deleting ? ["--delete"] : []), ...(how === "early" ? ["--early-delete"] : []),
     ...(verify ? [] : ["--no-verify"]), ...pwArgs(pw), ...extra];
   const start = useAction(async (confirmed: boolean) => {
     await call(cmd(["--dry-run"]), { stdin: pw ?? undefined });          // same checks as the real run, changes nothing
@@ -64,35 +66,43 @@ export function RarSetup({ path }: { path?: string }) {
     nav({ name: "rarJob", id: out.result!.job });
   });
   const verifyOnly = useAction(async () => {
-    const out = await call(["rar", "verify", path!, ...pwArgs(pw), "--background"], { stdin: pw ?? undefined });
+    const out = await call(["archive", "verify", path!, ...pwArgs(pw), "--background"], { stdin: pw ?? undefined });
     refreshJobs();
     nav({ name: "rarJob", id: out.result!.job });
   });
 
   if (!path)
     return (
-      <Page title="Extract RAR" sub="Pick the first part of a set (.part1.rar). The other parts are found next to it.">
+      <Page title="Extract" sub="Pick an archive: RAR, ZIP, 7z, TAR and more. For a split set pick its first part (.part1.rar, .7z.001); the other parts are found next to it.">
         <section className="card" style={{ maxWidth: 640 }}>
           <div className="ch"><h2>No set chosen</h2></div>
-          <p className="soft" style={{ marginBottom: 16 }}>Or drop a .rar part on the window, or pick one in the Library.</p>
-          <button className="btn btn-primary" onClick={async () => { const p = await pickArchive(); if (p) openPath(p); }}>Choose a .rar file</button>
+          <p className="soft" style={{ marginBottom: 16 }}>Or drop an archive on the window, or pick one in the Library.</p>
+          <button className="btn btn-primary" onClick={async () => { const p = await pickArchive(); if (p) openPath(p); }}>Choose an archive</button>
         </section>
       </Page>
     );
 
   const name = setName(path);
   const free = space?.del.free ?? 0;
-  const needs = space ? { safe: space.del.needed_safe ?? space.del.needed, early: space.del.needed_early ?? space.del.needed, keep: space.keep.needed } : null;
+  const needs = space ? { safe: space.del.needed_safe ?? space.del.needed, early: space.del.needed_early ?? space.del.needed,
+    keep: space.keep.needed, after: space.del.needed } : null;
   const need = needs ? needs[how] : 0;
   const fits = needs ? need <= free : false;  const blocked = !info || !space || !dest || !fits;
   const why = !info ? "Reading the set…" : !fits ? "Not enough free space for this choice" : !dest ? "Choose where to extract" : undefined;
+  const parts = info?.volumes.length ?? 0;
+  const files = info ? (info.files ? `${int(info.files)} files` : "the files") : "…";
   const steps = [
-    ...(verify ? [{ t: resume ? "Verify the parts left" : `Verify all ${info?.volumes.length ?? "…"} parts`, m: info ? `reads ${gb(info.packed)} GB` : "" }] : []),
-    { t: <>Extract {info ? int(info.files) : "…"} files to <span className="mono">{dest || "…"}</span></>, m: info ? `writes ${gb(info.unpacked)} GB` : "" },
-    ...(how === "safe" ? [{ t: "Delete each part once every file in it is out", m: info ? `frees ${gb(info.packed)} GB` : "" }] : []),
-    ...(how === "early" ? [{ t: "Delete each part as soon as it's read", m: info ? `frees ${gb(info.packed)} GB` : "" }] : []),
+    ...(verify ? [{ t: generic ? "Verify the archive" : resume ? "Verify the parts left" : `Verify all ${info?.volumes.length ?? "…"} parts`, m: info ? `reads ${size(info.packed)}` : "" }] : []),
+    { t: <>Extract {files} to <span className="mono">{dest || "…"}</span></>, m: info ? `writes ${size(info.unpacked)}` : "" },
+    ...(how === "safe" ? [{ t: "Delete each part once every file in it is out", m: info ? `frees ${size(info.packed)}` : "" }] : []),
+    ...(how === "early" ? [{ t: "Delete each part as soon as it's read", m: info ? `frees ${size(info.packed)}` : "" }] : []),
+    ...(how === "after" ? [{ t: parts > 1 ? `Delete all ${parts} parts once everything is out cleanly` : "Delete the archive once everything is out cleanly", m: info ? `frees ${size(info.packed)}` : "" }] : []),
   ];
-  const rows = needs ? [
+  const rows = needs && generic ? [
+    { label: "Delete the archive after it's extracted", needed: needs.after, chosen: how === "after",
+      note: "Frees the archive's space once every file is out. It can't be freed while it's read, so this needs room for the extracted files. Nothing is deleted if anything goes wrong." },
+    { label: "Keep the archive", needed: needs.keep, chosen: how === "keep", note: "Nothing is deleted." },
+  ] : needs ? [
     { label: "Delete parts as their files finish", needed: needs.safe, chosen: how === "safe",
       note: space?.del.solid ? "Solid set: parts are deleted only once everything is out. If it stops, start it again to continue."
         : "Holds a file's parts until it's out. If it stops, start it again to continue where it left off." },
@@ -102,8 +112,8 @@ export function RarSetup({ path }: { path?: string }) {
   ] : [];
 
   return (
-    <Page title={name} sub={info ? <>{info.volumes.length} parts{resume ? ", partly extracted" : ", all present"} · <span className="num">{gb(info.packed)}</span> GB {resume ? "left" : "packed"}, <span className="num">{gb(info.unpacked)}</span> GB unpacked · <span className="num">{int(info.files)}</span> files</>
-      : loadError ? basename(path) : "Reading the set…"}
+    <Page title={name} sub={info ? <>{generic ? <>{archiveFormat(path)}{parts > 1 ? `, ${parts} parts, all present` : ""}</> : <>{info.volumes.length} parts{resume ? ", partly extracted" : ", all present"}</>} · <span className="num">{size(info.packed)}</span> {resume ? "left" : "packed"}, <span className="num">{size(info.unpacked)}</span> unpacked{info.files ? <> · <span className="num">{int(info.files)}</span> files</> : null}</>
+      : loadError ? basename(path) : "Reading the archive…"}
       actions={<>
         <button className="btn" onClick={() => verifyOnly.run()} disabled={!info || verifyOnly.busy}><Busy busy={verifyOnly.busy}>Verify only</Busy></button>
         <button className="btn btn-primary" onClick={() => start.run(false)} disabled={blocked || start.busy} title={why}><Busy busy={start.busy}>{resume ? "Resume" : "Start"}</Busy></button>
@@ -115,12 +125,12 @@ export function RarSetup({ path }: { path?: string }) {
         <div className="decision">
           <div>
             <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(dest || path)}</h2>
-            <div className="big-figure">{space ? <Num value={need} format={gb} /> : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>
-            <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>{space ? <>of <span className="num">{gb(free)}</span> GB free{fits ? `, ${gb(free - need)} GB to spare` : ", not enough"}</> : "Working it out…"}</p>
+            <div className="big-figure">{space ? <Num value={need} format={(n) => scaled(n, unitFor(need))} /> : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>{space ? unitFor(need) : "GB"} needed</span></div>
+            <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>{space ? <>of <span className="num">{size(free)}</span> free{fits ? `, ${size(free - need)} to spare` : ", not enough"}</> : "Working it out…"}</p>
           </div>
           <div>
             {space ? <SpaceCompare free={free} label="How to extract" rows={rows}
-              onChoose={(i) => { const pick = rows[i]?.label; setDel(pick !== "Keep every part"); setEarly(pick === "Delete each part as soon as it's read"); }} /> : <p>Reading the set…</p>}
+              onChoose={(i) => { const pick = rows[i]?.label; setDel(pick !== "Keep every part" && pick !== "Keep the archive"); setEarly(pick === "Delete each part as soon as it's read"); }} /> : <p>Reading the set…</p>}
             {how === "early" && <div style={{ marginTop: 16 }}><Warn>If extraction stops or crashes, the file being extracted is lost and the parts already deleted can't be brought back. You'll confirm before it starts.</Warn></div>}
           </div>
         </div>
@@ -130,7 +140,7 @@ export function RarSetup({ path }: { path?: string }) {
           <section className="card" aria-labelledby="src">
             <div className="ch"><h2 id="src">Source and destination</h2></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <label className="lab">First part<input className="field" readOnly value={path} /></label>
+              <label className="lab">{generic ? "Archive" : "First part"}<input className="field" readOnly value={path} /></label>
               <label className="lab">Extract to
                 <span className="join">
                   <input className="field" value={dest} readOnly={resume} title={resume ? "A resumed extraction continues in the folder it started in" : undefined}
@@ -141,7 +151,7 @@ export function RarSetup({ path }: { path?: string }) {
               <div className="kv" style={{ borderTop: "1px solid var(--rule)", paddingTop: 12 }}>
                 <span style={{ fontWeight: 500 }}>Password</span>
                 {pw ? <span className="muted">Entered · <button className="tlink" onClick={() => setAskPw("ask")}>Change</button></span>
-                  : <span className="muted">{info ? "Not needed, file names aren't encrypted" : "—"}</span>}
+                  : <span className="muted">{info ? "Not needed" : "—"}</span>}
               </div>
             </div>
           </section>
@@ -149,9 +159,9 @@ export function RarSetup({ path }: { path?: string }) {
         <div className="stack">
           <section className="card" aria-labelledby="plan">
             <div className="ch"><h2 id="plan">What happens</h2>{info && <span className="meta">about {dur(estimate(info, verify))}</span>}</div>
-            <Toggle label="Verify every part first" checked={verify} onChange={setVerify}
-              desc="Reads every part and writes nothing, so a corrupt part stops the job before anything is deleted." />
-            {deleting && !verify && <div style={{ margin: "4px 0 12px" }}><Warn>Verification is off: a corrupt part would only be found after earlier parts were deleted.</Warn></div>}
+            <Toggle label={generic ? "Verify the archive first" : "Verify every part first"} checked={verify} onChange={setVerify}
+              desc="Reads everything and writes nothing, so a corrupt archive stops the job before anything is deleted." />
+            {deleting && !verify && <div style={{ margin: "4px 0 12px" }}><Warn>{generic ? "Verification is off: extraction still stops on any error, and nothing is deleted unless it finishes cleanly." : "Verification is off: a corrupt part would only be found after earlier parts were deleted."}</Warn></div>}
             <div className="rows" style={{ borderTop: "1px solid var(--rule)", marginTop: 4 }}>{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
           </section>
         </div>
@@ -160,7 +170,7 @@ export function RarSetup({ path }: { path?: string }) {
       {askPw && <PasswordDialog name={name} wrong={askPw === "wrong"} onClose={() => setAskPw(null)}
         onSubmit={(p) => { setAskPw(null); setPw(p); inspect(dest, p); }} />}
       {confirm && info && <ConfirmDelete title="Delete parts as soon as they're read?"
-        body={<>There isn't room to keep a file's parts until it's out (that needs <span className="num">{gb(needs?.safe ?? 0)}</span> GB). Each of the <b className="num">{info.volumes.length}</b> parts of {name} is deleted as soon as it has been read instead. If extraction stops or crashes, the file being extracted is lost and its deleted parts must be downloaded again.</>}
+        body={<>There isn't room to keep a file's parts until it's out (that needs <span className="num">{size(needs?.safe ?? 0)}</span>). Each of the <b className="num">{info.volumes.length}</b> parts of {name} is deleted as soon as it has been read instead. If extraction stops or crashes, the file being extracted is lost and its deleted parts must be downloaded again.</>}
         tick="I understand a stop can lose the file being extracted" confirm="Start and delete early"
         onClose={() => setConfirm(false)} onConfirm={() => { setConfirm(false); start.run(true); }} />}
     </Page>

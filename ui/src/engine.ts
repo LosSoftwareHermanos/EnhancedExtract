@@ -1,5 +1,6 @@
 // The bridge to the Python engine. In the Tauri app every call runs `<engine> --cli --json <args>`;
 // in a plain browser (npm run dev) a mock answers instead, so the UI can be built and checked without Rust.
+import { ARCHIVE_EXTENSIONS } from "./format";
 import { mock, mockDestination, mockDisk } from "./mock";
 
 export type Ev = { type: string; msg?: string; [k: string]: any };
@@ -80,25 +81,36 @@ export async function pickFolder(defaultPath?: string): Promise<string | null> {
 }
 
 export async function pickArchive(): Promise<string | null> {
-  if (!inTauri) return window.prompt("First .rar part or .iso file", "") || null;
+  if (!inTauri) return window.prompt("Archive (.rar, .zip, .7z, .tar.gz ...) or .iso file", "") || null;
   const { open } = await import("@tauri-apps/plugin-dialog");
-  const r = await open({ filters: [{ name: "RAR sets and ISOs", extensions: ["rar", "iso"] }] });
+  const r = await open({ filters: [
+    { name: "Archives and ISOs", extensions: [...ARCHIVE_EXTENSIONS, "iso"] },
+    { name: "All files", extensions: ["*"] },
+  ] });
   return typeof r === "string" ? r : null;
 }
 
 // ---------- shapes of the events the screens read ----------
 export interface RarSet { first: string; parts: number; size: number; missing: number[] }
+/** A zip, 7z, tar, gz ... (anything but RAR): one file, or a split set (`parts` > 1). */
+export interface OtherArchive { first: string; format: string; parts: number; size: number; missing: number[] }
 export interface FoundIso { path: string; size: number; was_freed: boolean }
-export interface Archive { first: string; volumes: string[]; files: number; packed: number; unpacked: number }
+/** `files` is 0 when the engine could not count them cheaply (a very large .tar.gz). */
+export interface Archive { first: string; volumes: string[]; files: number; packed: number; unpacked: number; format?: string }
 /** With --delete: `mode` "safe" (a part goes once every file in it is out; a stop resumes) or "early"
- *  (each part goes as soon as it is read), and what each would need. */
+ *  (each part goes as soon as it is read), and what each would need. Archives that are not RAR report
+ *  `generic`: nothing can be freed while reading, so `mode` is "after" (the archive goes once extraction
+ *  finished cleanly) or "keep". */
 export interface Space {
   dest?: string; needed: number; free: number; enough: boolean; growth?: number;
-  mode?: "safe" | "early" | "keep"; needed_safe?: number; needed_early?: number; early_fits?: boolean; solid?: boolean;
+  mode?: "safe" | "early" | "keep" | "after"; needed_safe?: number; needed_early?: number; early_fits?: boolean; solid?: boolean;
+  generic?: boolean;
 }
 export interface IsoInfo { path: string; files: number; size: number; has_setup: boolean; freeable: string[] }
 export interface Bin { path: string; size: number; read: number; freed: number }
 export interface Progress {
+  /** 7-Zip jobs report one percentage for the whole archive, not per part. */
+  whole?: boolean;
   phase?: string; overall: number; part?: number; parts?: number; files_done?: number; files?: number;
   eta_s?: number | null; elapsed_s?: number;
   bytes_read?: number; freed?: number; installed?: number; paused?: boolean; violations?: number; max_back?: number; bins?: Bin[];
@@ -107,14 +119,15 @@ export interface JobSnap {
   id: string; state: "running" | "done" | "failed" | "died"; command: string; argv?: string[]; elapsed_s: number;
   progress?: Progress; warnings?: string[]; job_exit_code?: number; result?: Ev; stderr?: string;
 }
-export interface SystemCheck { unrar: boolean; winfsp: boolean; fusepy: boolean; admin: boolean; hints: Record<string, string>; unrarSource?: string }
+export interface SystemCheck { unrar: boolean; sevenzip: boolean; winfsp: boolean; fusepy: boolean; admin: boolean; hints: Record<string, string>; unrarSource?: string }
 
 export async function systemCheck(): Promise<SystemCheck> {
   const out = await call(["system", "check"], { allow: [1] });
   const r: Ev = out.result ?? { type: "result" };
   const hints: Record<string, string> = {};
   for (const h of ofType(out, "hint")) hints[h.name] = h.msg ?? "";
-  return { unrar: !!r.unrar, winfsp: !!r.winfsp, fusepy: !!r.fusepy, admin: !!r.admin, hints, unrarSource: first(out, "check")?.source };
+  return { unrar: !!r.unrar, sevenzip: !!r.sevenzip, winfsp: !!r.winfsp, fusepy: !!r.fusepy, admin: !!r.admin, hints,
+    unrarSource: ofType(out, "check").find((c) => c.name === "unrar")?.source };
 }
 
 /** pip-installs fusepy into the engine's own Python (a no-op in the frozen exe, which bundles it). */
