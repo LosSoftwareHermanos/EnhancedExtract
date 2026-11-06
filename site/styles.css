@@ -327,6 +327,32 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
   .support-actions { align-items: flex-start; flex-direction: column; }
 }
 
+/* ---------- open source ---------- */
+.oss-pill { display: flex; width: fit-content; align-items: center; gap: 10px; margin: clamp(12px, 1.6vw, 24px) auto 0; padding: 7px 8px 7px 14px; background: var(--raised); color: var(--ink); font: 600 var(--t-small)/1 var(--text); text-decoration: none; --cut: 9px; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); transition: background-color 180ms ease; }
+.oss-pill b { padding: 5px 9px; background: var(--accent); color: var(--accent-ink); font: 700 12px/1 var(--display); letter-spacing: .06em; }
+.oss-pill-dot { width: 8px; height: 8px; background: var(--pos); flex: none; }
+@media (hover: hover) and (pointer: fine) { .oss-pill:hover { background: var(--hover); } }
+
+.oss { padding-top: var(--section); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: clamp(36px, 4vw, 56px); align-items: start; }
+.oss-head { grid-column: 1 / 6; display: grid; gap: 22px; align-content: start; }
+.oss-kicker { font: 700 var(--t-small)/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.oss-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 28px; }
+.oss-grid { grid-column: 7 / 13; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.oss-card { display: grid; gap: 10px; align-content: start; padding: 22px 22px 26px; background: var(--surface); }
+.oss-card h3 { font: 700 var(--t-stmt)/1.1 var(--display); letter-spacing: -.02em; }
+.oss-card p { color: var(--soft); font-size: var(--t-small); }
+.oss-num { font: 700 var(--t-small)/1 var(--display); color: var(--accent); letter-spacing: .08em; }
+.oss-card:first-child { background: var(--accent); }
+.oss-card:first-child h3, .oss-card:first-child .oss-num { color: var(--accent-ink); }
+.oss-card:first-child p { color: color-mix(in srgb, var(--accent-ink) 82%, transparent); }
+@media (max-width: 1080px) {
+  .oss-head, .oss-grid { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .oss-grid { grid-template-columns: 1fr; }
+  .oss-card { padding: 18px 18px 22px; }
+}
+
 /* ---------- footer ---------- */
 .foot { clip-path: polygon(56px 0, 100% 0, 100% 100%, 0 100%, 0 56px); overflow-x: clip; }
 .foot-inner { min-height: min(56svh, 520px); display: flex; flex-direction: column; justify-content: space-between; gap: 96px; padding-block: 48px 32px; }

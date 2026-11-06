@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>EnhancedExtract: big games, small drives</title>
-  <meta name="description" content="Extract multi-part RAR game sets on a nearly full Windows drive. EnhancedExtract deletes archive parts once their files are safely on disk. Version 0.1.2 for Windows 10 and 11.">
+  <meta name="description" content="Extract multi-part RAR game sets on a nearly full Windows drive. EnhancedExtract deletes archive parts once their files are safely on disk. Free and open source (MIT). Version 0.1.2 for Windows 10 and 11.">
   <meta property="og:title" content="EnhancedExtract: big games, small drives">
-  <meta property="og:description" content="Extract RAR, ZIP, 7z and TAR archives with a Windows desktop app and CLI. Version 0.1.2 with bundled archive tools.">
+  <meta property="og:description" content="Extract RAR, ZIP, 7z and TAR archives with a Windows desktop app and CLI. Free and open source under the MIT License, with bundled archive tools.">
   <meta property="og:image" content="assets/media/shot-rar-running.jpg">
   <meta name="theme-color" content="#0b0c12">
   <link rel="icon" href="assets/media/logo.png" type="image/png">
@@ -31,6 +31,7 @@
       <a href="#safety">Safety</a>
       <a href="#explorer">Explorer</a>
       <a href="#cli">CLI</a>
+      <a href="#open-source">Open source</a>
       <a href="#faq">FAQ</a>
     </nav>
     <div class="nav-actions">
@@ -44,6 +45,7 @@
   <main id="main">
     <!-- HERO: the sentence is the layout; the product's own controls sit around it -->
     <section class="hero wrap" aria-labelledby="hero-title">
+      <a class="oss-pill" href="#open-source"><span class="oss-pill-dot" aria-hidden="true"></span>Free and open source<b>MIT</b></a>
       <div class="hero-stage">
         <h1 class="hero-title lines" id="hero-title">
           <span class="line"><span data-line style="--i:0">Big games<span class="slot cut" aria-hidden="true"><video src="assets/media/film-parts.mp4" poster="assets/media/film-parts.jpg" muted loop playsinline preload="metadata" data-autoplay></video></span></span></span>
@@ -94,7 +96,7 @@
         <p class="copied" aria-live="polite" data-copied></p>
       </div>
       <p class="meta"><a class="tlink" href="#download">Checksums and the CLI zip</a> <a class="tlink" href="#demo">Watch it run</a></p>
-      <p class="small-print release-note">Free download. No GitHub account required.</p>
+      <p class="small-print release-note">Free and open source under the MIT License. No account, no trial. <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">Read the source</a></p>
 
       <div class="demo-wrap" id="demo">
         <figure class="demo frame" data-demo data-reveal>
@@ -256,6 +258,41 @@ python cli.py jobs wait --timeout 60</code></pre>
       </figure>
     </section>
 
+    <!-- OPEN SOURCE: free, MIT, built in the open -->
+    <section class="oss wrap" id="open-source" aria-labelledby="oss-title">
+      <div class="oss-head">
+        <p class="oss-kicker" data-reveal>Free and open source</p>
+        <h2 class="h2" id="oss-title" data-reveal>Free. Open source.<br>Read every line.</h2>
+        <p class="body-lg" data-reveal>EnhancedExtract is MIT-licensed and built in the open. The engine that decides what gets deleted, the desktop app and the installer are all on GitHub, so you can check exactly what it does before you trust it with your downloads.</p>
+        <div class="oss-actions" data-reveal>
+          <a class="btn" href="https://github.com/gustavofring1483369/EnhancedExtract"><svg class="icon-fill" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>View the source</a>
+          <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/blob/main/CONTRIBUTING.md">How to contribute</a>
+        </div>
+      </div>
+      <ol class="oss-grid">
+        <li class="oss-card cut" data-reveal>
+          <span class="oss-num" aria-hidden="true">01</span>
+          <h3>Free to use</h3>
+          <p>No price, no trial, no account. Donations on Ko-fi and Trakteer fund development and unlock nothing.</p>
+        </li>
+        <li class="oss-card cut" data-reveal>
+          <span class="oss-num" aria-hidden="true">02</span>
+          <h3>MIT licensed</h3>
+          <p>Use it, change it and share it, in personal or commercial work. Keep the licence notice. <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/blob/main/LICENSE">Read the licence</a></p>
+        </li>
+        <li class="oss-card cut" data-reveal>
+          <span class="oss-num" aria-hidden="true">03</span>
+          <h3>Built in the open</h3>
+          <p>Every pull request runs the engine tests, the UI build and the Rust tests on GitHub Actions. Issues and fixes are public.</p>
+        </li>
+        <li class="oss-card cut" data-reveal>
+          <span class="oss-num" aria-hidden="true">04</span>
+          <h3>Contributions welcome</h3>
+          <p>Bug reports, fixes, tests and docs all help. Start with the <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/blob/main/CONTRIBUTING.md">contributing guide</a> or an <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/issues">open issue</a>.</p>
+        </li>
+      </ol>
+    </section>
+
     <!-- REQUIREMENTS: statement, table pushed right -->
     <section class="needs wrap" id="needs" aria-labelledby="needs-title">
       <h2 class="h2 needs-title" id="needs-title" data-reveal>12 MB, everything included</h2>
@@ -294,6 +331,10 @@ python cli.py jobs wait --timeout 60</code></pre>
             <div class="answer-text"><p>The Windows binaries are unsigned, so Windows may show an unknown-publisher or SmartScreen warning. Verify the file against <code>SHA256SUMS.txt</code> and make sure it came from this project’s release page.</p></div>
           </details>
           <details>
+            <summary>Is it really free?</summary>
+            <div class="answer-text"><p>Yes. EnhancedExtract is free and open source under the MIT License, with no paid version and no account. The full source is <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">on GitHub</a>, so you can read it or build it yourself.</p></div>
+          </details>
+          <details>
             <summary>What if the extraction stops halfway?</summary>
             <div class="answer-text"><p>Run it again. For RAR sets, a journal beside the parts remembers every finished file, so it picks up from the parts that are left. ZIP, 7z and TAR keep their archives until extraction finishes cleanly. After a stop, retry from the beginning. Version 0.1.2 includes all of these formats.</p></div>
           </details>
@@ -320,7 +361,7 @@ python cli.py jobs wait --timeout 60</code></pre>
         <h3 class="side-title" id="check-title">Check your download</h3>
         <ol class="check-steps">
           <li><span>Run in the folder with the installer</span><pre class="cmd" tabindex="0"><code>Get-FileHash .\EnhancedExtract_0.1.2_x64-setup.exe</code></pre></li>
-          <li><span>The hash should read</span><code class="hash-chip">c961cf…f8b9b7</code></li>
+          <li><span>The hash should read</span><code class="hash-chip">5c2acd…6c15ac</code></li>
           <li><span>If SmartScreen appears</span><span class="ss"><b>More info</b><i aria-hidden="true">→</i><b>Run anyway</b></span></li>
         </ol>
         <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract/issues/new">Something else? Open an issue</a>
@@ -331,7 +372,7 @@ python cli.py jobs wait --timeout 60</code></pre>
     <section class="get wrap" id="download" aria-labelledby="get-title">
       <div class="get-head">
         <h2 class="h2 get-title" id="get-title" data-reveal>Get it for Windows</h2>
-        <p class="body-lg" data-reveal>Version 0.1.2. Free for Windows 10 and 11, 64-bit. RAR, ZIP, 7z, TAR and other common archives, with the tools bundled.</p>
+        <p class="body-lg" data-reveal>Version 0.1.2. Free and open source, for Windows 10 and 11, 64-bit. RAR, ZIP, 7z, TAR and other common archives, with the tools bundled.</p>
       </div>
 
       <div class="dl" data-ui>
@@ -374,7 +415,7 @@ python cli.py jobs wait --timeout 60</code></pre>
       <div class="wrap support-inner">
         <h2 class="h2" id="support-title" data-reveal>Support the next build</h2>
         <div class="support-copy" data-reveal>
-          <p class="body-lg">If EnhancedExtract reclaimed space on your drive, help fund its next release. You can support development through Ko-fi or Trakteer.</p>
+          <p class="body-lg">EnhancedExtract is free and open source. If it reclaimed space on your drive, help fund its next release. You can support development through Ko-fi or Trakteer.</p>
           <div class="support-actions">
             <a class="btn" href="https://ko-fi.com/gusfring3265"><img class="support-logo" src="assets/media/kofi-logo.png" width="28" height="28" alt="">Support on Ko-fi</a>
             <a class="tlink" href="https://teer.id/losSoftwareHermanos"><img class="support-logo" src="assets/media/trakteer-logo.png" width="28" height="28" alt="">Support on Trakteer</a>
@@ -389,7 +430,7 @@ python cli.py jobs wait --timeout 60</code></pre>
     <div class="wrap foot-inner">
       <div class="foot-top">
         <img src="assets/media/title-ink.png" width="1018" height="276" alt="EnhancedExtract" class="foot-mark">
-        <p>Version 0.1.2 for Windows 10 and 11. Desktop app in Tauri and Rust over a Python engine.</p>
+        <p>Version 0.1.2 for Windows 10 and 11. Free and open source under the MIT License. Desktop app in Tauri and Rust over a Python engine.</p>
         <p>Found a bug, or a set it can’t handle? Tell us.</p>
         <a class="tlink tlink-ink foot-up" href="#top">Back to top</a>
       </div>
