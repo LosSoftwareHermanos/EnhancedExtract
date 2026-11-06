@@ -391,6 +391,7 @@ python cli.py jobs wait --timeout 60                                    # 5. rep
 
 | Command | Does |
 |---|---|
+| `iso status ISO` | quickly reports whether Windows has this ISO mounted and whether it still exists |
 | `iso inspect ISO` | files in the ISO and the free space an install needs (`--install-size-mb`, `--buffer-gb`, `--files`) |
 | `iso install ISO` | mounts the ISO, runs setup.exe, frees the ISO behind it **(admin terminal)** |
 | `iso delete ISO` | deletes the ISO and its freeing record (`--dry-run`, `--yes`; no-op if gone) |
