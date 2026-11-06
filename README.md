@@ -5,7 +5,7 @@
 **Extract multi-part RAR sets, ZIP, 7z, TAR and other common archives, and install games from ISOs on a nearly full drive.<br>Free archive space as files finish, and resume a stopped RAR extraction from the parts left.**
 
 > [Download EnhancedExtract 0.1.0 for Windows](https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.0). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
-> [Visit the EnhancedExtract landing page](https://enhancedextract.nhanced-xtract.workers.dev/) for the mobile-friendly overview and downloads.
+> [Visit the EnhancedExtract landing page](https://enhancedextract.pages.dev/) for the mobile-friendly overview and downloads.
 
 <br>
 
@@ -591,12 +591,12 @@ EnhancedExtract/
 
 ## `▚▚ 09` // BUILD & TEST
 
-### Landing page (Cloudflare Workers)
+### Landing page (Cloudflare Pages)
 
-The responsive landing page lives in [`site/`](site/) and is deployed at [enhancedextract.nhanced-xtract.workers.dev](https://enhancedextract.nhanced-xtract.workers.dev/). To publish updates, authenticate with `npx wrangler login` once, then run:
+The responsive landing page lives in [`site/`](site/) and is deployed at [enhancedextract.pages.dev](https://enhancedextract.pages.dev/). To publish updates, authenticate with `npx wrangler login` once, then run:
 
 ```powershell
-npx wrangler deploy --config wrangler.jsonc
+npx wrangler pages deploy site --project-name enhancedextract --branch main
 ```
 
 The launch-film sources and renders are in [`videos/ee-launch`](videos/ee-launch/).
