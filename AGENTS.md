@@ -23,7 +23,7 @@ id at once, keep running after your tool call ends, and are followed with
 ```
 python cli.py --json system check | install-winfsp [--dry-run] | install-fusepy [--dry-run]
 python cli.py --json scan FOLDER [--depth N]
-python cli.py --json rar inspect|verify|extract ARCHIVE [--dest DIR] [--delete] [--dry-run] [--yes] [--background]
+python cli.py --json rar inspect|verify|extract ARCHIVE [--dest DIR] [--delete [--early-delete]] [--dry-run] [--yes] [--background]
 python cli.py --json iso inspect ISO [--install-size-mb N] [--files]
 python cli.py --json iso install ISO --install-dir DIR --install-size-mb N --silent [--dry-run] [--yes] [--background]
 python cli.py --json iso install ISO --no-free --no-setup --background   # mount only; `jobs stop` unmounts
@@ -70,6 +70,13 @@ The frozen exe takes the same arguments after `--cli`: `EnhancedExtract.exe --cl
 - Never add `--yes` on your own. It confirms data loss: deleting RAR parts, freeing the
   ISO while setup reads it, or deleting the ISO. Run with `--dry-run` first, show the user
   the `plan`, and get their OK.
+- `--delete` deletes a part only once every file in it is extracted and flushed, and keeps a
+  journal (`<set>.ee-resume.json` next to the parts). A stopped or crashed run continues when
+  the same command is run again, from any part that is left; the result has `resumable` and the
+  dry run `resume`. It needs room for the largest file's parts (`needed_safe`). When only that
+  doesn't fit, exit 4 carries `early_fits` and a `fix` with `--early-delete`, which deletes each
+  part as soon as it is read: a stop then loses the file being extracted (`lost`). Ask the user
+  before using it.
 - Retrying is safe: a finished `rar extract --delete` or `iso delete` reports
   `already_done` instead of failing.
 - The install size (`--install-size-mb`) comes from setup's "At least ... MB of free disk

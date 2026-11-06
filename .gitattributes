@@ -1,0 +1,2 @@
+videos/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+videos/ee-launch/assets/gsap.min.js -whitespace
