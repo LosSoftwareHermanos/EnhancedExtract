@@ -107,6 +107,7 @@ export interface Space {
   generic?: boolean;
 }
 export interface IsoInfo { path: string; files: number; size: number; has_setup: boolean; freeable: string[] }
+export interface IsoStatus { path: string; exists: boolean; windows_mounted: boolean }
 export interface Bin { path: string; size: number; read: number; freed: number }
 export interface Progress {
   /** 7-Zip jobs report one percentage for the whole archive, not per part. */
@@ -120,6 +121,11 @@ export interface JobSnap {
   progress?: Progress; warnings?: string[]; job_exit_code?: number; result?: Ev; stderr?: string;
 }
 export interface SystemCheck { unrar: boolean; sevenzip: boolean; winfsp: boolean; fusepy: boolean; admin: boolean; hints: Record<string, string>; unrarSource?: string }
+
+export async function isoStatus(path: string): Promise<IsoStatus> {
+  const out = await call(["iso", "status", path]);
+  return (out.result ?? {}) as unknown as IsoStatus;
+}
 
 export async function systemCheck(): Promise<SystemCheck> {
   const out = await call(["system", "check"], { allow: [1] });

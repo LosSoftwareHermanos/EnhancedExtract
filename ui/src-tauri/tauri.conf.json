@@ -32,8 +32,20 @@
     "targets": ["nsis"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
     "resources": { "../../build/dist/ee-engine/": "engine/" },
+    "publisher": "EnhancedExtract",
+    "homepage": "https://github.com/gustavofring1483369/EnhancedExtract",
+    "copyright": "© 2026 EnhancedExtract",
     "windows": {
-      "nsis": { "installMode": "currentUser", "installerHooks": "windows/hooks.nsh" }
+      "nsis": {
+        "installMode": "currentUser",
+        "template": "windows/installer.nsi",
+        "installerHooks": "windows/hooks.nsh",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "sidebarImage": "windows/art/sidebar.bmp",
+        "headerImage": "windows/art/header.bmp",
+        "customLanguageFiles": { "English": "windows/English.nsh" }
+      }
     }
   }
 }

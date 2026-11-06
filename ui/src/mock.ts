@@ -209,6 +209,8 @@ export async function mock(args: string[], stdin?: string): Promise<EngineOutput
     const space = size ? { type: "space", free, needed: (buffer + 2) * G, growth: 0, enough: free >= (buffer + 2) * G } : null;
     const iso = { type: "iso", path, files: 38, size: 71.62 * G, has_setup: true, freeable: ["/setup-1.bin", "/setup-2.bin", "/setup-3.bin"] };
     const files = [["/setup-1.bin", 24], ["/setup-2.bin", 24], ["/setup-3.bin", 23.59], ["/setup.exe", 0.003]].map(([p, s]) => ({ type: "file", path: p, size: (s as number) * G }));
+    if (b === "status") return delay(ok({ path, exists: true, windows_mounted: false },
+      [{ type: "check", name: "iso_mount", path, exists: true, windows_mounted: false }]), 40);
     if (b === "inspect") return delay(ok({ files: 38, size: iso.size, has_setup: true, was_freed: false, windows_mounted: false }, [iso, ...(has("--files") ? files : []), ...(space ? [space] : [])]), 300);
     if (b === "install" && has("--dry-run")) return delay(ok({ dry_run: true, mode: has("--no-free") ? "dry" : "free", needs_yes: !has("--no-free") },
       [{ type: "plan", steps: ["mount the ISO as a virtual drive and free it behind setup", "run setup.exe silently", "check setup's exit code and log, then unmount"] }]));

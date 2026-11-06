@@ -1,3 +1,12 @@
+; The installer template (installer.nsi) lives next to this file; it includes pages.nsh
+; from here, and the skin is loaded first so every page can use it.
+!define EE_WINDOWS_DIR "${__FILEDIR__}"
+!include "${EE_WINDOWS_DIR}\skin.nsh"
+
+; Install options, set on the options page (pages.nsh). 1 = yes.
+Var EE_ContextMenu
+Var EE_DesktopShortcut
+
 ; Add a collapsible "EnhancedExtract" submenu for archives without changing the user's
 ; default archive application. Registered under SystemFileAssociations so it only
 ; appears on those file types and needs no AppliesTo filter.
@@ -31,6 +40,9 @@
 !macro NSIS_HOOK_POSTINSTALL
   DeleteRegKey HKCU "Software\Classes\*\shell\EnhancedExtract"
   DeleteRegKey HKCU "Software\Classes\*\shell\EnhancedExtractFree"
+  ${If} $EE_ContextMenu <> 1
+    !insertmacro EE_MENU_REMOVE_ALL
+  ${Else}
   !insertmacro EE_MENU_ADD ".rar" "Extract and free space (delete parts)..."
   !insertmacro EE_MENU_ADD ".zip" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".zipx" "Extract and free space (delete archive)..."
@@ -54,6 +66,7 @@
   !insertmacro EE_MENU_ADD ".cpio" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".cab" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".wim" "Extract and free space (delete archive)..."
+  ${EndIf}
   ; Shortcuts launch the dashboard as administrator (needed for ISO install). The
   ; right-click extract entries run the exe directly and stay unelevated.
   nsExec::Exec `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "foreach($$p in \"$SMPROGRAMS\${PRODUCTNAME}.lnk\",\"$DESKTOP\${PRODUCTNAME}.lnk\"){ if(Test-Path $$p){ $$b=[IO.File]::ReadAllBytes($$p); $$b[0x15]=$$b[0x15] -bor 0x20; [IO.File]::WriteAllBytes($$p,$$b) } }"`
@@ -63,6 +76,12 @@
 !macro NSIS_HOOK_POSTUNINSTALL
   DeleteRegKey HKCU "Software\Classes\*\shell\EnhancedExtract"
   DeleteRegKey HKCU "Software\Classes\*\shell\EnhancedExtractFree"
+  !insertmacro EE_MENU_REMOVE_ALL
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+!macroend
+
+; Every extension EE_MENU_ADD registers (used on uninstall and when the option is off).
+!macro EE_MENU_REMOVE_ALL
   !insertmacro EE_MENU_REMOVE ".rar"
   !insertmacro EE_MENU_REMOVE ".zip"
   !insertmacro EE_MENU_REMOVE ".zipx"
@@ -86,5 +105,4 @@
   !insertmacro EE_MENU_REMOVE ".cpio"
   !insertmacro EE_MENU_REMOVE ".cab"
   !insertmacro EE_MENU_REMOVE ".wim"
-  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
