@@ -32,7 +32,7 @@ PYGAME_UNUSED = {"sdl2_ttf.dll", "freetype.dll", "libtiff-5.dll", "libwebp-7.dll
                  "portmidi.dll", "libmodplug-1.dll", "libopus-0.dll", "libopusfile-0.dll"}
 
 a = Analysis([os.path.join(SRC, "app.py")], pathex=[SRC], binaries=binaries, datas=datas,
-             hiddenimports=["vdrive"], excludes=excludes)
+             hiddenimports=["vdrive", "cli"], excludes=excludes)
 def from_pygame(src):
     return os.sep + "pygame" + os.sep in os.path.normcase(src)
 

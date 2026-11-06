@@ -5,62 +5,20 @@
 - UnRAR: for tab 1. WinRAR's copy is used if WinRAR is installed, else the copy that
   ships with the app, so normally nothing is missing. If both are gone, the pop-up
   links to the official WinRAR site (WinRAR's own installer may not be bundled)."""
-import os
-import subprocess
 import threading
 import tkinter as tk
 import webbrowser
 from tkinter import ttk
 
-import extractor as ex
-import paths
 import settings
 import theme
 from dialogs import _Dialog
+from extractor import rar_tool
+from isocore import install_winfsp, winfsp_installed
 from theme import CheckBox, CutButton
 
-WINFSP_MSI = os.path.join(paths.APP_DIR, "deps", "winfsp-2.1.25156.msi")
 WINRAR_SITE = "https://www.win-rar.com/download.html"
-NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 HIDE_KEY = "hide_system_check"      # setting: "Don't show this again" was ticked
-
-
-def winfsp_installed():
-    """True if the WinFsp driver is installed, looked up the same way fusepy finds it."""
-    import winreg
-    try:
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WinFsp", 0,
-                            winreg.KEY_READ | winreg.KEY_WOW64_32KEY) as key:
-            folder = winreg.QueryValueEx(key, "InstallDir")[0]
-    except OSError:
-        return False
-    return os.path.isfile(os.path.join(folder, "bin", "winfsp-x64.dll"))
-
-
-def install_winfsp():
-    """Install WinFsp silently from the bundled installer (blocks ~30 s). Returns None on
-    success, else a short reason."""
-    if not os.path.isfile(WINFSP_MSI):
-        return "installer missing from the app"
-    try:
-        code = subprocess.run(["msiexec", "/i", WINFSP_MSI, "/qn", "/norestart"],
-                              creationflags=NO_WINDOW).returncode
-    except OSError as e:
-        return str(e)
-    if winfsp_installed():
-        return None
-    return f"code {code}" + (" - run the app as administrator" if code == 1625 else "")
-
-
-def rar_tool():
-    """(where it comes from, path) of the UnRAR the app will use, or None."""
-    try:
-        path = ex.find_unrar()
-    except ex.ExtractError:
-        return None
-    if os.path.normcase(path) == os.path.normcase(ex.BUNDLED_UNRAR):
-        return "built into the app", path
-    return ("WinRAR" if "\\winrar\\" in path.lower() else "on PATH"), path
 
 
 class SystemCheck(_Dialog):
