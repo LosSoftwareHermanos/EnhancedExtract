@@ -71,6 +71,7 @@ i { font-style: normal; color: var(--soft); }
 .btn-sm { min-height: 44px; padding: 0 18px; }
 .btn-ink { background: var(--accent-ink); color: var(--accent); }
 .btn svg, .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: square; }
+.btn svg.icon-fill { fill: currentColor; stroke: none; }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover { background: var(--accent-hover); }
   .btn-ink:hover { background: #20212b; }
@@ -92,6 +93,8 @@ i { font-style: normal; color: var(--soft); }
 .nav-links { display: flex; gap: clamp(18px, 2.4vw, 36px); }
 .nav-links a { font-size: var(--t-small); color: var(--soft); text-decoration: none; transition: color 180ms ease; }
 @media (hover: hover) and (pointer: fine) { .nav-links a:hover { color: var(--ink); } }
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+.nav-actions .btn-sm { min-width: 120px; }
 
 /* ---------- hero ---------- */
 .hero { padding-bottom: 0; }
@@ -426,10 +429,11 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
 /* ---------- phone ---------- */
 @media (max-width: 720px) {
   :root { --cut: 10px; }
-  .nav { gap: 12px; padding-block: 14px; }
+  .nav { gap: 10px; padding-block: 14px; flex-wrap: wrap; }
   .brand { min-width: 0; }
   .brand span { font-size: clamp(13px, 4vw, var(--t-body)); }
-  .nav .btn-sm { flex: none; padding-inline: 12px; }
+  .nav-actions { gap: 8px; }
+  .nav-actions .btn-sm { flex: none; min-width: 104px; padding-inline: 12px; font-size: var(--t-small); }
   .hero-stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "a a" "t t" "b c"; column-gap: 8px; row-gap: 14px; padding-top: 20px; align-items: stretch; }
   .hero-title { min-width: 0; font-size: clamp(32px, 10vw, 52px); text-align: left; }
   .hero-title .slot { width: min(2.3em, 15vw); margin-left: .15em; }
@@ -477,6 +481,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
   .readout { padding: 18px; }
   .safety-text { grid-template-columns: 1fr; }
   .m-side { grid-column: 1 / -1; }
+  .m-main figcaption { display: none; }
   .explorer-media { grid-template-columns: 1fr; }
   .explorer-quick { width: 72%; justify-self: end; }
   .answer-rows div { grid-template-columns: 1fr; gap: 2px; }
