@@ -23,11 +23,12 @@ class UDFError(Exception):
 
 
 class Entry:
-    def __init__(self, path, size, extents, is_dir):
+    def __init__(self, path, size, extents, is_dir, data=None):
         self.path = path            # "/dir/name.ext"
         self.size = size
         self.extents = extents      # [(iso_offset or None for sparse, length)]
         self.is_dir = is_dir
+        self.data = data            # bytes of a small file stored inside its file entry
 
     def __repr__(self):
         return f"Entry({self.path!r}, {self.size}, {len(self.extents)} extents)"
@@ -174,9 +175,7 @@ class UDFImage:
                 self.entries.append(Entry(path, 0, [], True))
                 self._walk(icb_lbn, path, depth + 1)
             else:
-                if emb is not None:
-                    raise UDFError(f"Embedded file data not supported: {path}")
-                self.entries.append(Entry(path, fsize, _trim(fext, fsize), False))
+                self.entries.append(Entry(path, fsize, _trim(fext, fsize), False, data=emb))
 
     @staticmethod
     def _dstring(raw):
@@ -206,6 +205,8 @@ def _trim(extents, size):
 
 def read_file_range(f, entry, offset, size):
     """Read bytes [offset, offset+size) of `entry` from an open ISO file object."""
+    if entry.data is not None:
+        return entry.data[offset:offset + size]
     out = []
     pos = 0
     end = min(offset + size, entry.size)

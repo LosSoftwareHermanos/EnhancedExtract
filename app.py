@@ -13,6 +13,7 @@ from tkinter import filedialog, font as tkfont, ttk
 import chrome
 import dialogs as messagebox
 import extractor as ex
+from isocore import is_admin
 import paths
 import requirements
 import theme
@@ -131,11 +132,7 @@ class RarTab(ttk.Frame):
                 return
         self.archive_var.set(path)
         if not self.dest_var.get():
-            base = os.path.basename(path)
-            for suffix in (".rar",):
-                base = base[: -len(suffix)] if base.lower().endswith(suffix) else base
-            base = base.rsplit(".part", 1)[0]
-            self.dest_var.set(os.path.join(os.path.dirname(path), base))
+            self.dest_var.set(ex.default_dest(path))
         self._log(f"Loaded {len(self.info.volumes)} parts, {self.info.files} files, "
                   f"{ex.human(self.info.packed)} packed -> {ex.human(self.info.unpacked)} unpacked.")
         self._refresh_space()
@@ -397,14 +394,6 @@ class App(tk.Tk):
         self.after(sounds.length_ms("exit") + 150, self.destroy)
 
 
-def is_admin():
-    import ctypes
-    try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
-    except OSError:
-        return False
-
-
 def relaunch_as_admin():
     """Restart this app elevated. Game setups relaunch themselves as admin, and an admin
     program can't see a drive mounted by a normal one, so the virtual drive must be
@@ -424,6 +413,10 @@ if __name__ == "__main__":
         import vdrive
         vdrive.main()
         sys.exit(0)
+    if sys.argv[1:2] == ["--cli"]:         # terminal version: EnhancedExtract.exe --cli ...
+        del sys.argv[1]
+        import cli
+        sys.exit(cli.main())
     if not is_admin() and "--no-admin" not in sys.argv and relaunch_as_admin():
         sys.exit(0)
     App().mainloop()
