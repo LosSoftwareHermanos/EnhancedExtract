@@ -132,7 +132,8 @@
   });
 
   /* ---------- the closing line slides home onto the margin as the page ends ---------- */
-  gsap.fromTo('.foot-contact', { x: '7%' }, {
+  const footContactOffset = matchMedia('(max-width: 1080px)').matches ? '1.5%' : '7%';
+  gsap.fromTo('.foot-contact', { x: footContactOffset }, {
     x: '0%', ease: 'none',
     scrollTrigger: { trigger: '.foot', start: 'top bottom', end: 'bottom bottom', scrub: true },
   });

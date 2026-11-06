@@ -311,6 +311,19 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
 .hashes code { font-size: var(--t-code); color: var(--ink); overflow-wrap: anywhere; }
 .get-links { display: flex; gap: 28px; margin-top: 10px; font-size: var(--t-small); }
 
+/* ---------- development support ---------- */
+.support { background: var(--surface); padding-block: clamp(48px, 6vw, 80px); }
+.support-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 28px var(--gap); align-items: start; }
+.support-copy { display: grid; gap: 24px; }
+.support-copy .body-lg { max-width: 48ch; }
+.support-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px 28px; }
+.support-actions .tlink { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; }
+.support-logo { display: block; width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; }
+@media (max-width: 720px) {
+  .support-inner { grid-template-columns: 1fr; }
+  .support-actions { align-items: flex-start; flex-direction: column; }
+}
+
 /* ---------- footer ---------- */
 .foot { clip-path: polygon(56px 0, 100% 0, 100% 100%, 0 100%, 0 56px); overflow-x: clip; }
 .foot-inner { min-height: min(56svh, 520px); display: flex; flex-direction: column; justify-content: space-between; gap: 96px; padding-block: 48px 32px; }
@@ -386,6 +399,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
 
 /* ---------- tablet ---------- */
 @media (max-width: 1080px) {
+  .foot-contact { font-size: clamp(42px, 6.4vw, 72px); }
   .nav-links { display: none; }
   .chip { width: min(290px, 100%); }
   .how-head .h2, .how-intro, .library-head .h2, .library-head .body-lg, .get-title, .get-head .body-lg { grid-column: 1 / -1; }
@@ -412,11 +426,14 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
 /* ---------- phone ---------- */
 @media (max-width: 720px) {
   :root { --cut: 10px; }
-  .nav { padding-block: 14px; }
-  .brand span { font-size: var(--t-body); }
-  .hero-stage { grid-template-columns: 1fr 1fr; grid-template-areas: "a a" "t t" "b c"; column-gap: 8px; row-gap: 14px; padding-top: 20px; align-items: stretch; }
-  .hero-title { font-size: clamp(38px, 11.6vw, 58px); text-align: left; }
-  .chip { width: auto; transform: none; margin: 0; padding: 12px 14px; }
+  .nav { gap: 12px; padding-block: 14px; }
+  .brand { min-width: 0; }
+  .brand span { font-size: clamp(13px, 4vw, var(--t-body)); }
+  .nav .btn-sm { flex: none; padding-inline: 12px; }
+  .hero-stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "a a" "t t" "b c"; column-gap: 8px; row-gap: 14px; padding-top: 20px; align-items: stretch; }
+  .hero-title { min-width: 0; font-size: clamp(32px, 10vw, 52px); text-align: left; }
+  .hero-title .slot { width: min(2.3em, 15vw); margin-left: .15em; }
+  .chip { min-width: 0; width: auto; transform: none; margin: 0; padding: 12px 14px; }
   .chip-a { justify-self: stretch; flex-direction: row; justify-content: space-between; align-items: center; }
   .chip-b, .chip-c { justify-self: stretch; }
   .chip-c { flex-direction: column; align-items: flex-start; justify-self: stretch; transform: none; }
@@ -424,6 +441,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
   .chip-label { font-size: var(--t-small); }
   .state { margin-left: 6px; padding: 5px 8px; font-size: var(--t-small); }
   .chip-value b { font-size: var(--t-stmt); }
+  .chip-value { min-width: 0; flex-wrap: wrap; }
   .hero-copy { text-align: left; }
   .lede { margin-inline: 0; }
   .dl { padding: 6px; }
@@ -479,7 +497,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleX(1.25); }
   .foot-top { grid-template-columns: 1fr; row-gap: 14px; }
   .foot-top > * { grid-column: 1 / -1 !important; justify-self: start !important; }
   .foot-mark { max-width: 220px; }
-  .foot-contact { font-size: clamp(50px, 15.5vw, 80px); }
+  .foot-contact { font-size: clamp(44px, 14vw, 80px); }
   .foot-meta { grid-template-columns: 1fr; gap: 8px; }
   .foot-meta p { text-align: left !important; }
 }

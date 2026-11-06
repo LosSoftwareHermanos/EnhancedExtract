@@ -15,3 +15,5 @@ videos/**/.hyperframes/
 .taste-skill/
 .claude/
 .pytest_cache/
+.wrangler/
+.dev.vars*
