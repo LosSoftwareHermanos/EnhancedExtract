@@ -6,6 +6,7 @@ import { GiB, MiB, drive, dur, flag, gb, jobStarted, setName, shortId } from "..
 import { useAction, usePoll } from "../hooks";
 import { Busy, ConfirmDelete, Dialog, ErrorNote } from "../components/ui";
 import { LogLines } from "./Jobs";
+import { useProgressSound } from "../sound";
 
 export function IsoRunning({ id }: { id: string }) {
   const { nav, refreshJobs, announce } = useApp();
@@ -22,6 +23,7 @@ export function IsoRunning({ id }: { id: string }) {
   const installMb = Number(flag(argv, "--install-size-mb") ?? 0);
   const freeing = !argv.includes("--no-free");
   const running = s?.state === "running";
+  useProgressSound(running);
   const p = s?.progress;
   const r: Ev = s?.result ?? { type: "result" };
 
@@ -50,7 +52,7 @@ export function IsoRunning({ id }: { id: string }) {
     <Page title={name}
       sub={<>Installing to <span className="mono">{dir || "…"}</span> · job <span className="mono">{shortId(s?.id ?? id)}</span> · started {jobStarted(s?.id ?? id)}{freeing ? ` · freeing with a ${buffer} GB buffer` : " · ISO kept"}</>}
       actions={<>
-        <button className="tlink" onClick={() => nav({ name: "library" })}>Back to library</button>
+        <button className="btn" onClick={() => nav({ name: "library" })}>Back to library</button>
         {running && <button className="btn btn-danger" onClick={() => setStopAsk(true)}>Force stop</button>}
       </>}>
       <ErrorNote error={job.error} onRetry={job.refresh} />
@@ -69,44 +71,27 @@ export function IsoRunning({ id }: { id: string }) {
         </section>
       )}
 
+      {/* One panel: the figures, then one bar per .bin file of the ISO (the progress itself),
+          then what the colours mean. */}
       <section className="hero brand" aria-label="Progress">
-        <div className="strip">
-          <div><span className="l">Setup has read</span><span className="v lead">{s ? <Num value={pct} format={(n) => `${Math.floor(n)}%`} /> : <span className="skel" />}</span><span className="s">{p?.bytes_read != null ? `${gb(p.bytes_read)} of ${gb(total)} GB` : " "}</span></div>
-          <div><span className="l">Freed</span><span className="v">{p?.freed != null ? <>{gb(p.freed)}<span className="unit"> GB</span></> : "—"}</span><span className="s">given back to {drive(path)}</span></div>
+        <div className="strip" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          <div><span className="l">Setup has read</span><span className="v lead">{s ? <Num value={pct} format={(n) => `${Math.floor(n)}%`} /> : <span className="skel" />}</span><span className="s">{p?.bytes_read != null ? `${gb(s?.state === "done" ? total : Math.min(p.bytes_read, total))} of ${gb(total)} GB` : " "}</span></div>
           <div><span className="l">Installed</span><span className="v">{p?.installed != null ? <>{gb(p.installed)}<span className="unit"> GB</span></> : "—"}</span><span className="s">{installMb ? `of about ${gb(installMb * MiB)} GB` : " "}</span></div>
           <div><span className="l">Free on {drive(dir || path)}</span><span className="v">{free ? <>{gb(free.now)}<span className="unit"> GB</span></> : "—"}</span><span className="s">{free ? `lowest ${gb(free.low)} GB` : " "}</span></div>
         </div>
-        <div className="track big" style={{ marginTop: 22 }} role="progressbar" aria-valuenow={Math.floor(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Setup has read"><div className="fill" style={{ transform: `scaleX(${pct / 100})` }} /></div>
-      </section>
-
-      <section className="card" aria-labelledby="bn">
-        <div className="ch"><h2 id="bn">The ISO, file by file</h2>
-          <span className="meta" style={{ display: "flex", gap: 14 }}>
-            <Key style={{ outline: "1px solid var(--control)", outlineOffset: -1 }} label="freed" />
+        <div style={{ marginTop: 24 }}>
+          {p?.bins?.length ? (
+            <div className="iso-bins">
+              {p.bins.map((b) => <BinBar key={b.path} name={b.path.replace(/^\//, "")} size={b.size} read={b.read} freed={b.freed} done={s?.state === "done"} />)}
+            </div>
+          ) : <p className="muted">{running ? "Waiting for setup to start reading…" : "—"}</p>}
+          <div className="iso-key small muted">
+            <Key style={{ background: "var(--surface)", outline: "1px solid var(--control)", outlineOffset: -1 }} label="freed" />
             <Key style={{ background: "var(--soft)" }} label="buffer, kept" />
             <Key style={{ width: 2, background: "var(--accent)" }} label="setup is here" />
             <Key style={{ background: "var(--raised)" }} label="not read yet" />
-          </span></div>
-        {p?.bins?.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {p.bins.map((b) => {
-              const fp = (b.freed / b.size) * 100, rp = (b.read / b.size) * 100;
-              return (
-                <div key={b.path} style={{ display: "grid", gridTemplateColumns: "140px minmax(0,1fr) 96px 48px", alignItems: "center", gap: 16 }}>
-                  <span className="mono ellipsis">{b.path.replace(/^\//, "")}</span>
-                  <div style={{ position: "relative", height: 18, borderRadius: 3, background: "var(--raised)", overflow: "hidden" }} role="img"
-                    aria-label={`${b.path}: ${Math.floor(rp)}% read, ${gb(b.freed)} GB freed`}>
-                    <span style={{ position: "absolute", inset: 0, width: `${fp}%`, outline: "1px solid var(--control)", outlineOffset: -1, background: "var(--surface)" }} />
-                    <span style={{ position: "absolute", top: 0, bottom: 0, left: `${fp}%`, width: `${rp - fp}%`, background: "var(--soft)" }} />
-                    {rp > 0 && rp < 100 && <span style={{ position: "absolute", top: 0, bottom: 0, left: `calc(${rp}% - 1px)`, width: 2, background: "var(--accent)" }} />}
-                  </div>
-                  <span className="num muted" style={{ textAlign: "right" }}>{gb(b.size)} GB</span>
-                  <span className="num" style={{ textAlign: "right" }}>{Math.floor(rp)}%</span>
-                </div>
-              );
-            })}
           </div>
-        ) : <p className="muted">{running ? "Waiting for setup to start reading…" : "—"}</p>}
+        </div>
       </section>
 
       <div className="cols stretch">
@@ -118,7 +103,7 @@ export function IsoRunning({ id }: { id: string }) {
           <div className="kv"><span><span className="dot" style={{ background: p?.paused ? "var(--negative)" : "var(--positive)" }} />Freeing</span><span>{!freeing ? "off" : p?.paused ? "stopped for safety" : "active"}</span></div>
         </section>
         <section className="card" aria-labelledby="lg">
-          <div className="ch"><h2 id="lg">Log</h2><button className="tlink" onClick={() => nav({ name: "jobs", id })}>Full log</button></div>
+          <div className="ch"><h2 id="lg">Log</h2></div>
           <LogLines events={logs.data} />
         </section>
       </div>
@@ -138,6 +123,31 @@ export function IsoRunning({ id }: { id: string }) {
   );
 }
 
+/** One .bin file: freed, buffer kept and not read yet, each with its size written inside. A
+ *  part's text only shows inside that part, so as it narrows the text is cut off, never spills. */
+function BinBar({ name, size, read: readRaw, freed: freedRaw, done }: { name: string; size: number; read: number; freed: number; done?: boolean }) {
+  // A finished install has read every file to the end, even when setup's last few reads weren't
+  // counted; and the counts never go past the file's size (read can overshoot by a block).
+  const read = done ? size : Math.min(readRaw, size), freed = Math.min(freedRaw, read);
+  const fp = (freed / size) * 100, rp = (read / size) * 100;
+  const parts = [
+    { cls: "freed", left: 0, width: fp, bytes: freed },
+    { cls: "kept", left: fp, width: rp - fp, bytes: read - freed },
+    { cls: "unread", left: rp, width: 100 - rp, bytes: size - read },
+  ];
+  return (
+    <div className="iso-bin">
+      <span className="mono ellipsis">{name}</span>
+      <div className="iso-bar" role="img" aria-label={`${name}: ${gb(freed)} GB freed, ${gb(read - freed)} GB kept, ${gb(size - read)} GB not read yet`}>
+        {parts.map((x) => x.width > 0 && (
+          <span key={x.cls} className={`seg ${x.cls}`} style={{ left: `${x.left}%`, width: `${x.width}%` }}><span>{gb(x.bytes)} GB</span></span>
+        ))}
+        {rp > 0 && rp < 100 && <span className="here" style={{ left: `calc(${rp}% - 1px)` }} />}
+      </div>
+    </div>
+  );
+}
+
 function Key({ style, label }: { style: React.CSSProperties; label: string }) {
-  return <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 10, borderRadius: 2, ...style }} />{label}</span>;
+  return <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 10, ...style }} />{label}</span>;
 }

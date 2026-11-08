@@ -33,6 +33,79 @@ Var EE_DesktopShortcut
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\EnhancedExtract\shell\3open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" --open "%1"'
 !macroend
 
+; Register the same archive submenu under a file's active ProgID as well. Windows
+; checks the ProgID before SystemFileAssociations for some formats such as ZIP.
+!macro EE_MENU_ADD_PROGID PROGID FREELABEL
+  DeleteRegKey HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract" "MUIVerb" "EnhancedExtract"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract" "Icon" '"$INSTDIR\${MAINBINARYNAME}.exe",0'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract" "SubCommands" ""
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract" "EEOwner" "com.lossoftwarehermanos.EnhancedExtract"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\1extract" "" "Extract with EnhancedExtract"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\1extract" "Icon" '"$INSTDIR\${MAINBINARYNAME}.exe",0'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\1extract\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" --shell-extract "%1"'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\2free" "" "${FREELABEL}"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\2free" "Icon" '"$INSTDIR\${MAINBINARYNAME}.exe",0'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\2free\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" --shell-extract-delete "%1"'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\3open" "" "Open with EnhancedExtract"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\3open" "Icon" '"$INSTDIR\${MAINBINARYNAME}.exe",0'
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\EnhancedExtract\shell\3open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" --open "%1"'
+!macroend
+
+!macro EE_MENU_ADD_ACTIVE_PROGID EXT VALUE_NAME FREELABEL
+  ReadRegStr $R0 HKCR "${EXT}" ""
+  ${If} $R0 != ""
+    ReadRegStr $R2 HKCU "Software\Classes\$R0\shell\EnhancedExtract" "EEOwner"
+    ${If} $R2 == "com.lossoftwarehermanos.EnhancedExtract"
+      !insertmacro EE_MENU_ADD_PROGID "$R0" "${FREELABEL}"
+      WriteRegStr HKCU "Software\EnhancedExtract\ShellIntegration" "${VALUE_NAME}" "$R0"
+    ${Else}
+      ReadRegStr $R2 HKCU "Software\Classes\$R0\shell\EnhancedExtract" "MUIVerb"
+      ${If} $R2 == ""
+        !insertmacro EE_MENU_ADD_PROGID "$R0" "${FREELABEL}"
+        WriteRegStr HKCU "Software\EnhancedExtract\ShellIntegration" "${VALUE_NAME}" "$R0"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro EE_ISO_ADD_ROOT ROOT
+  DeleteRegKey HKCU "${ROOT}\shell\EnhancedExtractISO"
+  WriteRegStr HKCU "${ROOT}\shell\EnhancedExtractISO" "" "Set up ISO with EnhancedExtract..."
+  WriteRegStr HKCU "${ROOT}\shell\EnhancedExtractISO" "Icon" '"$INSTDIR\${MAINBINARYNAME}.exe",0'
+  WriteRegStr HKCU "${ROOT}\shell\EnhancedExtractISO" "EEOwner" "com.lossoftwarehermanos.EnhancedExtract"
+  WriteRegStr HKCU "${ROOT}\shell\EnhancedExtractISO\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" --open "%1"'
+!macroend
+
+!macro EE_ISO_ADD_ACTIVE_PROGID
+  ReadRegStr $R0 HKCR ".iso" ""
+  ${If} $R0 != ""
+    ReadRegStr $R2 HKCU "Software\Classes\$R0\shell\EnhancedExtractISO" "EEOwner"
+    ${If} $R2 == "com.lossoftwarehermanos.EnhancedExtract"
+      !insertmacro EE_ISO_ADD_ROOT "Software\Classes\$R0"
+      WriteRegStr HKCU "Software\EnhancedExtract\ShellIntegration" "IsoProgID" "$R0"
+    ${Else}
+      ReadRegStr $R2 HKCU "Software\Classes\$R0\shell\EnhancedExtractISO" ""
+      ${If} $R2 == ""
+        !insertmacro EE_ISO_ADD_ROOT "Software\Classes\$R0"
+        WriteRegStr HKCU "Software\EnhancedExtract\ShellIntegration" "IsoProgID" "$R0"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro EE_MENU_REMOVE_TRACKED_PROGID VALUE_NAME VERB
+  ReadRegStr $R0 HKCU "Software\EnhancedExtract\ShellIntegration" "${VALUE_NAME}"
+  ${If} $R0 != ""
+    ReadRegStr $R2 HKCU "Software\Classes\$R0\shell\${VERB}" "EEOwner"
+    ${If} $R2 == "com.lossoftwarehermanos.EnhancedExtract"
+      DeleteRegKey HKCU "Software\Classes\$R0\shell\${VERB}"
+    ${EndIf}
+    DeleteRegValue HKCU "Software\EnhancedExtract\ShellIntegration" "${VALUE_NAME}"
+  ${EndIf}
+  DeleteRegKey /ifempty HKCU "Software\EnhancedExtract\ShellIntegration"
+!macroend
+
 !macro EE_MENU_REMOVE EXT
   DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\EnhancedExtract"
 !macroend
@@ -43,6 +116,8 @@ Var EE_DesktopShortcut
   ${If} $EE_ContextMenu <> 1
     !insertmacro EE_MENU_REMOVE_ALL
   ${Else}
+  !insertmacro EE_MENU_REMOVE_TRACKED_PROGID "ZipProgID" "EnhancedExtract"
+  !insertmacro EE_MENU_REMOVE_TRACKED_PROGID "IsoProgID" "EnhancedExtractISO"
   !insertmacro EE_MENU_ADD ".rar" "Extract and free space (delete parts)..."
   !insertmacro EE_MENU_ADD ".zip" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".zipx" "Extract and free space (delete archive)..."
@@ -66,6 +141,9 @@ Var EE_DesktopShortcut
   !insertmacro EE_MENU_ADD ".cpio" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".cab" "Extract and free space (delete archive)..."
   !insertmacro EE_MENU_ADD ".wim" "Extract and free space (delete archive)..."
+  !insertmacro EE_MENU_ADD_ACTIVE_PROGID ".zip" "ZipProgID" "Extract and free space (delete archive)..."
+  !insertmacro EE_ISO_ADD_ROOT "Software\Classes\SystemFileAssociations\.iso"
+  !insertmacro EE_ISO_ADD_ACTIVE_PROGID
   ${EndIf}
   ; Shortcuts launch the dashboard as administrator (needed for ISO install). The
   ; right-click extract entries run the exe directly and stay unelevated.
@@ -82,6 +160,8 @@ Var EE_DesktopShortcut
 
 ; Every extension EE_MENU_ADD registers (used on uninstall and when the option is off).
 !macro EE_MENU_REMOVE_ALL
+  !insertmacro EE_MENU_REMOVE_TRACKED_PROGID "ZipProgID" "EnhancedExtract"
+  !insertmacro EE_MENU_REMOVE_TRACKED_PROGID "IsoProgID" "EnhancedExtractISO"
   !insertmacro EE_MENU_REMOVE ".rar"
   !insertmacro EE_MENU_REMOVE ".zip"
   !insertmacro EE_MENU_REMOVE ".zipx"
@@ -105,4 +185,5 @@ Var EE_DesktopShortcut
   !insertmacro EE_MENU_REMOVE ".cpio"
   !insertmacro EE_MENU_REMOVE ".cab"
   !insertmacro EE_MENU_REMOVE ".wim"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.iso\shell\EnhancedExtractISO"
 !macroend

@@ -362,8 +362,79 @@ class PartFreer:
                 pass
 
 
+# ---------- files still being written ----------
+# A part that is still being copied, downloaded or extracted into place is incomplete: reading it
+# fails part-way (or worse, a delete mode frees the parts before it). Such a file is held open for
+# writing by the program filling it, so opening it while refusing to share write access fails.
+
+ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION = 32, 33
+
+
+def in_use(path):
+    """True while another program has `path` open for writing. Always False off Windows."""
+    if os.name != "nt":
+        return False
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateFileW.restype = wintypes.HANDLE
+    k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                                wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    # GENERIC_READ, share read only (no write), OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL
+    h = k32.CreateFileW(os.path.abspath(path), 0x80000000, 0x1, None, 3, 0x80, None)
+    if h is None or h == ctypes.c_void_p(-1).value:
+        return ctypes.get_last_error() in (ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION)
+    k32.CloseHandle(h)
+    return False
+
+
+def rar_more_volumes(path):
+    """True when this RAR 5 volume says another volume follows it, False when it is the last,
+    None when that can't be told (RAR 4, damaged, unreadable). Reads only the file's last bytes:
+    the end-of-archive header (size 3, type 5, flags 4, then 1 = not the last volume), which
+    some volumes follow with zero padding."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            n = min(f.tell(), 64)
+            f.seek(-n, os.SEEK_END)
+            tail = f.read(n)
+    except OSError:
+        return None
+    i = tail.rfind(b"\x03\x05\x04")
+    if i < 0 or i + 3 >= len(tail) or tail[i + 4:].strip(b"\x00"):
+        return None
+    return bool(tail[i + 3] & 1)
+
+
+SET_FILE = re.compile(r"^(?P<base>.+?)(?:\.part\d+\.(?:rar|dat)|\.rar|\.r\d\d)$", re.I)
+
+
+def set_files(first):
+    """Every file of the RAR set `first` belongs to that is in its folder (old and new naming)."""
+    folder, name = os.path.split(os.path.abspath(first))
+    m = SET_FILE.match(name)
+    if not m:
+        return [first]
+    base = m["base"].lower()
+    return sorted(os.path.join(folder, n) for n in os.listdir(folder)
+                  if (k := SET_FILE.match(n)) and k["base"].lower() == base)
+
+
+def check_not_busy(files):
+    """Stop before reading a set while any of its files is still being written."""
+    busy = [os.path.basename(p) for p in files if os.path.exists(p) and in_use(p)]
+    if busy:
+        names = busy[0] if len(busy) == 1 else ", ".join(busy[:-1]) + " and " + busy[-1]
+        raise ExtractError(f"Still being copied: {names} {'is' if len(busy) == 1 else 'are'} open for writing "
+                           "by another program (a copy or download that hasn't finished). "
+                           "Wait for it to finish, then try again.")
+
+
 def inspect(first, password=None):
     """List every volume and the total unpacked size."""
+    check_not_busy(set_files(first))
     unrar = find_unrar()
     proc = subprocess.run([unrar, "l", "-v", UTF8_OUTPUT, password_arg(password), first], capture_output=True,
                           text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
@@ -372,6 +443,10 @@ def inspect(first, password=None):
     if proc.returncode == 11 or (proc.returncode and "Incorrect password" in out + proc.stderr):
         raise PasswordError("This archive's file names are encrypted - a password is needed to open it."
                             if not password else "Wrong password.")
+    # A later part not there yet (still downloading, or never downloaded): say which.
+    gone = [g.strip() for g in re.findall(r"Cannot find volume (.+)", out + proc.stderr)]
+    if gone:
+        raise ExtractError("Missing parts:\n" + "\n".join(dict.fromkeys(gone)))
     if proc.returncode != 0:
         raise ExtractError(f"Cannot read archive: {describe_exit(proc.returncode)}\n{out[-500:]}")
     volumes = []
@@ -386,7 +461,48 @@ def inspect(first, password=None):
     missing = [v for v in volumes if not os.path.exists(v)]
     if missing:
         raise ExtractError("Missing parts:\n" + "\n".join(missing))
+    # File contents encrypted, names not: the listing above works without a password, but UnRAR
+    # marks every such file with "*". Ask for the password now, not when verify fails.
+    if re.search(r"^\*", out, re.M):
+        if not password:
+            raise PasswordError("This archive is password protected - a password is needed to extract it.")
+        if password_rejected(unrar, first, password):
+            raise PasswordError("Wrong password.")
     return ArchiveInfo(first, volumes, unpacked, files, password)
+
+
+def password_rejected(unrar, first, password, wait=6.0):
+    """True when UnRAR says the password is wrong. RAR stores a check value for it, so a wrong one
+    is refused within a moment of testing; a right one starts testing the data, which is stopped
+    as soon as that shows (or after `wait` seconds). Reads only, writes nothing."""
+    import threading
+    import time
+    proc = subprocess.Popen([unrar, "t", UTF8_OUTPUT, password_arg(password), first], stdin=subprocess.DEVNULL,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=NO_WINDOW)
+    seen = bytearray()
+
+    def pump():
+        while chunk := proc.stdout.read1(4096) if hasattr(proc.stdout, "read1") else proc.stdout.read(4096):
+            seen.extend(chunk)
+
+    reader = threading.Thread(target=pump, daemon=True)
+    reader.start()
+    end = time.monotonic() + wait
+    try:
+        while time.monotonic() < end and proc.poll() is None:
+            text = seen.decode("utf-8", "replace")
+            if "Incorrect password" in text or "password is incorrect" in text:
+                return True
+            if re.search(r"\b[1-9]\d?%", text):       # data is being decrypted: the password works
+                return False
+            time.sleep(0.1)
+        reader.join(1)
+        text = seen.decode("utf-8", "replace")
+        return "Incorrect password" in text or "password is incorrect" in text
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
 
 
 def free_space(path):

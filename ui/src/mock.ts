@@ -16,7 +16,7 @@ const SETS = [
   { first: `${DL}\\Ashen.Tide.v1.4.2.part01.rar`, parts: 24, size: 47.3 * G, missing: [] as number[] },
   { first: `${DL}\\Hollow.Meridian-REPACK.part01.rar`, parts: 16, size: 31.84 * G, missing: [] },
   { first: `${DL}\\Pale.Harbor.Complete.part1.rar`, parts: 8, size: 14.66 * G, missing: [] },
-  { first: `${DL}\\Kestrel.Run.v2.0.part01.rar`, parts: 11, size: 21.4 * G, missing: [] },
+  { first: `${DL}\\Kestrel.Run.v2.0.part01.rar`, parts: 11, size: 21.4 * G, missing: [], busy: [11] },
   { first: `${DL}\\Low.Orbit.part1.rar`, parts: 5, size: 9.8 * G, missing: [4] },
   { first: `${DL}\\Cinder.Pass.part1.rar`, parts: 3, size: 5.42 * G, missing: [] },
 ];

@@ -220,8 +220,39 @@ mod tests {
     }
 }
 
+/// The app always runs as administrator (ISO installs need it), except the Explorer right-click
+/// window (`--shell-…`), which stays a normal process so it opens without a UAC prompt and files
+/// can still be dropped on it. A normal start asks Windows to start it again elevated, with the
+/// same arguments, and ends. Debug builds (run.bat) are left alone.
+/// Returns true when this process should stop because an elevated copy was asked for.
+#[cfg(all(windows, not(debug_assertions)))]
+fn restart_elevated() -> bool {
+    use windows_sys::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a.starts_with("--shell-")) || unsafe { IsUserAnAdmin() } != 0 {
+        return false;
+    }
+    let Ok(exe) = std::env::current_exe() else { return false };
+    let w = |s: &str| s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let params = args.iter().map(|a| format!("\"{}\"", a.replace('"', "\\\""))).collect::<Vec<_>>().join(" ");
+    let (verb, file, params) = (w("runas"), w(&exe.to_string_lossy()), w(&params));
+    const SW_SHOWNORMAL: i32 = 1;
+    let h = unsafe { ShellExecuteW(std::ptr::null_mut(), verb.as_ptr(), file.as_ptr(), params.as_ptr(), std::ptr::null(), SW_SHOWNORMAL) };
+    if (h as isize) <= 32 {
+        let text = w("EnhancedExtract runs as administrator, so it can install games from ISOs.\n\nThe Windows prompt was cancelled, so the app did not open.");
+        let title = w("EnhancedExtract");
+        unsafe { MessageBoxW(std::ptr::null_mut(), text.as_ptr(), title.as_ptr(), MB_OK | MB_ICONINFORMATION) };
+    }
+    true
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(all(windows, not(debug_assertions)))]
+    if restart_elevated() {
+        return;
+    }
     let _shell_lock = match shell_request() {
         Ok(Some(request)) if std::path::Path::new(&request.archive).is_file() => {
             match shell::session_lock(&request.archive) {
@@ -245,9 +276,8 @@ pub fn run() {
             if std::env::args().any(|a| a.starts_with("--shell-")) {
                 if let Some(w) = app.get_webview_window("main") {
                     w.set_min_size(Some(tauri::LogicalSize::new(480.0, 400.0)))?;
-                    let height = if std::env::args().any(|a| a == "--shell-extract-delete") { 500.0 } else { 460.0 };
-                    w.set_size(tauri::LogicalSize::new(580.0, height))?;
-                    w.set_decorations(true)?;
+                    // Frameless like the main window: the page draws its own title bar (44 px).
+                    w.set_size(tauri::LogicalSize::new(600.0, 640.0))?;
                     w.set_title("EnhancedExtract — Quick extract")?;
                     w.center()?;
                 }

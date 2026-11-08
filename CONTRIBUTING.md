@@ -6,7 +6,7 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Ways to help
 
-- **Report a bug.** Open an [issue](https://github.com/gustavofring1483369/EnhancedExtract/issues/new/choose) with the version, Windows version, archive format and number of parts, and what you expected. Add the job log from the Jobs screen or `logs/` if you can.
+- **Report a bug.** Open an [issue](https://github.com/LosSoftwareHermanos/EnhancedExtract/issues/new/choose) with the version, Windows version, archive format and number of parts, and what you expected. Add the job log from the Jobs screen or `logs/` if you can.
 - **Suggest a feature.** Use the feature request template and describe the problem first, then your idea.
 - **Fix something.** Issues labelled `good first issue` are a good start. For anything larger than a small fix, open an issue first so we can agree on the approach before you spend time on it.
 - **Security problems** go through [private vulnerability reporting](SECURITY.md), not public issues.
@@ -27,7 +27,7 @@ The app never touches archives itself: it runs the engine's JSON CLI (`cli.py --
 You need Windows 10 or 11 (x64).
 
 ```powershell
-git clone https://github.com/gustavofring1483369/EnhancedExtract.git
+git clone https://github.com/LosSoftwareHermanos/EnhancedExtract.git
 cd EnhancedExtract
 
 # Engine: Python 3.11 or newer, nothing to install for archives

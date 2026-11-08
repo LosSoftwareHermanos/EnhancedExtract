@@ -14,7 +14,7 @@
   --pill-negative-bg: #2a1419; --pill-negative-ink: #ff7380;
   --pill-warning-bg: #25230c; --pill-warning-ink: #fcee0a;
   --pill-neutral-bg: #1f2029; --pill-neutral-ink: #c2c1b8;
-  --radius: 4px; --cut: 10px; --gap: 24px; --pad: 40px;
+  --radius: 0; --cut: 10px; --gap: 24px; --pad: 40px;
   --font: "Bai Jamjuree", system-ui, sans-serif;
   --brand: "Oxanium", "Bai Jamjuree", sans-serif;
   color-scheme: dark;
@@ -48,21 +48,21 @@ img { display: block; }
 .ri[aria-current="page"] { color: var(--accent); }
 .ri[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 12px; width: 2px; height: 24px; background: var(--accent); }
 .ri svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.ri .badge { position: absolute; top: 12px; right: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--now); box-shadow: 0 0 0 2px var(--ground); }
+.ri .badge { position: absolute; top: 12px; right: 16px; width: 8px; height: 8px; border-radius: 0; background: var(--now); box-shadow: 0 0 0 2px var(--ground); }
 .ri .badge.bad { background: var(--negative); }
 .rail .grow { flex: 1; }
-.tip { position: absolute; left: 58px; top: 50%; transform: translate(-4px, -50%); background: var(--raised); color: var(--text); padding: 4px 12px; border-radius: var(--radius); white-space: nowrap; font-size: 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); pointer-events: none; opacity: 0; transition: opacity .12s, transform .12s; z-index: 20; }
+.tip { position: absolute; left: 58px; top: 50%; transform: translate(-4px, -50%); background: var(--raised); color: var(--text); padding: 4px 12px; border-radius: 0; white-space: nowrap; font-size: 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); pointer-events: none; opacity: 0; transition: opacity .12s, transform .12s; z-index: 20; }
 .ri:hover .tip, .ri:focus-visible .tip { opacity: 1; transform: translate(0, -50%); transition-delay: .35s; }
 .top { display: flex; align-items: center; justify-content: space-between; padding-left: var(--pad); user-select: none; border-bottom: 1px solid var(--rule); }
 .crumb { display: flex; align-items: center; gap: 12px; color: var(--muted); min-width: 0; font-size: 13px; }
 .crumb .wordmark { height: 13px; width: auto; }
 .crumb .sep { width: 1px; height: 14px; background: var(--control); }
 .crumb .here { color: var(--text); }
-.win { display: flex; }
-.win button { width: 48px; height: 44px; border: 0; background: transparent; color: var(--soft); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.win button:hover { background: var(--raised); color: var(--text); }
-.win button.x:hover { background: #c42b1c; color: #fff; }
-.win svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.2; }
+/* window controls: small cut buttons like the first version (sound, minimize, red EXIT) */
+.win { display: flex; align-items: center; gap: 6px; padding-right: 12px; }
+.win .btn, .btn.sm { height: 28px; padding: 0 12px; font-size: 13px; --btn-cut: 7px; }
+.btn.sm { vertical-align: middle; }
+.win svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .canvas { padding: 32px var(--pad) 40px; display: flex; flex-direction: column; gap: var(--gap); min-width: 0; overflow: auto; }
 
 /* ---------- title row ---------- */
@@ -77,34 +77,57 @@ img { display: block; }
 .cols.stretch { align-items: stretch; }
 .main-rail { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--gap); align-items: start; }
 .stack { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
-.card { background: var(--surface); border-radius: var(--radius); padding: 24px; min-width: 0; }
-.hero { background: var(--surface); padding: 28px 32px; min-width: 0; position: relative; }
+/* Panels are frames, not filled boxes: a 1px outline with the bottom-right corner cut, the
+   page showing through. Same trick as .btn: the panel's background is the outline colour and
+   ::before is the plate, inset 1px with the same cut, so the outline follows the diagonal. */
+.card, .hero, .welcome { --line: var(--control); --plate: var(--ground); --panel-cut: 14px;
+  position: relative; isolation: isolate; min-width: 0; background: var(--line); border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%); }
+.card::before, .hero::before, .welcome::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--plate);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut) + .6px), calc(100% - var(--panel-cut) + .6px) 100%, 0 100%); }
+.card { padding: 24px; }
+.hero { padding: 28px 32px; }
 .hero::after { content: ""; position: absolute; left: 0; top: 0; width: 22px; height: 2px; background: var(--accent); }
 .ch { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+/* panel titles read like the old app's frames: // ARCHIVE */
+.card .ch h2, .hero.brand h2 { font: 600 14px/20px var(--brand); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.card .ch h2::before, .hero.brand h2::before { content: "// "; }
 .ch .meta { font-size: 13px; color: var(--muted); }
 
 /* ---------- controls ---------- */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius); background: var(--raised); color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s, transform .06s; }
-.btn:hover:not(:disabled) { background: var(--hover); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
+/* Secondary buttons: dark plate, 1px outline, bottom-right corner cut, squared caps. The
+   button's own background is the outline colour; ::before is the plate, inset 1px with the
+   same cut, so the outline also runs along the diagonal (a CSS border would be clipped off).
+   Hover turns the outline and text yellow, a press fills it yellow. */
+.btn { --line: var(--control); --plate: var(--ground); --btn-cut: 9px;
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 18px; border: 0; border-radius: 0; background: var(--line); color: var(--text);
+  font: 600 14px/1 var(--brand); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--btn-cut)), calc(100% - var(--btn-cut)) 100%, 0 100%);
+  transition: background .12s, color .12s, transform .06s; }
+.btn::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--plate); transition: background .12s;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--btn-cut) + .6px), calc(100% - var(--btn-cut) + .6px) 100%, 0 100%); }
+.btn:hover:not(:disabled) { --line: var(--accent); color: var(--accent); }
+.btn:active:not(:disabled) { --plate: var(--accent); color: var(--accent-ink); }
+.btn:focus-visible { outline: none; --line: var(--now); }      /* an outline would be clipped by the cut */
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-radius: 0; padding: 0 24px; font: 600 16px/1 var(--brand); letter-spacing: .02em;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); transition: background .12s, clip-path .18s var(--ease-out), transform .12s var(--ease-out); }
-/* cyberpunk hover: the cut corners bite deeper, nothing glows */
-.btn-primary:hover:not(:disabled) { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
-.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-.btn-danger { color: var(--negative); }
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); transition: background .12s, transform .12s var(--ease-out); }
+/* hover only brightens; the shape stays the same */
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); color: var(--accent-ink); }
+.btn-primary::before, .btn-danger.solid::before { content: none; }
+.btn-primary:focus-visible { background: var(--accent-hover); box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.btn-danger { --line: var(--negative); color: var(--negative); }
+.btn-danger:hover:not(:disabled) { --line: var(--negative); color: #fff; --plate: var(--pill-negative-bg); }
+.btn-danger:active:not(:disabled) { --plate: var(--negative); color: #fff; }
 .btn-danger.solid { background: var(--negative); color: #fff; }
 .btn-danger.solid:hover:not(:disabled) { background: #ff6170; }
-.btn:disabled { color: var(--muted); background: var(--raised); opacity: .55; cursor: not-allowed; }
+.btn:disabled { --line: var(--border); color: var(--muted); cursor: not-allowed; }
 .btn-primary:disabled { background: #3a3814; color: #d8d2a2; opacity: 1; }
-.tlink { color: var(--text); font-weight: 600; cursor: pointer; background: none; border: 0; padding: 0; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--control); text-underline-offset: 4px; }
-.tlink:hover { text-decoration-color: var(--accent); }
-.tlink:disabled { color: var(--muted); cursor: not-allowed; }
-.spin { width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+.spin { width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 0; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .lab { display: flex; flex-direction: column; gap: 8px; font-weight: 600; font-size: 13px; color: var(--soft); }
 .hint { font-weight: 400; font-size: 12px; color: var(--muted); }
-.field { height: 40px; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); background: var(--ground); color: var(--text); padding: 0 12px; font-size: 14px; transition: border-color .12s; }
+.field { height: 40px; width: 100%; border: 1px solid var(--border); border-radius: 0; background: var(--ground); color: var(--text); padding: 0 12px; font-size: 14px; transition: border-color .12s; }
 .field:hover { border-color: var(--control); }
 .field:focus { outline: none; border-color: var(--now); }
 .field[readonly] { color: var(--soft); background: var(--surface); }
@@ -114,22 +137,36 @@ img { display: block; }
 .sw:first-child { border-top: 0; padding-top: 0; }
 .sw b { font-weight: 600; display: block; }
 .sw .d { font-size: 13px; color: var(--muted); }
-.tog { flex: none; width: 36px; height: 20px; border-radius: 10px; background: var(--control); position: relative; margin-top: 2px; border: 0; padding: 0; cursor: pointer; transition: background .15s; }
-.tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--soft); transition: left .15s, background .15s; }
+.tog { flex: none; width: 36px; height: 20px; border-radius: 0; background: var(--control); position: relative; margin-top: 2px; border: 0; padding: 0; cursor: pointer; transition: background .15s; }
+.tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 0; background: var(--soft); transition: left .15s, background .15s; }
 .tog[aria-checked="true"] { background: var(--accent); }
 .tog[aria-checked="true"]::after { left: 19px; background: var(--accent-ink); }
-input[type="range"] { width: 100%; height: 40px; margin: 0; accent-color: var(--accent); }
-input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* Square slider and checkbox; the browser's own are rounded. */
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 40px; margin: 0; background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(var(--accent), var(--accent)) 0 / var(--fill, 0%) 100% no-repeat, var(--control); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 18px; margin-top: -7px; background: var(--accent); border: 0; }
+/* Edge/WebView2 adds its own eye and clear buttons inside password and text fields; the app has its own Show button. */
+input::-ms-reveal, input::-ms-clear { display: none; }
+input[type="checkbox"] { -webkit-appearance: none; appearance: none; flex: none; width: 18px; height: 18px; margin: 0; border: 1px solid var(--control); background: var(--ground); display: inline-grid; place-content: center; cursor: pointer; }
+input[type="checkbox"]::before { content: ""; width: 10px; height: 10px; background: var(--accent-ink); clip-path: polygon(12% 48%, 0 62%, 40% 100%, 100% 22%, 87% 9%, 40% 72%); transform: scale(0); }
+input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:checked::before { transform: scale(1); }
 
 /* ---------- data ---------- */
-.pill { display: inline-flex; align-items: center; gap: 6px; flex: none; white-space: nowrap; height: 24px; padding: 0 8px; border-radius: 2px; font-size: 12px; font-weight: 600; }
-.pos { background: var(--pill-positive-bg); color: var(--pill-positive-ink); }
-.neg { background: var(--pill-negative-bg); color: var(--pill-negative-ink); }
-.warn { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
-.neu { background: var(--pill-neutral-bg); color: var(--pill-neutral-ink); }
-.pill.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--now); animation: pulse 1.6s ease-in-out infinite; }
+/* State labels (<Status>): no box, just an icon for the kind of state and the text in
+   brackets, [Ready]. The icon is a mask, so it takes the label's colour. */
+.pill { display: inline-flex; align-items: center; gap: 8px; flex: none; white-space: nowrap; height: 24px; font: 600 13px/1 var(--brand); letter-spacing: .04em; }
+.pill > span { position: relative; top: 1px; }     /* Oxanium sits high in its line box; centre it on the icon */
+.pill i { flex: none; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+.pos { color: var(--pill-positive-ink); --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M0 0h14v14H0z' fill='none' stroke='black' stroke-width='3'/%3E%3Cpath d='M3.5 7.2l2.4 2.4 4.6-5' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E"); }
+.neg { color: var(--pill-negative-ink); --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M0 0h14v14H0z' fill='none' stroke='black' stroke-width='3'/%3E%3Cpath d='M4.3 4.3l5.4 5.4M9.7 4.3l-5.4 5.4' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E"); }
+.warn { color: var(--pill-warning-ink); --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M0 0h14v14H0z' fill='none' stroke='black' stroke-width='3'/%3E%3Cpath d='M6 3h2v5H6zM6 9.5h2v2H6z'/%3E%3C/svg%3E"); }
+.neu { color: var(--pill-neutral-ink); --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M0 0h14v14H0z' fill='none' stroke='black' stroke-width='3'/%3E%3Cpath d='M4 6h6v2H4z'/%3E%3C/svg%3E"); }
+/* running: a cyan block that pulses */
+.pill.live { color: var(--now); }
+.pill.live i { -webkit-mask: none; mask: none; width: 12px; height: 12px; margin: 0 1px; animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
-.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; margin-right: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 0; flex: none; display: inline-block; margin-right: 8px; }
 .track { height: 4px; background: var(--raised); overflow: hidden; }
 .track.big { height: 8px; }
 .fill { height: 100%; background: var(--accent); transition: width .5s ease-out; }
@@ -147,7 +184,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .strip .v.lead { font-size: 44px; line-height: 48px; letter-spacing: -.02em; color: var(--accent); }
 .strip .s { font-size: 12px; color: var(--muted); }
 .unit { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 2px; }
-.notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius); background: var(--pill-warning-bg); color: var(--soft); border-left: 2px solid var(--accent); }
+.notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: 0; background: var(--pill-warning-bg); color: var(--soft); border-left: 2px solid var(--accent); }
 .notice.err { background: var(--pill-negative-bg); border-left-color: var(--negative); color: var(--text); }
 .notice.ok { background: var(--pill-positive-bg); border-left-color: var(--positive); color: var(--text); }
 .notice svg { flex: none; width: 16px; height: 16px; margin-top: 3px; fill: none; stroke: var(--accent); stroke-width: 1.6; }
@@ -167,37 +204,170 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .log > div { overflow-wrap: anywhere; }
 .log .t { color: var(--muted); margin-right: 14px; }
 .log .warning { color: var(--accent); } .log .error { color: var(--pill-negative-ink); }
-.skel { display: inline-block; height: 1em; min-width: 4ch; border-radius: 2px; background: var(--raised); vertical-align: middle; }
-.empty { background: var(--ground); border-radius: var(--radius); padding: 16px 20px; color: var(--soft); }
+.skel { display: inline-block; height: 1em; min-width: 4ch; border-radius: 0; background: var(--raised); vertical-align: middle; }
+.empty { background: var(--ground); border-radius: 0; padding: 16px 20px; color: var(--soft); }
 
 /* Parts tape: one segment per archive part, the set's own shape. */
 .tape { display: flex; flex-wrap: wrap; gap: 4px; }
-.tape i { flex: 1 1 18px; min-width: 6px; height: 28px; background: var(--raised); position: relative; transition: background .3s; }
-.tape.mini i { height: 14px; flex-basis: 6px; min-width: 3px; }
+.tape i { flex: 1 1 18px; min-width: 6px; height: 28px; background: var(--raised); position: relative; transition: background .3s, box-shadow .3s, color .3s;
+  display: grid; place-items: center; overflow: hidden; white-space: nowrap; font: 600 11px/1 var(--brand); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.tape.mini { flex-wrap: nowrap; }
+.tape.mini i { height: 14px; flex: 1 1 0; min-width: 1px; }
 .tape i.used { background: #3a3a2a; }
 .tape i.done { background: var(--accent); }
 .tape i.now { background: var(--now); animation: pulse 1.4s ease-in-out infinite; }
 .tape i.missing { background: transparent; box-shadow: inset 0 0 0 1px var(--negative); }
-.tape i.gone::after { content: ""; position: absolute; left: 3px; right: 3px; top: 50%; height: 1px; background: var(--muted); }
+.tape i.busy { background: transparent; box-shadow: inset 0 0 0 1px var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+.set-card.wait { cursor: default; }
+/* A verified part is green, a deleted one red: outlined, with the word inside. A part that just
+   changed flashes cyan (where it was) and settles into its colour. */
+.tape i.ok { background: rgba(76, 195, 138, .12); box-shadow: inset 0 0 0 1px var(--positive); color: var(--pill-positive-ink); }
+.tape i.gone { background: rgba(255, 70, 85, .1); box-shadow: inset 0 0 0 1px var(--negative); color: var(--negative); }
+.tape i.flip { animation: seg-flip .9s var(--ease-out); }
+@keyframes seg-flip {
+  0% { background: var(--now); box-shadow: 0 0 18px var(--now), inset 0 0 0 1px var(--now); color: var(--accent-ink); }
+  20% { filter: brightness(1.7); }
+  35% { filter: none; }
+  45% { filter: brightness(1.4); }
+}
+.tape.mini i.gone, .tape.mini i.ok { font-size: 0; }
+
+/* Free-space chart */
+.free-chart { display: block; overflow: visible; }
+.free-chart text { font: 11px var(--brand); fill: #8a8c92; }
+.free-chart .now-mark { animation: now-mark 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes now-mark { 50% { opacity: .2; transform: scale(1.5); } }
+
+/* How a job ended (<Outcome>): a frame like the panels, green or red. */
+.outcome { --line: var(--positive); --plate: #0c1712; --panel-cut: 12px; position: relative; isolation: isolate; display: flex; align-items: center; gap: 18px; padding: 16px 20px;
+  background: var(--line); color: var(--text);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%);
+  animation: oc-wipe .5s var(--ease-out) both, oc-flicker .6s steps(1) both; }
+.outcome::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--plate);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut) + .6px), calc(100% - var(--panel-cut) + .6px) 100%, 0 100%); }
+.outcome::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40px; left: -40px; background: linear-gradient(90deg, transparent, var(--line), transparent); opacity: .5; animation: oc-scan .9s .1s ease-out both; }
+.outcome.bad { --line: var(--negative); --plate: #1a0c10; }
+.oc-icon { flex: none; width: 40px; height: 40px; display: grid; place-items: center; color: var(--line); border: 1px solid currentColor; background: rgba(255, 255, 255, .03); }
+.oc-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: square; stroke-dasharray: 40; stroke-dashoffset: 40; animation: oc-draw .5s .5s ease-out forwards; }
+.oc-body { flex: 1; min-width: 0; }
+.oc-title { display: block; font: 700 15px/1.2 var(--brand); letter-spacing: .1em; text-transform: uppercase; color: var(--line); margin-bottom: 4px; }
+.oc-text { color: var(--soft); overflow-wrap: anywhere; }
+.oc-actions { flex: none; }
+@keyframes oc-wipe { from { clip-path: polygon(0 0, 0 0, 0 calc(100% - var(--panel-cut)), 0 100%, 0 100%); } }
+@keyframes oc-flicker { 0% { opacity: 0; } 12% { opacity: 1; } 18% { opacity: .3; } 26% { opacity: 1; } 34% { opacity: .55; } 42% { opacity: 1; } }
+@keyframes oc-scan { from { left: -40px; } to { left: 100%; } }
+@keyframes oc-draw { to { stroke-dashoffset: 0; } }
+
+/* Password match (<PasswordMatch>): a result card in the middle of a dimmed page, fading out. */
+.match-scrim { animation: fade .15s ease-out, granted-out .25s 1s ease-in forwards; cursor: pointer; }
+.outcome.match { min-width: 360px; max-width: 520px; padding: 18px 24px; }
+
+/* Access granted (<AccessGranted>, not used for now): a green frame with scanlines, over a dim, blurred page. */
+.granted-scrim { background: rgba(5, 5, 9, .55); backdrop-filter: blur(3px); animation: fade .15s ease-out, granted-out .3s 1.15s ease-in forwards; cursor: pointer; }
+.granted { --line: var(--positive); --plate: #08120d; --panel-cut: 18px; position: relative; isolation: isolate; display: grid; justify-items: center; gap: 10px;
+  padding: 30px 64px 26px; min-width: 380px; background: var(--line);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%);
+  animation: oc-wipe .4s var(--ease-out) both, oc-flicker .5s steps(1) both, granted-zoom .3s 1.15s ease-in forwards; }
+.granted::before { content: ""; position: absolute; inset: 1px; z-index: -1;
+  background: repeating-linear-gradient(0deg, rgba(76, 195, 138, .07) 0 1px, transparent 1px 3px), var(--plate);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut) + .6px), calc(100% - var(--panel-cut) + .6px) 100%, 0 100%); }
+.granted::after { content: ""; position: absolute; left: 0; right: 0; height: 30%; top: -30%; background: linear-gradient(transparent, rgba(76, 195, 138, .18), transparent); animation: granted-sweep 1s .15s linear both; }
+.granted-icon { width: 46px; height: 46px; fill: none; stroke: var(--positive); stroke-width: 2.5; stroke-linecap: square; }
+.granted-icon path { stroke-dasharray: 90; stroke-dashoffset: 90; animation: oc-draw .45s ease-out forwards; }
+.granted-icon .g-body { animation-delay: .2s; }
+.granted-icon .g-shackle { animation-delay: .45s; }
+.granted-icon .g-key { animation-delay: .6s; }
+.granted-title { display: block; font: 700 26px/1 var(--brand); letter-spacing: .2em; text-transform: uppercase; color: var(--pill-positive-ink);
+  text-shadow: 0 0 14px rgba(76, 195, 138, .55); animation: granted-glitch .8s .25s steps(1) both; }
+.granted-sub { font: 600 11px/1 var(--brand); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.granted-bar { position: relative; width: 240px; height: 3px; background: var(--raised); margin-top: 6px; overflow: hidden; }
+.granted-bar i { position: absolute; inset: 0; background: var(--positive); box-shadow: 0 0 10px var(--positive); transform-origin: left; animation: bar-fill .9s .2s var(--ease-out) both; }
+@keyframes granted-glitch {
+  0% { text-shadow: -3px 0 var(--negative), 3px 0 var(--now); transform: translateX(-3px); }
+  12% { text-shadow: 3px 0 var(--negative), -3px 0 var(--now); transform: translateX(2px) skewX(-8deg); }
+  24% { text-shadow: -1px 0 var(--negative), 1px 0 var(--now); transform: none; }
+  36% { text-shadow: 2px 0 var(--negative), -2px 0 var(--now); transform: translateX(-1px); }
+  50% { text-shadow: 0 0 14px rgba(76, 195, 138, .55); transform: none; }
+}
+@keyframes granted-sweep { to { top: 100%; } }
+@keyframes granted-out { to { opacity: 0; visibility: hidden; } }
+@keyframes granted-zoom { to { transform: scale(1.06); filter: brightness(1.6); } }
+
+/* The page after access: panels flicker in one after another. */
+.pre-reveal { visibility: hidden; }
+/* .canvas > * gives every page child the screen-in animation; these must win over it. */
+.reveal-in, .canvas > .reveal-in.reveal-in, .canvas > .hero.brand.reveal-in { animation: reveal-in .6s var(--ease-out) both; animation-delay: calc(var(--r, 0) * 110ms); }
+@keyframes reveal-in {
+  0% { opacity: 0; transform: translateX(-14px); filter: brightness(2.4) saturate(0); }
+  10% { opacity: 1; }
+  16% { opacity: .15; }
+  26% { opacity: 1; transform: translateX(4px); }
+  34% { opacity: .5; }
+  48% { opacity: 1; transform: none; filter: none; }
+}
+
+/* Install screen: one bar per .bin file, sizes written inside each part and clipped by it. */
+.iso-bins { display: flex; flex-direction: column; gap: 12px; }
+.iso-bin { display: grid; grid-template-columns: 140px minmax(0, 1fr); align-items: center; gap: 16px; }
+.iso-bar { position: relative; height: 26px; background: var(--raised); overflow: hidden; }
+.iso-bar .seg { position: absolute; top: 0; bottom: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  white-space: nowrap; font: 600 12px/1 var(--brand); letter-spacing: .04em; font-variant-numeric: tabular-nums; transition: left .4s var(--ease-out), width .4s var(--ease-out); }
+.iso-bar .seg > span { padding: 0 8px; }
+.iso-bar .freed { background: var(--surface); box-shadow: inset 0 0 0 1px var(--control); color: var(--soft); }
+.iso-bar .kept { background: var(--soft); color: var(--accent-ink); }
+.iso-bar .unread { background: var(--raised); color: var(--muted); }
+.iso-bar .here { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); transition: left .4s var(--ease-out); }
+.iso-key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; }
+
+/* Scrollbars: a thin dark rail, no arrows, a square thumb with one cut corner that turns yellow
+   under the pointer. */
+::-webkit-scrollbar { width: 10px; height: 10px; background: var(--ground); }
+::-webkit-scrollbar-track { background: var(--ground); box-shadow: inset 1px 0 0 var(--rule); }
+::-webkit-scrollbar-thumb { border: 2px solid transparent; background-clip: padding-box; border-radius: 0;
+  background-image: linear-gradient(315deg, transparent 5px, #3d3e4e 5px); }
+::-webkit-scrollbar-thumb:hover { background-image: linear-gradient(315deg, transparent 5px, #fcee0a 5px); }
+::-webkit-scrollbar-thumb:active { background-image: linear-gradient(315deg, transparent 5px, #fff75e 5px); }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+::-webkit-scrollbar-corner { background: var(--ground); }
 
 /* Library + jobs rows */
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) 240px 104px 170px 104px; column-gap: 24px; align-items: center; }
-.job-row { display: grid; grid-template-columns: 220px 96px 120px minmax(0, 1fr) 96px 64px 56px; column-gap: 16px; align-items: center; }
-.job-row:hover { background: var(--raised); }
+/* Library: no frame round the list; each set is its own small frame, like a message list.
+   Grey at rest, cyan while a job runs on it, yellow under the pointer. */
+.card.bare { background: none; padding: 0; clip-path: none; }
+.card.bare::before { content: none; }
+.set-head { padding: 0 17px 10px; }
+.set-cards { display: flex; flex-direction: column; gap: 8px; }
+.set-card { --line: var(--control); --plate: var(--ground); --panel-cut: 10px; position: relative; isolation: isolate; padding: 0 16px; background: var(--line);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%); transition: background .12s; }
+.set-card::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--plate);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut) + .6px), calc(100% - var(--panel-cut) + .6px) 100%, 0 100%); }
+.set-card.live { --line: var(--now); }
+.set-card.row-link:hover { --line: var(--accent); background: var(--line); }
+/* Jobs: the card whose log pop-up is open. */
+.set-card.sel, .set-card.sel.row-link:hover { --line: var(--accent); --plate: #14140c; }
+.job-row { display: grid; grid-template-columns: minmax(0, 1.2fr) 96px 130px minmax(0, 1fr) 88px 64px 72px; column-gap: 16px; align-items: center; }
 .set-name { font: 600 18px/24px var(--brand); letter-spacing: .01em; }
 
 /* ---------- dialogs ---------- */
 .scrim { position: fixed; inset: 0; background: rgba(5, 5, 9, .78); display: flex; align-items: center; justify-content: center; z-index: 50; animation: fade .14s ease-out; }
-.dialog { width: min(540px, calc(100vw - 48px)); background: var(--raised); box-shadow: 0 24px 64px rgba(0, 0, 0, .6); padding: 28px; display: flex; flex-direction: column; gap: 16px; animation: rise .16s ease-out; position: relative;
-  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
-.dialog::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 2px; background: var(--accent); }
-.dialog.danger::before { background: var(--negative); }
+/* Dialogs and the system-check pop-up are frames like the panels (see .card): dialogs in
+   yellow since they want an answer, the pop-up in grey. */
+.dialog, .sys-panel { --line: var(--accent); --plate: var(--ground); --panel-cut: 14px; isolation: isolate; background: var(--line);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%); }
+.dialog::before, .sys-panel::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--plate);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut) + .6px), calc(100% - var(--panel-cut) + .6px) 100%, 0 100%); }
+.dialog { width: min(540px, calc(100vw - 48px)); padding: 28px; display: flex; flex-direction: column; gap: 16px; animation: rise .16s ease-out; position: relative; }
+.dialog.danger { --line: var(--negative); }
+.dialog.wide { width: min(860px, calc(100vw - 48px)); }
+.log-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+.log-box { height: min(52vh, 440px); overflow-y: auto; padding-right: 6px; }
 .dialog h2 { font-size: 24px; line-height: 28px; }
 .dialog .actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 6px; }
 .drop { position: fixed; inset: 10px; border: 2px dashed var(--accent); background: rgba(11, 12, 18, .9); display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; font: 600 24px var(--brand); z-index: 40; pointer-events: none; }
 
 /* First-run / empty screen: the brand, then the one action. */
-.welcome { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: center; padding: 40px; background: var(--surface); }
+.welcome { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: center; padding: 40px; }
 .welcome img.logo { width: 120px; height: 120px; }
 .welcome h2 { font-size: 30px; line-height: 34px; margin-bottom: 8px; }
 
@@ -207,44 +377,25 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
 
-/* The one yellow field per screen: black on yellow, like the logo. */
-.hero.brand { background: var(--accent); color: var(--accent-ink); clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+/* The one highlighted panel per screen (summary, space, progress): a yellow frame instead of
+   a grey one, its key figures in yellow. Everything inside keeps the normal dark colours. */
+.hero.brand { --line: var(--accent); }
 .hero.brand::after { display: none; }
-.hero.brand h2, .hero.brand .v, .hero.brand .v.lead { color: var(--accent-ink); }
-.hero.brand .l, .hero.brand .s, .hero.brand .muted, .hero.brand .unit { color: #3d3a06; }
-.hero.brand .strip > div { border-left-color: rgba(11, 12, 18, .18); }
-.hero.brand .track { background: rgba(11, 12, 18, .16); }
-.hero.brand .fill { background: var(--accent-ink); }
-.hero.brand .tape i { background: rgba(11, 12, 18, .14); }
-.hero.brand .tape i.used, .hero.brand .tape i.done { background: var(--accent-ink); }
-.hero.brand .tape i.gone { background: rgba(11, 12, 18, .5); }
-.hero.brand .tape i.gone::after { background: var(--accent); }
-.hero.brand .tape i.now { background: #fff; box-shadow: inset 0 0 0 2px var(--accent-ink); }
-.hero.brand .tape i.missing { box-shadow: inset 0 0 0 2px #b0001a; background: transparent; }
-.hero.brand .tab { color: #4a460c; }
-.hero.brand .tab[aria-current="step"] { color: var(--accent-ink); }
-.hero.brand .tab[aria-current="step"]::after { background: var(--accent-ink); }
-.hero.brand .tabs { border-color: rgba(11, 12, 18, .18); }
-.hero.brand .btn { background: var(--accent-ink); color: var(--accent); }
-.hero.brand .btn:hover:not(:disabled) { background: #22232e; }
-.hero.brand .tlink { color: var(--accent-ink); text-decoration-color: rgba(11, 12, 18, .4); }
-.hero.brand .pill { background: var(--accent-ink); color: var(--accent); }
+.hero.brand .v.lead, .hero.brand .big-figure { color: var(--accent); }
 .big-figure { font: 600 64px/1 var(--brand); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-
-.hero.brand .cmpbar { background: rgba(11, 12, 18, .14); }
-.hero.brand .cmpbar span[data-chosen="true"] { background: var(--accent-ink) !important; }
-.hero.brand .cmpbar span[data-chosen="false"] { background: rgba(11, 12, 18, .32) !important; }
-.hero.brand .cmp .soft { color: #3d3a06; }
-.hero.brand .notice { background: rgba(11, 12, 18, .1); border-left-color: var(--accent-ink); color: var(--accent-ink); }
-.hero.brand .notice svg { stroke: var(--accent-ink); }
 .decision { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 48px; align-items: center; }
-.cmp.choice { width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 8px 12px; margin: 0 -12px; width: calc(100% + 24px); cursor: pointer; border-radius: 2px; transition: background .12s; }
+.cmp.choice { width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 8px 12px; margin: 0 -12px; width: calc(100% + 24px); cursor: pointer; border-radius: 0; transition: background .12s; }
 .cmp.choice:hover { background: rgba(255, 255, 255, .04); }
-.hero.brand .cmp.choice:hover { background: rgba(11, 12, 18, .06); }
-.hero.brand .cmp.choice[aria-checked="true"] { background: rgba(11, 12, 18, .1); }
-.radio { position: relative; display: inline-block; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 2px currentColor; margin-right: 10px; vertical-align: -2px; }
-.cmp.choice[aria-checked="true"] .radio::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: currentColor; }
+.cmp.choice[aria-checked="true"] { background: rgba(252, 238, 10, .06); }
+.radio { position: relative; display: inline-block; width: 14px; height: 14px; border-radius: 0; box-shadow: inset 0 0 0 2px currentColor; margin-right: 10px; vertical-align: -2px; }
+.cmp.choice[aria-checked="true"] .radio::after { content: ""; position: absolute; inset: 4px; border-radius: 0; background: currentColor; }
 .cmp.choice[aria-checked="true"] .top2 > span:first-child { font-weight: 700; }
+/* Checkbox rows (role="checkbox"): the same square as the form checkboxes, ticked when on. */
+.box { position: relative; display: inline-grid; place-content: center; width: 16px; height: 16px; border: 1px solid currentColor; margin-right: 10px; vertical-align: -3px; }
+.box::before { content: ""; width: 10px; height: 10px; background: var(--accent-ink); clip-path: polygon(12% 48%, 0 62%, 40% 100%, 100% 22%, 87% 9%, 40% 72%); transform: scale(0); }
+.cmp.choice[aria-checked="true"] .box { background: var(--accent); border-color: var(--accent); }
+.cmp.choice[aria-checked="true"] .box::before { transform: scale(1); }
+.cmp.choice:disabled { cursor: default; opacity: .7; }
 
 /* =====================================================================================
    Motion layer. Rare moments (start-up, screen change, a job's yellow panel) are expressive;
@@ -265,11 +416,11 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .canvas > *:nth-child(n+4) { animation-delay: 120ms; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
 
-/* the yellow panel opens along its cut corners, left to right */
+/* the highlighted panel's frame wipes open left to right, ending on its own cut shape */
 .canvas > .hero.brand { animation: hero-wipe .5s var(--ease-io) 40ms both; }
 @keyframes hero-wipe {
-  from { clip-path: polygon(0 0, 0 0, 0 calc(100% - 16px), 0 100%, 0 100%, 0 16px); }
-  to { clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+  from { clip-path: polygon(0 0, 0 0, 0 calc(100% - var(--panel-cut)), 0 100%, 0 100%); }
+  to { clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%); }
 }
 
 /* progress: transform, not width */
@@ -288,11 +439,11 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 @keyframes underline { from { transform: scaleX(0); } }
 .notice { animation: screen-in .24s var(--ease-out) both; }
 
-/* dialogs open along their cut corners, like the yellow panel */
+/* dialogs wipe open left to right, like the highlighted panel, ending on their cut shape */
 .dialog { animation: dialog-open .24s var(--ease-io) both; }
 @keyframes dialog-open {
-  from { opacity: .4; clip-path: polygon(14px 0, 14px 0, 14px calc(100% - 14px), 0 100%, 0 100%, 0 14px); }
-  to { opacity: 1; clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+  from { opacity: .4; clip-path: polygon(0 0, 0 0, 0 calc(100% - var(--panel-cut)), 0 100%, 0 100%); }
+  to { opacity: 1; clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--panel-cut)), calc(100% - var(--panel-cut)) 100%, 0 100%); }
 }
 
 /* start-up: the Σ appears, the wordmark wipes across, a bar fills (about 0.7 s, once per launch) */
@@ -309,14 +460,20 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 /* Effects off: keep the feedback, drop the show */
 .fx-off .canvas > .hero.brand { animation: none; }
 .fx-off .btn-primary { transition: background .12s; }
+.fx-off .outcome, .fx-off .outcome::after, .fx-off .oc-icon, .fx-off .tape i.flip, .fx-off .free-chart .now-mark { animation: none; }
+.fx-off .oc-icon svg { animation: none; stroke-dashoffset: 0; }
+.fx-off .iso-bar .seg, .fx-off .iso-bar .here { transition: none; }
+.fx-off .match-scrim, .fx-off .granted-scrim, .fx-off .granted, .fx-off .granted *, .fx-off .reveal-in { animation: none !important; }
+.fx-off .granted-icon path { stroke-dashoffset: 0; }
 
 /* System check popover */
 .sys-scrim { position: fixed; inset: 0; z-index: 29; }
-.sys-panel { position: fixed; left: 64px; bottom: 12px; width: 300px; z-index: 30; background: var(--raised); color: var(--text); border-radius: var(--radius); padding: 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); }
-.sys-panel h2 { font: 600 14px var(--brand); margin: 0 0 8px; }
+.sys-panel { --line: var(--control); --panel-cut: 10px; position: fixed; left: 64px; bottom: 12px; width: 300px; z-index: 30; color: var(--text); padding: 16px; }
+.sys-panel h2 { font: 600 14px/20px var(--brand); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+.sys-panel h2::before { content: "// "; }
 .sys-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
 .sys-row small { display: block; color: var(--muted); font-size: 12px; }
-.sys-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.sys-row .dot { width: 8px; height: 8px; border-radius: 0; background: var(--muted); flex: none; }
 .sys-row .dot.ok { background: var(--positive); }
 .sys-row .dot.bad { background: var(--negative); }
 .sys-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }
