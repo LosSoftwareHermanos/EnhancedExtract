@@ -49,8 +49,8 @@ to RAR. Other formats retain all source parts until extraction completes cleanly
 ISO installation additionally needs WinFsp and administrator rights. ISO space
 freeing is experimental. See the user guide before using it.
 
-User guide: https://github.com/gustavofring1483369/EnhancedExtract/blob/v{version}/docs/USER_GUIDE.md
-Issues: https://github.com/gustavofring1483369/EnhancedExtract/issues
+User guide: https://github.com/LosSoftwareHermanos/EnhancedExtract/blob/v{version}/docs/USER_GUIDE.md
+Issues: https://github.com/LosSoftwareHermanos/EnhancedExtract/issues
 Licence: MIT (LICENSE.txt). Third-party licences: THIRD_PARTY_NOTICES.txt
 """)
     assets = [output / installer.name, cli_zip, output / notices.name]
