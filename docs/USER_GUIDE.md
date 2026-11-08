@@ -164,6 +164,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 2. Run it. It installs **for your user only**, no admin prompt, into `%LOCALAPPDATA%\EnhancedExtract`.
 3. Open **EnhancedExtract** from the Start menu and point the Library at your downloads folder. For ISOs, the set-up screen's **Before mounting** checklist shows whether WinFsp and admin rights are in place.
 4. Right-click any archive (`.rar`, `.zip`, `.7z`, `.tar.gz`…) → **Show more options** → **EnhancedExtract**.
+5. Right-click an `.iso` → **Show more options** → **Set up ISO with EnhancedExtract...** to open the ISO setup screen.
 
 > [!TIP]
 > Uninstalling from *Settings → Apps* removes the app and only its own right-click entries.
@@ -265,11 +266,13 @@ The installer adds an **EnhancedExtract** submenu to every `.rar`, `.zip`, `.7z`
 - Password-protected? The window asks, and the password goes over stdin.
 - Close the window and the job keeps running; the dashboard's **Jobs** screen follows it.
 - A second window on the same archive is refused while one is open.
-- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\<.ext>\shell\EnhancedExtract`. Your default archive app is untouched.
+- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\<.ext>\shell\EnhancedExtract`. ZIP also registers under its active file-type ProgID so Explorer shows the same three actions. Your default archive app is untouched.
 
 </td>
 </tr>
 </table>
+
+For `.iso` files, choose **Set up ISO with EnhancedExtract...** from the classic context menu. It opens the ISO setup screen; setup does not start automatically.
 
 The same actions from a script:
 
@@ -631,7 +634,7 @@ cd ui\src-tauri; cargo test --lib         # engine bridge + Explorer integration
 <summary><b>I don't see EnhancedExtract when I right-click a .rar</b></summary>
 <br>
 
-On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. They're registered for the supported archive types (`.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.001` and more) and only for the user who ran the installer.
+On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. Archive actions are registered for the supported archive types (`.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.001` and more); ISO files get **Set up ISO with EnhancedExtract...**. They are registered only for the user who ran the installer.
 </details>
 
 <details>
