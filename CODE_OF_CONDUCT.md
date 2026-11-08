@@ -64,7 +64,7 @@ GitHub:
 
 * Use **Report content** on the offending comment, issue or pull request (the
   "..." menu), which notifies the repository maintainers and GitHub, or
-* Open a [private report](https://github.com/gustavofring1483369/EnhancedExtract/security/advisories/new)
+* Open a [private report](https://github.com/LosSoftwareHermanos/EnhancedExtract/security/advisories/new)
   and start its title with "Conduct:". Only the maintainers can see it.
 
 All complaints will be reviewed and investigated promptly and fairly.

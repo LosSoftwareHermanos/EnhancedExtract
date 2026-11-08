@@ -21,7 +21,7 @@ import paths
 import sevenzip as sz
 import udf
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 SCHEMA = 2          # bumped when JSON event fields change incompatibly
 
 EXIT = {

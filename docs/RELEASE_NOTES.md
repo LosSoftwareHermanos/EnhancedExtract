@@ -1,4 +1,14 @@
-# EnhancedExtract 0.1.2
+# EnhancedExtract 0.1.3
+
+## What's new in 0.1.3
+
+- **Refreshed desktop app and installer.** Includes the EE1.3 interface and installer updates, with the updated Quick Extract window.
+- **RAR `.dat` sets.** Recognizes multipart RAR sets whose parts use the `.dat` extension.
+- **Explorer menu fixes.** ZIP gets the same three actions as RAR. ISO files get **Set up ISO with EnhancedExtract...**, which opens the ISO setup screen.
+
+If you installed 0.1.2, run the 0.1.3 installer to update.
+
+---
 
 ## What's new in 0.1.2
 
@@ -34,8 +44,8 @@ The desktop app uses Tauri and Rust, with a React interface and a bundled Python
 
 ## Downloads
 
-- `EnhancedExtract_0.1.2_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
-- `EnhancedExtract-CLI-0.1.2-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
+- `EnhancedExtract_0.1.3_x64-setup.exe`: Windows desktop installer, bundled engine and Explorer integration.
+- `EnhancedExtract-CLI-0.1.3-windows-x64.zip`: unpack the whole folder and run `ee-engine.exe --cli --help`.
 - `SHA256SUMS.txt`: SHA-256 checksums for the installer, CLI ZIP and notices.
 - `THIRD_PARTY_NOTICES.txt`: bundled component notices and licences.
 
@@ -49,7 +59,7 @@ RAR safe mode retains parts needed by unfinished files and records a resume jour
 
 ISO space freeing remains experimental. Use disposable data to evaluate source-deletion modes.
 
-## Verification and limits
+## Verification and limits recorded for 0.1.2
 
 46 Python tests passed through the source CLI and through the packaged engine, with no skips. Eight Rust tests, the TypeScript/Vite build, the engine build and the Windows installer build passed. Tests include real encrypted and multipart archives, corrupt-archive retention, RAR interruption/resume, CAB, WIM and Zstandard, plus ISO mount/read/unmount.
 

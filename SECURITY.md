@@ -2,13 +2,13 @@
 
 ## Supported versions
 
-Only the [latest release](https://github.com/gustavofring1483369/EnhancedExtract/releases/latest) gets fixes. Please check that a problem still happens there before reporting it.
+Only the [latest release](https://github.com/LosSoftwareHermanos/EnhancedExtract/releases/latest) gets fixes. Please check that a problem still happens there before reporting it.
 
 ## Reporting a vulnerability
 
 **Do not open a public issue for security problems.**
 
-Report privately through GitHub: [open a private vulnerability report](https://github.com/gustavofring1483369/EnhancedExtract/security/advisories/new) (Security tab, then **Report a vulnerability**). Only the maintainers can see it.
+Report privately through GitHub: [open a private vulnerability report](https://github.com/LosSoftwareHermanos/EnhancedExtract/security/advisories/new) (Security tab, then **Report a vulnerability**). Only the maintainers can see it.
 
 Please include:
 
