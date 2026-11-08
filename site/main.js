@@ -20,6 +20,120 @@
     sync();
   }
 
+  /* ---------- hero visual: the same job run both ways. The switch and the buttons share one state ---------- */
+  const viz = $('[data-viz]');
+  if (viz) {
+    // An illustrative set: 24 parts, 47.30 GB in, 52.10 GB out, on a drive with 12.00 GB free.
+    const SET = 47.3, GAME = 52.1, FREE = 12, POOL = SET + FREE, READ = 0.32, HOLD = 3.2;
+    const cells = $$('[data-viz-parts] i', viz), N = cells.length, PART = SET / N;
+    const stallAt = FREE / GAME * N; // keeping every part, D: is full here (23%)
+    const el = (k) => $(`[data-viz-${k}]`, viz);
+    const titleEl = el('title'), arcEl = el('arc'), outEl = el('out'), freeEl = el('free'), flagEl = el('flag');
+    const filesEl = el('files'), leftEl = el('left'), leftBar = el('left-bar'), logEl = el('log');
+    const modeBtns = $$('[data-viz-mode]', viz);
+    // The drive meter: one tick per ~1 GB of the space the job can use (the parts plus what is free).
+    const TICKS = 60;
+    const ticks = Array.from({ length: TICKS }, () => el('meter').appendChild(document.createElement('span')));
+    const pad = (n) => String(n).padStart(2, '0');
+    const deleting = () => !toggle || toggle.checked;
+    const set = (node, text) => { if (node.textContent !== text) node.textContent = text; };
+    let p = 0, hold = 0, full = false, done = false, raf = 0, last = 0, onScreen = false;
+
+    // The job log: the last three things the job did, written the way the CLI reports them.
+    let lines = [], logged = 0, ended = false;
+    const log = (tone, glyph, verb, text, num = '') => {
+      lines = [...lines, { tone, glyph, verb, text, num }].slice(-3);
+      logEl.replaceChildren(...lines.map((l) => {
+        const li = document.createElement('li');
+        if (l.tone) li.className = 'is-' + l.tone;
+        [['g', l.glyph], ['v', l.verb], ['', l.text], ['n', l.num]].forEach(([c, t]) => {
+          const s = document.createElement('span'); if (c) s.className = c; s.textContent = t; li.append(s);
+        });
+        return li;
+      }));
+    };
+    const syncLog = (del, whole, free) => {
+      for (; logged < whole; logged++) {
+        if (del) log('', '›', `part ${pad(logged + 1)}`, 'extracted, flushed, deleted', `+${fmt(PART)} GB`);
+        else log('', '›', `part ${pad(logged + 1)}`, 'extracted, kept on D:');
+      }
+      if (ended || !(full || done)) return;
+      ended = true;
+      if (full) log('bad', '×', 'stopped', `D: is full at ${Math.round(stallAt / N * 100)}%: needs ${fmt(GAME)} GB, has ${fmt(FREE)}`);
+      else log('good', '✓', 'done', `${fmt(GAME)} GB written, 0 parts left`, `${fmt(free)} GB free`);
+    };
+
+    const draw = () => {
+      const del = deleting(), whole = Math.min(Math.floor(p), N);
+      const files = p / N * GAME;
+      const left = del ? N - whole : N;
+      const arc = left * PART;
+      const free = Math.max(POOL - arc - files, 0);
+      cells.forEach((c, i) => {
+        const f = Math.min(Math.max(p - i, 0), 1);
+        c.style.setProperty('--f', f);
+        c.classList.toggle('is-read', f > 0 && f < 1);
+        c.classList.toggle('is-gone', f >= 1 && del);
+        c.classList.toggle('is-kept', f >= 1 && !del);
+      });
+      ticks.forEach((t, k) => {
+        const at = (k + 0.5) / TICKS * POOL;
+        const cls = at < arc ? 't-arc' : at < arc + files ? 't-game' : '';
+        if (t.className !== cls) t.className = cls;
+      });
+      filesEl.style.width = (files / GAME * 100) + '%';
+      leftBar.style.width = (left / N * 100) + '%';
+      set(arcEl, `${fmt(arc)} GB`);
+      set(outEl, `${fmt(files)} / ${fmt(GAME)} GB`);
+      set(leftEl, `${left} / ${N}`);
+      set(freeEl, fmt(free));
+      set(flagEl, full ? 'Disk full' : done ? 'Done' : 'Fits');
+      set(titleEl, del ? 'Each part goes the moment its files are on disk' : 'A usual extractor keeps every part until the end');
+      viz.classList.toggle('is-keep', !del);
+      viz.classList.toggle('is-full', full);
+      viz.classList.toggle('is-done', done);
+      modeBtns.forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.vizMode === 'ee') === del)));
+      syncLog(del, whole, free);
+    };
+    const begin = () => {
+      lines = []; logged = 0; ended = false;
+      log('now', '›', 'verify', `${N} of ${N} parts OK, ${fmt(SET)} GB`);
+    };
+    const tick = (dt) => {
+      if (hold > 0) { hold -= dt; if (hold <= 0) { p = 0; full = done = false; begin(); } return; }
+      p += dt / READ;
+      if (!deleting() && p >= stallAt) { p = stallAt; full = true; hold = HOLD; }
+      else if (p >= N) { p = N; done = true; hold = HOLD; }
+    };
+    const frame = (t) => {
+      // Real elapsed time, so a throttled tab (an embedded preview, a background window) jumps ahead
+      // instead of crawling. The cap only stops a long-hidden tab from skipping the whole run.
+      tick(last ? Math.min((t - last) / 1000, 1) : 0);
+      last = t; draw();
+      raf = requestAnimationFrame(frame);
+    };
+    const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+    const start = () => { if (raf || !onScreen || reduce.matches) return; last = 0; raf = requestAnimationFrame(frame); };
+    const restart = () => {
+      hold = 0; full = done = false; p = 0;
+      begin();
+      // Reduced motion: show where each way ends up instead of running it.
+      if (reduce.matches) { if (deleting()) { p = N; done = true; } else { p = stallAt; full = true; } }
+      draw();
+    };
+    modeBtns.forEach((b) => b.addEventListener('click', () => {
+      const ee = b.dataset.vizMode === 'ee';
+      if (!toggle) return;
+      if (toggle.checked !== ee) { toggle.checked = ee; toggle.dispatchEvent(new Event('change', { bubbles: true })); } else restart();
+    }));
+    el('replay').addEventListener('click', restart);
+    toggle?.addEventListener('change', restart);
+    new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; onScreen ? start() : stop(); }).observe(viz);
+    reduce.addEventListener('change', () => { stop(); restart(); start(); });
+    restart();
+  }
+
+
   /* ---------- videos: play only while on screen, never under reduced motion ---------- */
   const vids = $$('video[data-autoplay]');
   const want = new WeakMap();
@@ -54,85 +168,6 @@
     // Leaving the screen pauses it; the visitor resumes it themselves.
     new IntersectionObserver(([e]) => { if (!e.isIntersecting && !v.paused) v.pause(); }, { threshold: 0.1 }).observe(v);
     sync();
-  }
-
-  /* ---------- how it works: drag through a 24-part job ---------- */
-  const sim = $('[data-sim]');
-  if (sim) {
-    const PARTS = 24, PACKED = 47.3, UNPACKED = 52.1, FREE = 12, FILES = 1204;
-    const B1 = 0.43, B2 = 0.88;
-    const strip = $('[data-parts]', sim);
-    for (let i = 0; i < PARTS; i++) strip.appendChild(document.createElement('i'));
-    const parts = $$('i', strip);
-    const scrub = $('[data-scrub]', sim), play = $('[data-play]', sim), head = $('[data-playhead]', sim);
-    const stages = { verify: $('.stage-verify', sim), extract: $('.stage-extract', sim), done: $('.stage-done', sim) };
-    const el = (k) => $(`[data-${k}]`, sim);
-    const live = $('[data-sim-live]', sim);
-    let lastPhase = '';
-
-    const render = () => {
-      const v = scrub.value / 1000;
-      let phase, f, e;
-      if (v < B1) { phase = 'verify'; f = v / B1; e = 0; }
-      else if (v < B2) { phase = 'extract'; f = (v - B1) / (B2 - B1); e = f; }
-      else { phase = 'done'; f = (v - B2) / (1 - B2); e = 1; }
-
-      const now = e >= 1 ? PARTS : Math.floor(e * PARTS);
-      parts.forEach((p, i) => {
-        p.classList.toggle('is-gone', i < now);
-        p.classList.toggle('is-now', phase === 'extract' && i === now);
-      });
-      for (const k in stages) stages[k].classList.toggle('is-active', k === phase);
-
-      const st = stages[phase];
-      const x = st.offsetLeft + f * st.offsetWidth;
-      head.style.transform = `translateX(${x}px)`;
-
-      const written = UNPACKED * e;
-      const ee = FREE - written + now * (PACKED / PARTS);
-      const usual = FREE - written;
-      const pct = phase === 'verify' ? Math.round(f * 100) : phase === 'extract' ? Math.round(e * 100) : 100;
-      el('phase').textContent = phase === 'verify' ? 'Verifying' : phase === 'extract' ? 'Extracting' : 'Done';
-      el('pct').textContent = pct;
-      el('files').textContent = Math.round(FILES * e).toLocaleString('en-US');
-      el('left').textContent = PARTS - now;
-      el('ee').textContent = fmt(ee);
-      const box = $('[data-usual-box]', sim);
-      if (usual < 0) {
-        el('usual').textContent = 'Disk full';
-        el('usual-sub').textContent = `Ran out at ${Math.round((FREE / UNPACKED) * 100)}%. Every part stays until the end.`;
-        box.classList.add('is-full');
-      } else {
-        el('usual').innerHTML = `<b>${fmt(usual)}</b> GB`;
-        el('usual-sub').textContent = phase === 'verify' ? 'Same so far: nothing is written yet.' : 'Every part stays on disk until the end.';
-        box.classList.remove('is-full');
-      }
-      const valuetext = `${el('phase').textContent} ${pct} percent. ${fmt(ee)} GB free with EnhancedExtract; ${usual < 0 ? 'disk full' : fmt(usual) + ' GB free'} the usual way.`;
-      scrub.setAttribute('aria-valuetext', valuetext);
-      if (phase !== lastPhase) { lastPhase = phase; if (live) live.textContent = valuetext; }
-    };
-
-    let raf = 0;
-    const stop = () => { cancelAnimationFrame(raf); raf = 0; play.textContent = 'Play'; };
-    play.addEventListener('click', () => {
-      if (raf) return stop();
-      if (reduce.matches) { scrub.value = scrub.value >= 1000 ? 0 : 1000; render(); return; }
-      if (+scrub.value >= 1000) scrub.value = 0;
-      const start = performance.now(), from = +scrub.value, dur = 9000 * (1 - from / 1000);
-      play.textContent = 'Pause';
-      const step = (t) => {
-        const k = Math.min(1, (t - start) / dur);
-        scrub.value = from + (1000 - from) * k;
-        render();
-        if (k < 1) raf = requestAnimationFrame(step); else stop();
-      };
-      raf = requestAnimationFrame(step);
-    });
-    scrub.addEventListener('input', () => { if (raf) stop(); render(); });
-    // The scroll scene (motion.js) drives the same job while its stage is held.
-    window.EESim = { set(v) { if (raf) stop(); scrub.value = v; render(); }, get playing() { return !!raf; } };
-    addEventListener('resize', render);
-    render();
   }
 
   /* ---------- explorer: the typed file name, answered the way the app would ---------- */
