@@ -3,7 +3,8 @@ import { inTauri, jobsList, pickArchive, systemCheck, type JobSnap, type SystemC
 import { useAction, usePoll, useStored } from "./hooks";
 import { isArchive, isIso } from "./format";
 import { Boot, Decode, FxContext } from "./fx/motion";
-import { Icon } from "./components/ui";
+import { Icon, WindowControls } from "./components/ui";
+import { installSounds, play, preload } from "./sound";
 import { Library } from "./screens/Library";
 import { RarSetup } from "./screens/RarSetup";
 import { RarRunning } from "./screens/RarRunning";
@@ -59,6 +60,8 @@ export function App() {
     else if (isArchive(p)) nav({ name: "rar", path: p });
     else announce("Drop an archive (.rar, .zip, .7z, .tar.gz and more) or an .iso file.");
   }, [nav, announce]);
+
+  useEffect(() => { void preload(); return installSounds(); }, []);
 
   // Explorer "Open with EnhancedExtract" launches with --open <file>: go straight to its screen.
   useEffect(() => {
@@ -149,8 +152,10 @@ function Rail({ running }: { running: number }) {
   const here = SECTION[route.name];
   const order = ["library", "extract", "disc", "jobs"];
   const idx = order.indexOf(here);
+  // Changing screen plays one tab sound (forceField_001) for every screen.
   const item = (id: string, label: string, to: Route, badge: "" | "now" | "bad" = "") => (
-    <button className="ri" aria-current={here === id ? "page" : undefined} aria-label={label} onClick={() => nav(to)}>
+    <button className="ri" aria-current={here === id ? "page" : undefined} aria-label={label} onClick={() => nav(to)}
+      data-sound={here === id ? "none" : "tab"}>
       <Icon name={id} />{badge && <span className={`badge ${badge === "bad" ? "bad" : ""}`} aria-hidden="true" />}<span className="tip">{label}</span>
     </button>
   );
@@ -185,6 +190,7 @@ function SystemPanel({ onClose }: { onClose: () => void }) {
     await recheck();
     setAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
   }, [recheck]));
+  useEffect(() => play("popup"), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -211,7 +217,7 @@ function SystemPanel({ onClose }: { onClose: () => void }) {
         ))}
         <div className="sys-foot">
           <span className="muted">{at ? `Checked at ${at}` : ""}</span>
-          <button className="tlink" onClick={() => check.run()} disabled={check.busy}>{check.busy ? "Checking…" : "Check again"}</button>
+          <button className="btn" onClick={() => check.run()} disabled={check.busy}>{check.busy ? "Checking…" : "Check again"}</button>
         </div>
       </div>
     </>
@@ -222,14 +228,11 @@ const CRUMB: Record<Route["name"], [string, string?]> = {
   library: ["Library"], rar: ["Extract"], rarJob: ["Jobs", "Extract"], iso: ["Install"], isoJob: ["Jobs", "Install"], jobs: ["Jobs"],
 };
 
+/** Title bar controls as in the first version: sound switch, minimize and a red EXIT, all cut
+ *  buttons. No maximize. EXIT hides the window at once and closes after its sound has played. */
 function TitleBar() {
   const { route } = useApp();
   const [a, b] = CRUMB[route.name];
-  const win = async (op: "minimize" | "toggleMaximize" | "close") => {
-    if (!inTauri) return;
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow()[op]();
-  };
   return (
     <header className="top" data-tauri-drag-region>
       <div className="crumb" data-tauri-drag-region>
@@ -237,12 +240,7 @@ function TitleBar() {
         <span className={b ? "" : "here"} data-tauri-drag-region>{a}</span>
         {b && <><span aria-hidden="true">/</span><span className="here" data-tauri-drag-region>{b}</span></>}
       </div>
-      <div className="win">
-        <button aria-label="Minimize" onClick={() => win("minimize")}><svg viewBox="0 0 12 12"><path d="M1 6h10" /></svg></button>
-        <button aria-label="Maximize" onClick={() => win("toggleMaximize")}><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" /></svg></button>
-        <button className="x" aria-label="Close. Running jobs keep going." title="Close. Running jobs keep going." onClick={() => win("close")}>
-          <svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" /></svg></button>
-      </div>
+      <WindowControls />
     </header>
   );
 }

@@ -4,7 +4,7 @@ import { Page, useApp } from "../App";
 import { EXIT, EngineError, call, first, pickArchive, pickFolder, type Archive, type Space } from "../engine";
 import { archiveFormat, basename, drive, dur, int, scaled, setName, size, unitFor } from "../format";
 import { useAction, useStored } from "../hooks";
-import { Busy, ConfirmDelete, ErrorNote, PasswordDialog, SpaceCompare, Toggle, Warn } from "../components/ui";
+import { Busy, ErrorNote, Options, PasswordDialog, PasswordMatch, Warn, type Option } from "../components/ui";
 
 export function RarSetup({ path }: { path?: string }) {
   const { nav, openPath, refreshJobs } = useApp();
@@ -16,10 +16,11 @@ export function RarSetup({ path }: { path?: string }) {
   const [loadError, setLoadError] = useState<unknown>(null);
   const [pw, setPw] = useState<string | null>(null);
   const [askPw, setAskPw] = useState<"ask" | "wrong" | null>(null);
-  const [confirm, setConfirm] = useState(false);
-  // Delete mode: "safe" unless only "early" fits (picked once the engine has measured both).
-  const [early, setEarly] = useState(false);
   const [resume, setResume] = useState(false);
+  // After a password is accepted: "granted" shows the pop-up over a hidden page, "reveal" then
+  // brings the page in panel by panel.
+  const [unlock, setUnlock] = useState<"" | "granted" | "reveal">("");
+  const fx = () => unlock === "granted" ? "pre-reveal" : unlock === "reveal" ? "reveal-in" : "";
   const pwArgs = (p: string | null) => (p ? ["--password-stdin"] : []);
 
   // Inspect twice (delete on and off) so both space figures are real engine numbers.
@@ -36,10 +37,11 @@ export function RarSetup({ path }: { path?: string }) {
       const resuming = !!a.result?.resume;
       setResume(resuming);
       if ((!destArg || resuming) && sd?.dest) setDest(sd.dest);
-      setEarly(!!sd && (sd.needed_safe ?? sd.needed) > sd.free && !!sd.early_fits);
+      return true;
     } catch (e) {
       if (e instanceof EngineError && e.code === EXIT.PASSWORD) setAskPw(password ? "wrong" : "ask");
       else setLoadError(e);
+      return false;
     }
   }, [path]);
 
@@ -55,12 +57,13 @@ export function RarSetup({ path }: { path?: string }) {
   const deleting = del || resume;
   // Archives that are not RAR can't be freed while they are read: the whole archive goes once it is out.
   const generic = !!space?.del.generic;
-  const how = !deleting ? "keep" : generic ? "after" : early ? "early" : "safe";
+  // Deleting works like the first version: each part goes as soon as UnRAR moves on to the next
+  // one, so a set holding one big file needs about one part of room instead of the whole game.
+  const how = !deleting ? "keep" : generic ? "after" : "early";
   const cmd = (extra: string[]) => ["archive", "extract", path!, "--dest", dest, ...(deleting ? ["--delete"] : []), ...(how === "early" ? ["--early-delete"] : []),
     ...(verify ? [] : ["--no-verify"]), ...pwArgs(pw), ...extra];
-  const start = useAction(async (confirmed: boolean) => {
+  const start = useAction(async () => {
     await call(cmd(["--dry-run"]), { stdin: pw ?? undefined });          // same checks as the real run, changes nothing
-    if (how === "early" && !confirmed) { setConfirm(true); return; }    // only the risky mode asks again
     const out = await call(cmd(["--background", ...(deleting ? ["--yes"] : [])]), { stdin: pw ?? undefined });
     refreshJobs();
     nav({ name: "rarJob", id: out.result!.job });
@@ -94,48 +97,46 @@ export function RarSetup({ path }: { path?: string }) {
   const steps = [
     ...(verify ? [{ t: generic ? "Verify the archive" : resume ? "Verify the parts left" : `Verify all ${info?.volumes.length ?? "…"} parts`, m: info ? `reads ${size(info.packed)}` : "" }] : []),
     { t: <>Extract {files} to <span className="mono">{dest || "…"}</span></>, m: info ? `writes ${size(info.unpacked)}` : "" },
-    ...(how === "safe" ? [{ t: "Delete each part once every file in it is out", m: info ? `frees ${size(info.packed)}` : "" }] : []),
-    ...(how === "early" ? [{ t: "Delete each part as soon as it's read", m: info ? `frees ${size(info.packed)}` : "" }] : []),
+    ...(how === "early" ? [{ t: "Delete each part as soon as it has been extracted", m: info ? `frees ${size(info.packed)}` : "" }] : []),
     ...(how === "after" ? [{ t: parts > 1 ? `Delete all ${parts} parts once everything is out cleanly` : "Delete the archive once everything is out cleanly", m: info ? `frees ${size(info.packed)}` : "" }] : []),
   ];
-  const rows = needs && generic ? [
-    { label: "Delete the archive after it's extracted", needed: needs.after, chosen: how === "after",
-      note: "Frees the archive's space once every file is out. It can't be freed while it's read, so this needs room for the extracted files. Nothing is deleted if anything goes wrong." },
-    { label: "Keep the archive", needed: needs.keep, chosen: how === "keep", note: "Nothing is deleted." },
-  ] : needs ? [
-    { label: "Delete parts as their files finish", needed: needs.safe, chosen: how === "safe",
-      note: space?.del.solid ? "Solid set: parts are deleted only once everything is out. If it stops, start it again to continue."
-        : "Holds a file's parts until it's out. If it stops, start it again to continue where it left off." },
-    { label: "Delete each part as soon as it's read", needed: needs.early, chosen: how === "early",
-      note: "Needs the least space. If it stops or crashes, the file being extracted is lost." },
-    ...(resume ? [] : [{ label: "Keep every part", needed: needs.keep, chosen: how === "keep", note: "Nothing is deleted; needs room for the whole game." }]),
-  ] : [];
+  // The two options of the first version, drawn as rows: verify, and delete (with what it needs).
+  const delNeed = needs ? (generic ? needs.after : needs.early) : 0;
+  const options: Option[] = [
+    { label: generic ? "Verify the archive before extracting (recommended)" : "Verify all parts before extracting (recommended)", checked: verify, onChange: setVerify,
+      figure: info ? <>{scaled(info.packed, unitFor(info.packed))}<span className="muted"> {unitFor(info.packed)} read</span></> : null,
+      note: "Reads everything and writes nothing, so a corrupt part stops the job before anything is deleted." },
+    { label: generic ? (parts > 1 ? "Delete the parts once everything is out cleanly" : "Delete the archive once everything is out cleanly")
+        : "Delete each part as soon as it has been extracted",
+      checked: deleting, onChange: setDel, disabled: resume, needed: delNeed,
+      note: generic ? "A non-RAR archive can't be freed while it's read, so this frees its space only at the end. Nothing is deleted if anything goes wrong."
+        : <>Needs <span className="num">{size(delNeed)}</span> instead of <span className="num">{size(needs?.keep ?? 0)}</span>. If extraction stops or crashes, the file being extracted is lost and its deleted parts must be downloaded again.</> },
+  ];
 
   return (
     <Page title={name} sub={info ? <>{generic ? <>{archiveFormat(path)}{parts > 1 ? `, ${parts} parts, all present` : ""}</> : <>{info.volumes.length} parts{resume ? ", partly extracted" : ", all present"}</>} · <span className="num">{size(info.packed)}</span> {resume ? "left" : "packed"}, <span className="num">{size(info.unpacked)}</span> unpacked{info.files ? <> · <span className="num">{int(info.files)}</span> files</> : null}</>
       : loadError ? basename(path) : "Reading the archive…"}
       actions={<>
         <button className="btn" onClick={() => verifyOnly.run()} disabled={!info || verifyOnly.busy}><Busy busy={verifyOnly.busy}>Verify only</Busy></button>
-        <button className="btn btn-primary" onClick={() => start.run(false)} disabled={blocked || start.busy} title={why}><Busy busy={start.busy}>{resume ? "Resume" : "Start"}</Busy></button>
+        <button className="btn btn-primary" onClick={() => start.run()} disabled={blocked || start.busy} title={why}><Busy busy={start.busy}>{resume ? "Resume" : "Start"}</Busy></button>
       </>}>
       <ErrorNote error={loadError} onRetry={() => inspect(dest, pw)} />
       <ErrorNote error={start.error || verifyOnly.error} />
       {resume && <div className="notice ok" role="status"><span>This set was partly extracted into <span className="mono">{dest}</span>. Resume skips the files already out and continues from the parts left.</span></div>}
-      <section className="hero brand" aria-labelledby="sp">
+      <section className={`hero brand ${fx()}`} style={{ ["--r" as string]: 0 }} aria-labelledby="sp">
         <div className="decision">
           <div>
             <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(dest || path)}</h2>
-            <div className="big-figure">{space ? <Num value={need} format={(n) => scaled(n, unitFor(need))} /> : "…"}<span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>{space ? unitFor(need) : "GB"} needed</span></div>
+            <div className="big-figure">{space ? <Num value={need} format={(n) => scaled(n, unitFor(need))} /> : "…"}<span className="unit" style={{ fontSize: 20 }}>{space ? unitFor(need) : "GB"} needed</span></div>
             <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>{space ? <>of <span className="num">{size(free)}</span> free{fits ? `, ${size(free - need)} to spare` : ", not enough"}</> : "Working it out…"}</p>
           </div>
           <div>
-            {space ? <SpaceCompare free={free} label="How to extract" rows={rows}
-              onChoose={(i) => { const pick = rows[i]?.label; setDel(pick !== "Keep every part" && pick !== "Keep the archive"); setEarly(pick === "Delete each part as soon as it's read"); }} /> : <p>Reading the set…</p>}
-            {how === "early" && <div style={{ marginTop: 16 }}><Warn>If extraction stops or crashes, the file being extracted is lost and the parts already deleted can't be brought back. You'll confirm before it starts.</Warn></div>}
+            {space ? <Options free={free} label="How to extract" options={options} /> : <p>Reading the set…</p>}
+            {deleting && !verify && <div style={{ marginTop: 12 }}><Warn>{generic ? "Verification is off: extraction still stops on any error, and nothing is deleted unless it finishes cleanly." : "Verification is off: a corrupt part would only be found after earlier parts were deleted."}</Warn></div>}
           </div>
         </div>
       </section>
-      <div className="cols">
+      <div className={`cols ${fx()}`} style={{ ["--r" as string]: 1 }}>
         <div className="stack">
           <section className="card" aria-labelledby="src">
             <div className="ch"><h2 id="src">Source and destination</h2></div>
@@ -150,7 +151,7 @@ export function RarSetup({ path }: { path?: string }) {
               </label>
               <div className="kv" style={{ borderTop: "1px solid var(--rule)", paddingTop: 12 }}>
                 <span style={{ fontWeight: 500 }}>Password</span>
-                {pw ? <span className="muted">Entered · <button className="tlink" onClick={() => setAskPw("ask")}>Change</button></span>
+                {pw ? <span className="muted">Entered · <button className="btn sm" onClick={() => setAskPw("ask")}>Change</button></span>
                   : <span className="muted">{info ? "Not needed" : "—"}</span>}
               </div>
             </div>
@@ -159,20 +160,16 @@ export function RarSetup({ path }: { path?: string }) {
         <div className="stack">
           <section className="card" aria-labelledby="plan">
             <div className="ch"><h2 id="plan">What happens</h2>{info && <span className="meta">about {dur(estimate(info, verify))}</span>}</div>
-            <Toggle label={generic ? "Verify the archive first" : "Verify every part first"} checked={verify} onChange={setVerify}
-              desc="Reads everything and writes nothing, so a corrupt archive stops the job before anything is deleted." />
-            {deleting && !verify && <div style={{ margin: "4px 0 12px" }}><Warn>{generic ? "Verification is off: extraction still stops on any error, and nothing is deleted unless it finishes cleanly." : "Verification is off: a corrupt part would only be found after earlier parts were deleted."}</Warn></div>}
-            <div className="rows" style={{ borderTop: "1px solid var(--rule)", marginTop: 4 }}>{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
+            <div className="rows">{steps.map((s, i) => <div key={i} className="kv" style={{ minHeight: 40 }}><span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{s.t}</span><span className="muted small" style={{ flex: "none" }}>{s.m}</span></div>)}</div>
           </section>
         </div>
       </div>
 
       {askPw && <PasswordDialog name={name} wrong={askPw === "wrong"} onClose={() => setAskPw(null)}
-        onSubmit={(p) => { setAskPw(null); setPw(p); inspect(dest, p); }} />}
-      {confirm && info && <ConfirmDelete title="Delete parts as soon as they're read?"
-        body={<>There isn't room to keep a file's parts until it's out (that needs <span className="num">{size(needs?.safe ?? 0)}</span>). Each of the <b className="num">{info.volumes.length}</b> parts of {name} is deleted as soon as it has been read instead. If extraction stops or crashes, the file being extracted is lost and its deleted parts must be downloaded again.</>}
-        tick="I understand a stop can lose the file being extracted" confirm="Start and delete early"
-        onClose={() => setConfirm(false)} onConfirm={() => { setConfirm(false); start.run(true); }} />}
+        onSubmit={async (p) => { setAskPw(null); setPw(p); if (await inspect(dest, p)) setUnlock("granted"); }} />}
+      {/* "reveal" stays once set: dropping the class would hand the panels back to the normal
+          screen-enter animation (the left-to-right wipe) and play it a second time. */}
+      {unlock === "granted" && <PasswordMatch name={name} onDone={() => setUnlock("reveal")} />}
     </Page>
   );
 }

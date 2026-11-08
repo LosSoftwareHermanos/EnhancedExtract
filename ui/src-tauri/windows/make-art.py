@@ -99,9 +99,114 @@ def header(path):
     img.save(path)
 
 
+# ---------- frameless window: title bar and buttons ----------------------------------------
+# Native buttons can't have cut corners, so the installer shows these bitmaps instead (skin.nsh).
+# Unlike the art above they are not stretched: one set per display scale, picked at run time.
+
+WORDMARK = ROOT / "ui/src/assets/wordmark.png"
+NEGATIVE = (255, 70, 85)
+CONTROL = (61, 62, 78)
+SCALES = (100, 125, 150, 200)
+SS = 4  # supersampling for clean diagonal cuts and text
+
+# label, style. Primary is the yellow action; the rest are outlined like the app's .btn.
+BUTTONS = {
+    "next": ("NEXT", "primary"), "install": ("INSTALL", "primary"), "finish": ("FINISH", "primary"),
+    "uninstall": ("UNINSTALL", "primary"), "close": ("CLOSE", "primary"),
+    "back": ("BACK", "outline"), "cancel": ("CANCEL", "outline"), "browse": ("BROWSE", "outline"),
+    "exit": ("EXIT", "danger"),
+}
+
+
+def button(path, label, style, scale, enabled):
+    k = scale / 100
+    w, h, cut = (round(58 * k), round(26 * k), round(7 * k)) if style == "danger" else (round(104 * k), round(30 * k), round(8 * k))
+    W, H, C = w * SS, h * SS, cut * SS
+    img = Image.new("RGB", (W, H), GROUND)
+    d = ImageDraw.Draw(img)
+    if style == "primary":
+        fill, ink = (YELLOW, GROUND) if enabled else ((58, 56, 20), (216, 210, 162))
+        # Two cut corners, like .btn-primary: top left and bottom right.
+        d.polygon([(C, 0), (W, 0), (W, H - C), (W - C, H), (0, H), (0, C)], fill=fill)
+    else:
+        line = NEGATIVE if style == "danger" else (CONTROL if enabled else LINE)
+        ink = NEGATIVE if style == "danger" else (INK if enabled else MUTED)
+        t = max(SS, round(k * SS))  # a 1 px line at this scale
+        outer = [(0, 0), (W, 0), (W, H - C), (W - C, H), (0, H)]
+        d.polygon(outer, fill=line)
+        d.polygon([(t, t), (W - t, t), (W - t, H - C - t // 2), (W - C - t // 2, H - t), (t, H - t)], fill=GROUND)
+    font = ImageFont.truetype(str(DISPLAY), round((12.5 if style != "danger" else 12) * k * SS))
+    spacing = 0.06 * font.size
+    widths = [d.textlength(ch, font=font) for ch in label]
+    tw = sum(widths) + spacing * (len(label) - 1)
+    x = (W - tw) / 2
+    top, bottom = font.getbbox("NEXT")[1], font.getbbox("NEXT")[3]
+    y = (H - (bottom - top)) / 2 - top
+    for ch, cw in zip(label, widths):
+        d.text((x, y), ch, font=font, fill=ink)
+        x += cw + spacing
+    img.resize((w, h), Image.LANCZOS).save(path)
+
+
+def wordmark(path, scale):
+    k = scale / 100
+    mark = Image.open(WORDMARK).convert("RGBA")
+    h = round(14 * k)
+    w = round(mark.width * h / mark.height)
+    mark = mark.resize((w, h), Image.LANCZOS)
+    img = Image.new("RGB", (w, h), GROUND)
+    img.paste(mark, (0, 0), mark)
+    img.save(path)
+
+
+def toggle(path, kind, checked, enabled, scale):
+    """The app's square radio (.radio: a 2px box, a filled square inside when chosen) and its
+    checkbox (input[type=checkbox]: a 1px box, yellow with a dark tick when on)."""
+    k = scale / 100
+    n = round((14 if kind == "radio" else 16) * k)
+    N = n * SS
+    img = Image.new("RGB", (N, N), GROUND)
+    d = ImageDraw.Draw(img)
+    if kind == "radio":
+        color = (YELLOW if checked else (198, 198, 192)) if enabled else CONTROL
+        t = round(2 * k * SS)
+        d.rectangle([0, 0, N - 1, N - 1], fill=color)
+        d.rectangle([t, t, N - 1 - t, N - 1 - t], fill=GROUND)
+        if checked:
+            i = round(4 * k * SS)
+            d.rectangle([i, i, N - 1 - i, N - 1 - i], fill=color)
+    else:
+        t = max(SS, round(k * SS))
+        if checked:
+            d.rectangle([0, 0, N - 1, N - 1], fill=YELLOW)
+            m, s = N * 0.19, N * 0.62          # the tick sits in a 10/16 box, centred
+            pts = [(0.12, 0.48), (0, 0.62), (0.40, 1), (1, 0.22), (0.87, 0.09), (0.40, 0.72)]
+            d.polygon([(m + x * s, m + y * s) for x, y in pts], fill=GROUND)
+        else:
+            d.rectangle([0, 0, N - 1, N - 1], fill=CONTROL if enabled else LINE)
+            d.rectangle([t, t, N - 1 - t, N - 1 - t], fill=GROUND)
+    img.resize((n, n), Image.LANCZOS).save(path)
+
+
+def chrome(out):
+    out.mkdir(exist_ok=True)
+    for scale in SCALES:
+        for kind in ("radio", "check"):
+            for checked in (True, False):
+                toggle(out / f"{kind}_{'on' if checked else 'off'}_{scale}.bmp", kind, checked, True, scale)
+        toggle(out / f"radio_dis_{scale}.bmp", "radio", False, False, scale)
+        wordmark(out / f"wordmark_{scale}.bmp", scale)
+        for key, (label, style) in BUTTONS.items():
+            for enabled in (True, False):
+                if style == "danger" and not enabled:
+                    continue
+                button(out / f"{key}_{'on' if enabled else 'off'}_{scale}.bmp", label, style, scale, enabled)
+
+
 if __name__ == "__main__":
     out = HERE / "art"
     out.mkdir(exist_ok=True)
     sidebar(out / "sidebar.bmp")
     header(out / "header.bmp")
-    print("wrote", *sorted(p.name for p in out.glob("*.bmp")))
+    chrome(out / "chrome")
+    print("wrote", *sorted(p.name for p in out.glob("*.bmp")), f"and {len(list((out / 'chrome').glob('*.bmp')))} chrome bitmaps")

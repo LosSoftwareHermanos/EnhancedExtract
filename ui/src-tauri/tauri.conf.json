@@ -18,13 +18,15 @@
         "minWidth": 1024,
         "minHeight": 680,
         "decorations": false,
+        "shadow": false,
         "dragDropEnabled": true,
         "visible": false,
-        "backgroundColor": "#171719"
+        "backgroundColor": "#171719",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:"
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:"
     }
   },
   "bundle": {

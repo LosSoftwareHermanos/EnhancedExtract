@@ -301,6 +301,7 @@ Function PageReinstall
     Pop $R2
     nsDialogs::SetUserData $EE_Option1 $R2
     ${NSD_OnClick} $EE_Option1 EE_ReinstallLabelClick
+    ${EE_ToggleBox} $R2 $EE_Option1 4u 46u EE_ReinstallLabelClick
     ${NSD_OnClick} $R2 PageReinstallUpdateSelection
 
     ${NSD_CreateLabel} 18u 67u -18u 10u $R3
@@ -309,6 +310,7 @@ Function PageReinstall
     Pop $R3
     nsDialogs::SetUserData $EE_Option2 $R3
     ${NSD_OnClick} $EE_Option2 EE_ReinstallLabelClick
+    ${EE_ToggleBox} $R3 $EE_Option2 4u 66u EE_ReinstallLabelClick
     ; Disable this radio button if downgrading and downgrades are disabled
     !if "${ALLOWDOWNGRADES}" == "false"
       ${If} $R0 = -1
@@ -333,6 +335,9 @@ Function PageReinstall
     ${EndIf}
 
     ${NSD_SetFocus} $R2
+    ${EE_DragLayer}
+    Call EE_RefreshToggles
+    Call EE_SyncButtons
     nsDialogs::Show
   ${EndIf}
 FunctionEnd

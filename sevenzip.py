@@ -71,8 +71,25 @@ def tool():
 
 # ---------- names and split sets ----------
 
+# Some sites rename RAR sets to Game.part1.dat, Game.part2.dat ... UnRAR reads them as they are
+# (it asks for part2.dat after part1.dat), so they are RAR sets when their bytes say so.
+DAT_PART = re.compile(r"\.part\d+\.dat$", re.I)
+RAR_SIGNATURE = b"Rar!\x1a\x07"          # RAR 4 adds 00, RAR 5 adds 01 00
+
+
+def has_rar_signature(path):
+    try:
+        with open(path, "rb") as f:
+            return f.read(6) == RAR_SIGNATURE
+    except OSError:
+        return False
+
+
 def is_rar(path):
-    return bool(RAR_NAME.search(os.path.basename(path)))
+    name = os.path.basename(path)
+    if DAT_PART.search(name):
+        return not os.path.exists(path) or has_rar_signature(path)
+    return bool(RAR_NAME.search(name))
 
 
 def classify(name):
@@ -240,6 +257,7 @@ def inspect(first, password=None):
     password is needed (or wrong) to read it."""
     first = first_volume(first)
     pieces = volumes(first)
+    ex.check_not_busy(pieces)
     rc, text = _run(["l", "-slt", first], password)
     if rc != 0 and needs_password(text):       # header-encrypted: the listing itself needs the password
         raise ex.PasswordError("Wrong password." if password else "This archive's file names are "
