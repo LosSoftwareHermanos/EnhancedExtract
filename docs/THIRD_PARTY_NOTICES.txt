@@ -5,7 +5,7 @@ UI sound effects in sounds/ and EE/audio come from Kenney (kenney.nl, CC0 1.0) a
 (pixabay.com, Pixabay Content License). They are not covered by the MIT License.
 The UnRAR binary is redistributed unmodified; the WinRAR application is not included.
 WinFsp installer licensing is presented by its own installer: https://winfsp.dev/rel/
-Additional dependency sources: https://github.com/gustavofring1483369/EnhancedExtract
+Additional dependency sources: https://github.com/LosSoftwareHermanos/EnhancedExtract
 
 Bai-Jamjuree.txt
 ================

@@ -24,12 +24,20 @@ Var EE_RunAfterFinish
   ${EE_Style} $EE_Hwnd $EE_FontSmall "${COLOR}" "${EE_BG}"
 !macroend
 
-; Bullet + one line of text.
+; Bullet + one line of text. Y is in dialog units (a number). The text is centred in its
+; 12u row and the 4u bullet sits 4u down, so both share the row's middle.
 !macro EE_POINT Y TEXT
-  ${EE_Bullet} 120u "${Y}"
-  ${NSD_CreateLabel} 130u "${Y}" 185u 12u "${TEXT}"
+  !define /math EE_POINT_BY ${Y} + 4
+  ${EE_Bullet} 120u ${EE_POINT_BY}u
+  !undef EE_POINT_BY
+  ${NSD_CreateLabel} 130u ${Y}u 185u 12u "${TEXT}"
   Pop $EE_Hwnd
   ${EE_Style} $EE_Hwnd $EE_FontBody "${EE_SOFT}" "${EE_BG}"
+  System::Call 'user32::GetWindowLongW(p $EE_Hwnd, i -16) i .s'
+  Exch $0
+  IntOp $0 $0 | 0x200
+  System::Call 'user32::SetWindowLongW(p $EE_Hwnd, i -16, i r0)'
+  Pop $0
 !macroend
 
 ; Title in two lines: white then yellow.
@@ -63,14 +71,16 @@ Function EE_WelcomeShow
 
   ${EE_Rule} 120u 104u 190u
   !insertmacro EE_KICKER 120u 110u 195u "WHAT THIS SETUP DOES" "${EE_YELLOW}"
-  !insertmacro EE_POINT 124u "Your account only. No admin prompt."
-  !insertmacro EE_POINT 137u "Start menu shortcut and right-click menu."
-  !insertmacro EE_POINT 150u "UnRAR + 7-Zip built in. No bundled offers."
-  !insertmacro EE_POINT 163u "Uninstall any time in Settings > Apps."
+  !insertmacro EE_POINT 124 "Start menu shortcut and right-click menu."
+  !insertmacro EE_POINT 137 "UnRAR + 7-Zip built in. No bundled offers."
+  !insertmacro EE_POINT 150 "Uninstall any time in Settings > Apps."
 
   ${NSD_CreateLabel} 120u 180u 195u 10u "Click Next to choose where it goes."
   Pop $EE_Hwnd
   ${EE_Style} $EE_Hwnd $EE_FontSmall "${EE_MUTED}" "${EE_BG}"
+
+  ${EE_DragLayer}
+  Call EE_SyncButtons
 FunctionEnd
 
 ; ---------------------------------------------------------------------------------------
@@ -99,35 +109,39 @@ Function EE_OptionsPage
   ${IfThen} $0 == error ${|} Abort ${|}
 
   !insertmacro EE_KICKER 0 0 100% "INSTALL LOCATION" "${EE_YELLOW}"
-  ${NSD_CreateDirRequest} 0 11u 236u 13u "$INSTDIR"
+  ${NSD_CreateDirRequest} 0 11u 226u 18u "$INSTDIR"
   Pop $EE_DirField
-  ${NSD_CreateBrowseButton} 242u 10u 58u 15u "Browse..."
+  nsDialogs::CreateControl STATIC ${EE_STATIC_BITMAP} 0 232u 11u 68u 18u ""
   Pop $0
+  System::Call 'user32::LoadImageW(p 0, w "$PLUGINSDIR\chrome\browse_on_$EE_Scale.bmp", i 0, i 0, i 0, i 0x10) p .r1'
+  SendMessage $0 ${STM_SETIMAGE} 0 $1
   ${NSD_OnClick} $0 EE_BrowseFolder
 
   IntOp $1 ${ESTIMATEDSIZE} / 1024
-  ${NSD_CreateLabel} 0 28u 100% 10u "About $1 MB, in your user profile. No admin rights needed."
+  ${NSD_CreateLabel} 0 34u 100% 10u "About $1 MB, in your user profile. No admin rights needed to install."
   Pop $EE_Hwnd
   ${EE_Style} $EE_Hwnd $EE_FontBody "${EE_MUTED}" "${EE_BG}"
 
-  ${EE_Rule} 0 43u 100%
-  !insertmacro EE_KICKER 0 48u 100% "ADD TO WINDOWS" "${EE_YELLOW}"
+  ${EE_Rule} 0 49u 100%
+  !insertmacro EE_KICKER 0 54u 100% "ADD TO WINDOWS" "${EE_YELLOW}"
 
-  !insertmacro EE_CHECKBOX $EE_ContextBox 0 60u 14u 61u 280u "Right-click menu for archives" $EE_ContextMenu
+  !insertmacro EE_CHECKBOX $EE_ContextBox 0 66u 14u 67u 280u "Right-click menu for archives" $EE_ContextMenu
   ${EE_Style} $EE_Hwnd $EE_FontStrong "${EE_INK}" "${EE_BG}"
-  ${NSD_CreateLabel} 14u 72u 286u 10u ".rar, .zip, .7z and 20 more. Your default archive app stays."
+  ${NSD_CreateLabel} 14u 78u 286u 10u ".rar, .zip, .7z and 20 more. Your default archive app stays."
   Pop $EE_Hwnd
   ${EE_Style} $EE_Hwnd $EE_FontBody "${EE_MUTED}" "${EE_BG}"
 
-  !insertmacro EE_CHECKBOX $EE_DesktopBox 0 86u 14u 87u 280u "Desktop shortcut" $EE_DesktopShortcut
+  !insertmacro EE_CHECKBOX $EE_DesktopBox 0 92u 14u 93u 280u "Desktop shortcut" $EE_DesktopShortcut
   ${EE_Style} $EE_Hwnd $EE_FontStrong "${EE_INK}" "${EE_BG}"
 
-  ${EE_Rule} 0 103u 100%
-  ${NSD_CreateLabel} 0 108u 100% 24u "Shortcuts start it as administrator, which ISO installs need, so Windows asks to confirm. Right-click extraction runs without admin."
+  ${EE_Rule} 0 109u 100%
+  ${NSD_CreateLabel} 0 114u 100% 24u "The app runs as administrator, which ISO installs need, so Windows asks to confirm when you open it. Right-click extraction runs without admin."
   Pop $EE_Hwnd
   ${EE_Style} $EE_Hwnd $EE_FontBody "${EE_MUTED}" "${EE_BG}"
 
+  ${EE_DragLayer}
   Call EE_SkinPage
+  Call EE_RefreshToggles
 
   ${NSD_SetFocus} $EE_DirField
   nsDialogs::Show
@@ -172,10 +186,11 @@ FunctionEnd
 
 Function EE_ReinstallLabelClick
   Pop $0
-  System::Call 'user32::IsWindowEnabled(p r0) i .r1'
-  ${IfThen} $1 = 0 ${|} Return ${|}
   nsDialogs::GetUserData $0
   Pop $0
+  ; The radio itself says whether this choice is allowed (a downgrade can turn one off).
+  System::Call 'user32::IsWindowEnabled(p r0) i .r1'
+  ${IfThen} $1 = 0 ${|} Return ${|}
   ${If} $0 == $R2
     ${NSD_Check} $R2
     ${NSD_Uncheck} $R3
@@ -184,6 +199,7 @@ Function EE_ReinstallLabelClick
     ${NSD_Uncheck} $R2
   ${EndIf}
   Call PageReinstallUpdateSelection
+  Call EE_RefreshToggles
 FunctionEnd
 
 ; ---------------------------------------------------------------------------------------
@@ -201,15 +217,19 @@ Function EE_FinishShow
 
   ${EE_Rule} 120u 104u 190u
   !insertmacro EE_KICKER 120u 110u 195u "WHERE TO FIND IT" "${EE_YELLOW}"
-  !insertmacro EE_POINT 124u "Start menu > ${PRODUCTNAME}"
+  !insertmacro EE_POINT 124 "Start menu > ${PRODUCTNAME}"
   ${If} $EE_ContextMenu = 1
-    !insertmacro EE_POINT 137u "Right-click any archive > ${PRODUCTNAME}"
+    !insertmacro EE_POINT 137 "Right-click any archive > ${PRODUCTNAME}"
   ${EndIf}
 
   !insertmacro EE_CHECKBOX $EE_RunBox 120u 160u 134u 161u 180u "Open ${PRODUCTNAME} now" 1
   ${EE_Style} $EE_RunBox $EE_FontBody "${EE_INK}" "${EE_BG}"
   !insertmacro EE_DARK_THEME $EE_RunBox "DarkMode_Explorer"
   ${EE_Style} $EE_Hwnd $EE_FontStrong "${EE_INK}" "${EE_BG}"
+
+  ${EE_DragLayer}
+  Call EE_RefreshToggles
+  Call EE_SyncButtons
 FunctionEnd
 
 Function EE_FinishLeave

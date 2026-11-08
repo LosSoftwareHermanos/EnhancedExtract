@@ -4,12 +4,12 @@
 
 **Extract multi-part RAR sets, ZIP, 7z, TAR and other common archives, and install games from ISOs on a nearly full drive.<br>Free archive space as files finish, and resume a stopped RAR extraction from the parts left.**
 
-> [Download EnhancedExtract 0.1.2 for Windows](https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.2). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
+> [Download EnhancedExtract 0.1.3 for Windows](https://github.com/LosSoftwareHermanos/EnhancedExtract/releases/tag/v0.1.3). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
 > [Visit the EnhancedExtract landing page](https://enhancedextract.pages.dev/) for the mobile-friendly overview and downloads.
 
 <br>
 
-[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.2-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli) [![License](https://img.shields.io/badge/LICENSE-MIT-fcee0a?style=for-the-badge&labelColor=0b0c12)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/gustavofring1483369/EnhancedExtract/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=0b0c12&color=fcee0a)](https://github.com/gustavofring1483369/EnhancedExtract/actions/workflows/ci.yml)
+[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.3-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli) [![License](https://img.shields.io/badge/LICENSE-MIT-fcee0a?style=for-the-badge&labelColor=0b0c12)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/LosSoftwareHermanos/EnhancedExtract/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=0b0c12&color=fcee0a)](https://github.com/LosSoftwareHermanos/EnhancedExtract/actions/workflows/ci.yml)
 
 <br>
 
@@ -169,7 +169,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 
 ### Option A — Installer (recommended)
 
-1. Download **`EnhancedExtract_0.1.2_x64-setup.exe`** from [**Releases**](https://github.com/gustavofring1483369/EnhancedExtract/releases).
+1. Download **`EnhancedExtract_0.1.3_x64-setup.exe`** from [**Releases**](https://github.com/LosSoftwareHermanos/EnhancedExtract/releases).
 2. Run it. It installs **for your user only**, no admin prompt, into `%LOCALAPPDATA%\EnhancedExtract`.
 3. Open **EnhancedExtract** from the Start menu and point the Library at your downloads folder. For ISOs, the set-up screen's **Before mounting** checklist shows whether WinFsp and admin rights are in place.
 4. Right-click any archive (`.rar`, `.zip`, `.7z`, `.tar.gz`…) → **Show more options** → **EnhancedExtract**.
@@ -180,7 +180,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 ### Option B — From source (desktop app)
 
 ```powershell
-git clone https://github.com/gustavofring1483369/EnhancedExtract.git
+git clone https://github.com/LosSoftwareHermanos/EnhancedExtract.git
 cd EnhancedExtract
 pip install pyinstaller fusepy          # engine build dependencies
 build\build-engine.bat                  # -> build\dist\ee-engine\ee-engine.exe
@@ -196,7 +196,7 @@ Needs **Node 20+**, the **Rust** toolchain (`rustup`, MSVC target) and the **MSV
 No build step. Python and WinRAR (or `UnRAR.exe`) are enough for RAR sets; 7-Zip (`7z.exe`, or the copy in `deps/7zip`) opens the other formats.
 
 ```powershell
-git clone https://github.com/gustavofring1483369/EnhancedExtract.git
+git clone https://github.com/LosSoftwareHermanos/EnhancedExtract.git
 cd EnhancedExtract
 python cli.py system check
 ```
@@ -612,9 +612,9 @@ build\build-engine.bat
 cd ui
 npm install
 npm run build              # typecheck + Vite
-npm run tauri build        # -> src-tauri\target\release\bundle\nsis\EnhancedExtract_0.1.2_x64-setup.exe
+npm run tauri build        # -> src-tauri\target\release\bundle\nsis\EnhancedExtract_0.1.3_x64-setup.exe
 cd ..
-python build/package-release.py   # installer, CLI ZIP, notices and SHA256SUMS in build/dist/release-0.1.2
+python build/package-release.py   # installer, CLI ZIP, notices and SHA256SUMS in build/dist/release-0.1.3
 
 # browser-only UI preview with a mock engine (no Rust needed): http://localhost:1420
 npm run dev                # #rar #rarJob #iso #isoJob #jobs open a screen directly
@@ -677,7 +677,7 @@ The Library marks missing parts in red before you start, and verification (`rar 
 <summary><b>Does it support ZIP / 7z?</b></summary>
 <br>
 
-Yes. Version 0.1.2 supports ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and other 7-Zip formats, including split sets. RAR uses UnRAR; other formats use the bundled 7-Zip. For ZIP/7z/TAR, source archives are kept until extraction finishes cleanly. RAR-style incremental deletion and journal-based resume apply only to RAR.
+Yes. Version 0.1.3 supports ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and other 7-Zip formats, including split sets. RAR uses UnRAR; other formats use the bundled 7-Zip. For ZIP/7z/TAR, source archives are kept until extraction finishes cleanly. RAR-style incremental deletion and journal-based resume apply only to RAR.
 </details>
 
 <details>
@@ -703,7 +703,7 @@ Yes. Long work always runs as a detached engine job. Reopen the app and the **Jo
 EnhancedExtract is open source and contributions are welcome: bug reports, fixes, tests and docs.
 
 - Read **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, tests and how to open a pull request.
-- Found a bug or have an idea? [Open an issue](https://github.com/gustavofring1483369/EnhancedExtract/issues/new/choose). Questions go to [Discussions](https://github.com/gustavofring1483369/EnhancedExtract/discussions).
+- Found a bug or have an idea? [Open an issue](https://github.com/LosSoftwareHermanos/EnhancedExtract/issues/new/choose). Questions go to [Discussions](https://github.com/LosSoftwareHermanos/EnhancedExtract/discussions).
 - Security problems: report them privately, see **[SECURITY.md](SECURITY.md)**.
 - Everyone taking part follows the **[Code of Conduct](CODE_OF_CONDUCT.md)**.
 

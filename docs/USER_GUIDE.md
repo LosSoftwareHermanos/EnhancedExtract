@@ -4,11 +4,11 @@
 
 **Extract multi-part RAR sets, ZIP, 7z, TAR and other common archives, and install games from ISOs on a nearly full drive.<br>Free archive space as files finish, and resume a stopped RAR extraction from the parts left.**
 
-> [Download EnhancedExtract 0.1.2 for Windows](https://github.com/gustavofring1483369/EnhancedExtract/releases/tag/v0.1.2). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
+> [Download EnhancedExtract 0.1.3 for Windows](https://github.com/LosSoftwareHermanos/EnhancedExtract/releases/tag/v0.1.3). This release includes ZIP, 7z, TAR and other common archive formats, with 7-Zip bundled.
 
 <br>
 
-[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](../ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](../cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.2-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli)
+[![Platform](https://img.shields.io/badge/WINDOWS-10%20%2F%2011%20x64-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=windows11&logoColor=fcee0a)](#install) [![Tauri](https://img.shields.io/badge/TAURI-2-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=tauri&logoColor=fcee0a)](../ui/) [![Python](https://img.shields.io/badge/ENGINE-PYTHON-fcee0a?style=for-the-badge&labelColor=0b0c12&logo=python&logoColor=fcee0a)](../cli.py) [![CLI](https://img.shields.io/badge/CLI-AGENT%20READY-00e5f0?style=for-the-badge&labelColor=0b0c12&logo=gnubash&logoColor=00e5f0)](#cli) [![Engine](https://img.shields.io/badge/EE--ENGINE-v0.1.3-00e5f0?style=for-the-badge&labelColor=0b0c12)](#cli)
 
 <br>
 
@@ -160,10 +160,11 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 
 ### Option A — Installer (recommended)
 
-1. Download **`EnhancedExtract_0.1.2_x64-setup.exe`** from [**Releases**](https://github.com/gustavofring1483369/EnhancedExtract/releases).
+1. Download **`EnhancedExtract_0.1.3_x64-setup.exe`** from [**Releases**](https://github.com/LosSoftwareHermanos/EnhancedExtract/releases).
 2. Run it. It installs **for your user only**, no admin prompt, into `%LOCALAPPDATA%\EnhancedExtract`.
 3. Open **EnhancedExtract** from the Start menu and point the Library at your downloads folder. For ISOs, the set-up screen's **Before mounting** checklist shows whether WinFsp and admin rights are in place.
 4. Right-click any archive (`.rar`, `.zip`, `.7z`, `.tar.gz`…) → **Show more options** → **EnhancedExtract**.
+5. Right-click an `.iso` → **Show more options** → **Set up ISO with EnhancedExtract...** to open the ISO setup screen.
 
 > [!TIP]
 > Uninstalling from *Settings → Apps* removes the app and only its own right-click entries.
@@ -171,7 +172,7 @@ EnhancedExtract can reduce that peak. RAR safe mode keeps each file's parts unti
 ### Option B — From source (desktop app)
 
 ```powershell
-git clone https://github.com/gustavofring1483369/EnhancedExtract.git
+git clone https://github.com/LosSoftwareHermanos/EnhancedExtract.git
 cd EnhancedExtract
 pip install pyinstaller fusepy          # engine build dependencies
 build\build-engine.bat                  # -> build\dist\ee-engine\ee-engine.exe
@@ -187,7 +188,7 @@ Needs **Node 20+**, the **Rust** toolchain (`rustup`, MSVC target) and the **MSV
 No build step. Python and WinRAR (or `UnRAR.exe`) are enough for RAR sets; 7-Zip (`7z.exe`, or the copy in `deps/7zip`) opens the other formats.
 
 ```powershell
-git clone https://github.com/gustavofring1483369/EnhancedExtract.git
+git clone https://github.com/LosSoftwareHermanos/EnhancedExtract.git
 cd EnhancedExtract
 python cli.py system check
 ```
@@ -265,11 +266,13 @@ The installer adds an **EnhancedExtract** submenu to every `.rar`, `.zip`, `.7z`
 - Password-protected? The window asks, and the password goes over stdin.
 - Close the window and the job keeps running; the dashboard's **Jobs** screen follows it.
 - A second window on the same archive is refused while one is open.
-- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\<.ext>\shell\EnhancedExtract`. Your default archive app is untouched.
+- Registered per user under `HKCU\Software\Classes\SystemFileAssociations\<.ext>\shell\EnhancedExtract`. ZIP also registers under its active file-type ProgID so Explorer shows the same three actions. Your default archive app is untouched.
 
 </td>
 </tr>
 </table>
+
+For `.iso` files, choose **Set up ISO with EnhancedExtract...** from the classic context menu. It opens the ISO setup screen; setup does not start automatically.
 
 The same actions from a script:
 
@@ -594,9 +597,9 @@ build\build-engine.bat
 cd ui
 npm install
 npm run build              # typecheck + Vite
-npm run tauri build        # -> src-tauri\target\release\bundle\nsis\EnhancedExtract_0.1.2_x64-setup.exe
+npm run tauri build        # -> src-tauri\target\release\bundle\nsis\EnhancedExtract_0.1.3_x64-setup.exe
 cd ..
-python build/package-release.py   # installer, CLI ZIP, notices and SHA256SUMS in build/dist/release-0.1.2
+python build/package-release.py   # installer, CLI ZIP, notices and SHA256SUMS in build/dist/release-0.1.3
 
 # browser-only UI preview with a mock engine (no Rust needed): http://localhost:1420
 npm run dev                # #rar #rarJob #iso #isoJob #jobs open a screen directly
@@ -631,7 +634,7 @@ cd ui\src-tauri; cargo test --lib         # engine bridge + Explorer integration
 <summary><b>I don't see EnhancedExtract when I right-click a .rar</b></summary>
 <br>
 
-On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. They're registered for the supported archive types (`.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.001` and more) and only for the user who ran the installer.
+On Windows 11 the entries are in the classic menu: **Show more options**, or hold <kbd>Shift</kbd> while right-clicking. Archive actions are registered for the supported archive types (`.rar`, `.zip`, `.7z`, `.tar`, `.gz`, `.001` and more); ISO files get **Set up ISO with EnhancedExtract...**. They are registered only for the user who ran the installer.
 </details>
 
 <details>
@@ -659,7 +662,7 @@ The Library marks missing parts in red before you start, and verification (`rar 
 <summary><b>Does it support ZIP / 7z?</b></summary>
 <br>
 
-Yes. Version 0.1.2 supports ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and other 7-Zip formats, including split sets. RAR uses UnRAR; other formats use the bundled 7-Zip. For ZIP/7z/TAR, source archives are kept until extraction finishes cleanly. RAR-style incremental deletion and journal-based resume apply only to RAR.
+Yes. Version 0.1.3 supports ZIP, 7z, TAR, GZ, BZ2, XZ, ZST, CAB, WIM and other 7-Zip formats, including split sets. RAR uses UnRAR; other formats use the bundled 7-Zip. For ZIP/7z/TAR, source archives are kept until extraction finishes cleanly. RAR-style incremental deletion and journal-based resume apply only to RAR.
 </details>
 
 <details>

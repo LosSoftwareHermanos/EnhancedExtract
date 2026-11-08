@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import logo from "../assets/logo.png";
+import { play, preload } from "../sound";
 import wordmark from "../assets/wordmark.png";
 
 /** Effects on/off (the rail's switch) and reduced motion, in one place. */
@@ -75,6 +76,8 @@ export function Boot({ onDone }: { onDone: () => void }) {
     const t = setTimeout(onDone, 750);
     return () => clearTimeout(t);
   }, [onDone]);
+  // The start-up sound, as soon as the sounds are decoded (well inside the splash).
+  useEffect(() => { void preload().then(() => play("boot")); }, []);
   return (
     <div className="boot" aria-hidden="true" onClick={onDone}>
       <img className="boot-logo" src={logo} alt="" />

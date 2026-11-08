@@ -92,13 +92,13 @@ export function IsoSetup({ path }: { path?: string }) {
         <div className="decision">
           <div>
             <h2 id="sp" style={{ marginBottom: 6 }}>Space on {drive(path)}</h2>
-            {space && <div className="big-figure"><Num value={space.needed} format={gb} /><span className="unit" style={{ fontSize: 20, color: "#3d3a06" }}>GB needed</span></div>}
+            {space && <div className="big-figure"><Num value={space.needed} format={gb} /><span className="unit" style={{ fontSize: 20 }}>GB needed</span></div>}
             {space && <p className="small" style={{ fontWeight: 600, marginTop: 6 }}>of <span className="num">{gb(space.free)}</span> GB free{space.enough ? `, ${gb(space.free - space.needed)} GB to spare` : ", not enough"}</p>}
-            <label className="lab" style={{ color: "var(--accent-ink)", marginTop: space ? 18 : 4, maxWidth: 300 }}>Install size, from setup
-              <span className="join"><input className="field" inputMode="numeric" style={{ textAlign: "right", fontSize: 18, height: 44, background: "#fffbd0", color: "var(--accent-ink)", borderColor: "var(--accent-ink)" }}
+            <label className="lab" style={{ marginTop: space ? 18 : 4, maxWidth: 300 }}>Install size, from setup
+              <span className="join"><input className="field" inputMode="numeric" style={{ textAlign: "right", fontSize: 18, height: 44 }}
                 value={sizeMb} placeholder="52,000" onChange={(e) => setSizeMb(e.target.value)} aria-invalid={!!sizeMb && !sizeOk} aria-describedby="size-hint" autoFocus={!sizeMb} />
                 <span style={{ fontWeight: 700 }}>MB</span></span>
-              <span className="hint" id="size-hint" style={{ color: "#3d3a06" }}>Setup says "at least … MB of free disk space is required"</span>
+              <span className="hint" id="size-hint">Setup says "at least … MB of free disk space is required"</span>
             </label>
           </div>
           <div>
@@ -123,7 +123,7 @@ export function IsoSetup({ path }: { path?: string }) {
               </label>
               <div>
                 <label className="lab"><span style={{ display: "flex", justifyContent: "space-between" }}>Safety buffer<span className="num" style={{ fontWeight: 400 }}>{buffer} GB</span></span>
-                  <input type="range" min={1} max={20} value={buffer} onChange={(e) => setBuffer(Number(e.target.value))} aria-describedby="buf-hint" />
+                  <input type="range" min={1} max={20} value={buffer} style={{ ["--fill" as string]: `${((buffer - 1) / 19) * 100}%` }} onChange={(e) => setBuffer(Number(e.target.value))} aria-describedby="buf-hint" />
                   <span className="hint" id="buf-hint">Kept behind setup in case it reads back</span>
                 </label>
               </div>
@@ -148,10 +148,10 @@ export function IsoSetup({ path }: { path?: string }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 24 }}>
               <Check ok={sysOk} label="WinFsp driver" value={system && !system.fusepy ? "fusepy missing" : undefined}
                 action={system && system.winfsp && !system.fusepy
-                  ? <button className="tlink" onClick={() => fuse.run()} disabled={fuse.busy}><Busy busy={fuse.busy}>{fuse.busy ? "Installing" : "Install fusepy"}</Busy></button>
+                  ? <button className="btn" onClick={() => fuse.run()} disabled={fuse.busy}><Busy busy={fuse.busy}>{fuse.busy ? "Installing" : "Install fusepy"}</Busy></button>
                   : undefined} />
               <Check ok={system?.admin ?? null} label="Administrator" value={system?.admin ? "yes" : undefined}
-                action={system && !system.admin ? <button className="tlink" onClick={() => relaunchAsAdmin()}>Restart as admin</button> : undefined} />
+                action={system && !system.admin ? <button className="btn" onClick={() => relaunchAsAdmin()}>Restart as admin</button> : undefined} />
               <Check ok={mount ? mount.exists && !mount.windows_mounted : null} label="Not mounted by Windows"
                 value={mount && !mount.exists ? "ISO missing" : undefined} />
               <Check ok={data ? data.iso.has_setup : null} label="setup.exe in the root" value={data?.iso.has_setup ? "found" : undefined} />
