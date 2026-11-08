@@ -91,10 +91,11 @@ export async function pickArchive(): Promise<string | null> {
 }
 
 // ---------- shapes of the events the screens read ----------
-export interface RarSet { first: string; parts: number; size: number; missing: number[] }
+/** `busy`: part numbers still being written by another program (an unfinished copy or download). */
+export interface RarSet { first: string; parts: number; size: number; missing: number[]; busy?: number[]; more_after?: boolean }
 /** A zip, 7z, tar, gz ... (anything but RAR): one file, or a split set (`parts` > 1). */
-export interface OtherArchive { first: string; format: string; parts: number; size: number; missing: number[] }
-export interface FoundIso { path: string; size: number; was_freed: boolean }
+export interface OtherArchive { first: string; format: string; parts: number; size: number; missing: number[]; busy?: number[] }
+export interface FoundIso { path: string; size: number; was_freed: boolean; busy?: boolean }
 /** `files` is 0 when the engine could not count them cheaply (a very large .tar.gz). */
 export interface Archive { first: string; volumes: string[]; files: number; packed: number; unpacked: number; format?: string }
 /** With --delete: `mode` "safe" (a part goes once every file in it is out; a stop resumes) or "early"

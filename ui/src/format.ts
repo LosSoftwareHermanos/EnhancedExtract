@@ -33,10 +33,11 @@ export const drive = (p: string) => (/^[a-z]:/i.exec(p)?.[0].toUpperCase() ?? ""
 const OTHER = "zip|zipx|7z|tar|gz|tgz|bz2|tbz|tbz2|xz|txz|zst|tzst|lzma|z|cab|wim|arj|lzh|lha|cpio";
 const OTHER_PATH = new RegExp(`\\.(${OTHER})$|\\.(${OTHER})\\.\\d{3,}$|\\.z\\d{2,}$`, "i");
 /** Extensions for file pickers (no dots). */
-export const ARCHIVE_EXTENSIONS = ["rar", "r00", ...OTHER.split("|"), "001"];
+export const ARCHIVE_EXTENSIONS = ["rar", "r00", "dat", ...OTHER.split("|"), "001"];
 
 export const isIso = (p: string) => /\.iso$/i.test(p);
-export const isRar = (p: string) => /\.(rar|r\d\d)$/i.test(p);
+/** Game.part1.dat: a RAR set some sites rename; the engine checks the bytes before using it. */
+export const isRar = (p: string) => /\.(rar|r\d\d)$/i.test(p) || /\.part\d+\.dat$/i.test(p);
 /** Any archive the engine can extract: RAR sets, zip, 7z, tar and friends, split sets (.7z.001, .z01). */
 export const isArchive = (p: string) => isRar(p) || OTHER_PATH.test(p);
 
@@ -54,7 +55,7 @@ export function archiveFormat(path: string): string {
 /** "Ashen.Tide.v1.4.2.part01.rar" -> "Ashen Tide v1.4.2"; "Pack.tar.gz" -> "Pack" */
 export function setName(path: string): string {
   const b = basename(path)
-    .replace(/\.part\d+\.rar$/i, "")
+    .replace(/\.part\d+\.(rar|dat)$/i, "")
     .replace(/\.tar\.(gz|bz2|xz|zst|lzma|z)$/i, "")
     .replace(new RegExp(`\\.(${OTHER})\\.\\d{3,}$`, "i"), "")
     .replace(new RegExp(`\\.(rar|iso|${OTHER})$`, "i"), "")

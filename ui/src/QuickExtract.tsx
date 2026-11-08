@@ -1,21 +1,27 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { call, closeWindow, EngineError, jobStatus, jobsList, openFolder, shellDestination, type EngineOutput, type JobSnap } from "./engine";
 import { archiveFormat, basename, dirname, drive, dur, int, isRar, setName, size } from "./format";
+import { installSounds, play, preload, useProgressSound } from "./sound";
 import logo from "./assets/logo-64.png";
+import wordmark from "./assets/wordmark.png";
+import { Options, WindowControls } from "./components/ui";
+import { useStored } from "./hooks";
 import "./quick-extract.css";
 
 export interface ShellRequest { archive: string; delete: boolean }
 interface Info { parts: number; files: number; unpacked: number }
-/** The engine's dry run. `mode` "safe" deletes a part once every file in it is out (a stop can be
- *  resumed); "early" deletes each part as soon as it is read and is only offered when safe doesn't fit.
- *  "after" is every other format (zip, 7z, tar ...): the archive goes once extraction finished cleanly. */
+/** The engine's dry run. A RAR set with delete on runs in "early" mode, like the main window and the
+ *  first version: each part is deleted as soon as it has been read. "after" is every other format
+ *  (zip, 7z, tar ...): the archive goes once extraction finished cleanly. */
 interface Plan {
   dest: string; deletes: string[]; needed: number; free: number; neededSafe: number;
   mode: "safe" | "early" | "keep" | "after"; resume: boolean; done: number; files: number; lost: string[];
 }
+/** The two dry runs behind the options: deleting parts (null when that can't be planned) and keeping them. */
+interface Plans { del: Plan | null; keep: Plan }
 type State =
   | { kind: "busy"; message: string }
-  | { kind: "confirm"; plan: Plan }
+  | { kind: "confirm"; plans: Plans }
   | { kind: "password"; message: string }
   | { kind: "job"; id: string; dest: string; snapshot: JobSnap | null }
   | { kind: "error"; message: string };
@@ -28,7 +34,8 @@ const plural = (n: number, word: string) => `${int(n)} ${word}${n === 1 ? "" : "
 
 function readPlan(out: EngineOutput, dest: string): Plan {
   const event = (type: string) => out.events.find(e => e.type === type);
-  const plan = event("plan"), space = event("space");
+  // A dry run stopped for space (exit 4) puts the space figures in its result instead.
+  const plan = event("plan"), space = event("space") ?? out.result;
   const mode = plan?.mode === "early" ? "early" : plan?.mode === "keep" ? "keep" : plan?.mode === "after" ? "after" : "safe";
   return {
     dest: typeof out.result?.dest === "string" ? out.result.dest : dest,
@@ -42,17 +49,21 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   const [state, setState] = useState<State>({ kind: "busy", message: "Reading the archive…" });
   const [info, setInfo] = useState<Info | null>(null);
   const [password, setPassword] = useState("");
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [showParts, setShowParts] = useState(false);
+  // The same two options as the main window. Delete starts as the Explorer menu item chose it
+  // ("Extract" or "Extract & free space"); verify is remembered like in the main window.
+  const [del, setDel] = useState(request.delete);
+  const [verify, setVerify] = useStored("ee.rar.verify", true);
+  const choice = useRef({ del: request.delete, verify });
+  choice.current = { del, verify };
   const [stopAsk, setStopAsk] = useState(false);
   const [notice, setNotice] = useState("");
   const secret = useRef("");
-  const early = useRef(false);
   const initialized = useRef(false);
   const acting = useRef(false);
-  const args = (dest: string, extra: string[]) => ["archive", "extract", request.archive, "--dest", dest,
-    ...(request.delete ? ["--delete"] : []), ...(early.current ? ["--early-delete"] : []),
-    ...(secret.current ? ["--password-stdin"] : []), ...extra];
+  // Deleting works like the main window: a RAR set's parts go as soon as each has been read.
+  const args = (dest: string, extra: string[], c = choice.current) => ["archive", "extract", request.archive, "--dest", dest,
+    ...(c.del ? ["--delete"] : []), ...(c.del && isRar(request.archive) ? ["--early-delete"] : []),
+    ...(c.verify ? [] : ["--no-verify"]), ...(secret.current ? ["--password-stdin"] : []), ...extra];
   const options = () => ({ stdin: secret.current || undefined });
 
   const fail = (error: unknown) => {
@@ -64,10 +75,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   async function prepare() {
     if (acting.current) return;
     acting.current = true;
-    setAcknowledged(false);
-    setShowParts(false);
     setStopAsk(false);
-    early.current = false;
     setState({ kind: "busy", message: "Reading the archive and checking free space…" });
     try {
       // Reopen an extraction of this archive that is already running rather than starting a second one.
@@ -79,29 +87,24 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
         return;
       }
       const dest = await shellDestination(false);
-      let out: EngineOutput;
-      try {
-        out = await call(args(dest, ["--dry-run"]), options());
-      } catch (error) {
-        // Not enough room to keep a file's parts until it is out: offer deleting each part as it is read.
-        if (!(request.delete && error instanceof EngineError && error.code === 4 && error.out?.result?.early_fits)) throw error;
-        early.current = true;
-        out = await call(args(dest, ["--dry-run"]), options());
-      }
-      const archive = out.events.find(e => e.type === "archive");
+      // Plan both ways at once, so ticking Delete on or off only changes which figures show.
+      // Not enough space (exit 4) still returns the figures; the button then says it doesn't fit.
+      const dry = (d: boolean) => call(args(dest, ["--dry-run"], { del: d, verify: true }), { ...options(), allow: [4] });
+      const [withDel, withoutDel] = await Promise.all([dry(true).catch(() => null), dry(false)]);
+      const archive = (withDel ?? withoutDel).events.find(e => e.type === "archive");
       if (archive) setInfo({ parts: strings(archive.volumes).length, files: num(archive.files), unpacked: num(archive.unpacked) });
-      const plan = readPlan(out, dest);
-      if (request.delete || plan.resume) setState({ kind: "confirm", plan });
-      else await start(null);
+      const plans = { del: withDel ? readPlan(withDel, dest) : null, keep: readPlan(withoutDel, dest) };
+      if (plans.del?.resume) setDel(true);          // a stopped delete run continues as one
+      setState({ kind: "confirm", plans });
     } catch (error) { fail(error); }
     finally { acting.current = false; }
   }
 
-  /** `plan` is the confirmed dry run (null for a plain extract). A resume goes back into its folder. */
-  async function start(plan: Plan | null) {
-    setState({ kind: "busy", message: plan?.resume ? "Resuming…" : "Starting…" });
-    const dest = plan?.resume ? plan.dest : await shellDestination(true);
-    const out = await call(args(dest, ["--background", ...(plan ? ["--yes"] : [])]), options());
+  /** `plan` is the dry run for the options chosen. A resume goes back into its folder. */
+  async function start(plan: Plan) {
+    setState({ kind: "busy", message: plan.resume ? "Resuming…" : "Starting…" });
+    const dest = plan.resume ? plan.dest : await shellDestination(true);
+    const out = await call(args(dest, ["--background", ...(choice.current.del ? ["--yes"] : [])]), options());
     if (typeof out.result?.job !== "string") throw new Error("The engine did not return a job ID.");
     setState({ kind: "job", id: out.result.job, dest, snapshot: null });
   }
@@ -109,9 +112,16 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   useEffect(() => {
     if (!initialized.current) { initialized.current = true; void prepare(); }
   }, []);
+  useEffect(() => { void preload(); return installSounds(); }, []);
+  // Each new view (options, password, progress, error) slides in with the same sound as changing
+  // screens in the main window. The "Reading…" step in between stays quiet.
+  useEffect(() => {
+    if (state.kind !== "busy") void preload().then(() => play("tab"));
+  }, [state.kind]);
 
   const jobId = state.kind === "job" ? state.id : null;
   const running = state.kind === "job" && (!state.snapshot || state.snapshot.state === "running");
+  useProgressSound(running);
   useEffect(() => {
     if (!jobId || !running) return;
     let active = true;
@@ -156,30 +166,29 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   }
 
   if (state.kind === "confirm") {
-    const { plan } = state;
-    const count = plan.deletes.length || info?.parts || 1;
-    const risky = plan.mode === "early";
+    const { plans } = state;
+    const resume = !!plans.del?.resume;
+    const deleting = (del || resume) && !!plans.del;
+    const plan = deleting ? plans.del! : plans.keep;
+    const generic = !isRar(request.archive);
+    const count = plans.del?.deletes.length || info?.parts || 1;
+    const fits = plan.needed <= plan.free;
     const submit = () => {
-      if (acting.current || (risky && !acknowledged)) return;
+      if (acting.current || !fits) return;
       acting.current = true;
       void start(plan).catch(fail).finally(() => { acting.current = false; });
     };
-    const partsList = count > 1 && <>
-      <button type="button" className="qx-link" aria-expanded={showParts} onClick={() => setShowParts(v => !v)}>
-        {showParts ? "Hide parts" : `Show ${count} parts`}</button>
-      {showParts && <ul className="qx-parts">{plan.deletes.map(path => <li key={path} title={path}>{basename(path)}</li>)}</ul>}
-    </>;
     body = <>
       <Destination path={plan.dest}>
         <div className="qx-space">
-          <div className="qx-meter" aria-hidden><i style={{ width: `${plan.free ? Math.min(100, Math.max(1.5, 100 * plan.needed / plan.free)) : 100}%` }} /></div>
+          <div className="qx-meter" aria-hidden><i style={{ width: `${plan.free ? Math.min(100, Math.max(1.5, 100 * plan.needed / plan.free)) : 100}%`, background: fits ? undefined : "var(--negative)" }} /></div>
           <div className="qx-space-row">
             <span>Needs <b className="num">{size(plan.needed)}</b></span>
             <span><b className="num">{size(plan.free)}</b> free{drive(plan.dest) ? ` on ${drive(plan.dest)}` : ""}</span>
           </div>
         </div>
       </Destination>
-      {plan.resume && <div className="qx-note-card">
+      {resume && <div className="qx-note-card">
         <Shield />
         <div>
           <strong>Picks up where it stopped</strong>
@@ -189,32 +198,20 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
       {plan.lost.length > 0 && <div className="qx-alert warn" role="alert">
         <p>{plural(plan.lost.length, "file")} can’t be recovered: {plan.lost.length === 1 ? "its" : "their"} start was in a part deleted early. First: {basename(plan.lost[0])}</p>
       </div>}
-      {risky ? <div className={`qx-consent${acknowledged ? " on" : ""}`}>
-        <input id="qx-agree" type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />
-        <label htmlFor="qx-agree">
-          <strong>Not enough room to extract safely</strong>
-          <span>Keeping a file’s parts until it’s out needs <b className="num">{size(plan.neededSafe)}</b>. Deleting each part as soon as it’s read fits, but if extraction stops or crashes, the file being extracted is lost.</span>
-          <em>Delete parts early anyway</em>
-        </label>
-        {partsList}
-      </div> : !plan.resume && <div className="qx-note-card">
-        <Shield />
-        <div>
-          {plan.mode === "after" ? <>
-            <strong>{count > 1 ? "The parts are deleted after extraction" : "The archive is deleted after extraction"}</strong>
-            <span>It is verified first, and only deleted once every file has been extracted without an error. If anything goes wrong, nothing is deleted.</span>
-          </> : <>
-            <strong>Parts are deleted as their files finish</strong>
-            <span>Every part is verified first. A part is only deleted once every file in it is safely on disk, so if extraction stops, run it again to continue.</span>
-          </>}
-          {partsList}
-        </div>
-      </div>}
+      <Options free={plan.free} label="How to extract" options={[
+        { label: generic ? "Verify the archive first (recommended)" : "Verify all parts first (recommended)", checked: verify, onChange: setVerify,
+          note: "Reads everything and writes nothing, so a corrupt part stops the job before anything is deleted." },
+        ...(plans.del ? [{ label: generic ? (count > 1 ? "Delete the parts once everything is out" : "Delete the archive once everything is out")
+            : "Delete each part as soon as it has been extracted",
+          checked: deleting, onChange: setDel, disabled: resume, needed: plans.del.needed,
+          note: generic ? "It can't be freed while it's read, so its space comes back at the end. Nothing is deleted if anything goes wrong."
+            : <>Needs <span className="num">{size(plans.del.needed)}</span> instead of <span className="num">{size(plans.keep.needed)}</span>. If extraction stops or crashes, the file being extracted is lost and its deleted parts must be downloaded again.</> }] : []),
+      ]} />
     </>;
     foot = <>
       <button className="btn" onClick={close}>Cancel</button>
-      <button className="btn btn-primary" disabled={risky && !acknowledged} onClick={submit}>
-        {plan.resume ? "Resume" : risky ? "Delete early" : "Extract & delete"}</button>
+      <button className="btn btn-primary" disabled={!fits} title={fits ? undefined : "Not enough free space for this choice"} onClick={submit}>
+        {resume ? "Resume" : deleting ? "Extract & delete" : "Extract"}</button>
     </>;
   }
 
@@ -298,7 +295,7 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
       <button className="btn" autoFocus onClick={() => setStopAsk(false)}>Keep going</button>
       <button className="btn btn-danger solid" onClick={() => void stop()}>Stop</button>
     </> : <>
-      {running && <button className="btn btn-danger qx-left" onClick={() => setStopAsk(true)}>Stop…</button>}
+      {running && <button className="btn btn-danger qx-left" onClick={() => setStopAsk(true)}>Stop</button>}
       {finished && !done && snap?.job_exit_code === 3 && <button className="btn" onClick={() => setState({ kind: "password", message: "Enter the archive password to try again." })}>Enter password</button>}
       <button className="btn" onClick={close}>{running ? "Hide" : "Close"}</button>
       {finished && !done && snap?.job_exit_code !== 3 && <button className="btn btn-primary" onClick={() => void prepare()}>{resumable ? "Resume" : "Try again"}</button>}
@@ -315,6 +312,14 @@ export function QuickExtract({ request }: { request: ShellRequest }) {
   }
 
   return <main className="qx">
+    {/* The same title bar as the main window: no Windows frame, the app's own controls. */}
+    <header className="top qx-top" data-tauri-drag-region>
+      <div className="crumb" data-tauri-drag-region>
+        <img className="wordmark" src={wordmark} alt="EnhancedExtract" data-tauri-drag-region /><span className="sep" aria-hidden="true" />
+        <span className="here" data-tauri-drag-region>Quick extract</span>
+      </div>
+      <WindowControls />
+    </header>
     <div className="qx-body">
       <header className="qx-head">
         <img src={logo} alt="" width={40} height={40} />

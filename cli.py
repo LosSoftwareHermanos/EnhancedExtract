@@ -192,7 +192,7 @@ def cmd_jobs_stop(args, out):
 
 
 # ---------- scan ----------
-RAR_PART = re.compile(r"^(?P<base>.+)\.part(?P<n>\d+)\.rar$", re.I)
+RAR_PART = re.compile(r"^(?P<base>.+)\.part(?P<n>\d+)\.(?P<ext>rar|dat)$", re.I)
 OLD_PART = re.compile(r"^(?P<base>.+)\.r(?P<n>\d\d)$", re.I)
 
 
@@ -209,7 +209,7 @@ def cmd_scan(args, out):
             path = os.path.join(folder, name)
             m = RAR_PART.match(name)
             o = OLD_PART.match(name)
-            if m:
+            if m and (m["ext"].lower() == "rar" or sz.has_rar_signature(path)):   # .dat: renamed RAR parts only
                 sets.setdefault((folder, m["base"]), []).append((int(m["n"]), path))
             elif name.lower().endswith(".rar"):
                 sets.setdefault((folder, name[:-4]), []).append((0, path))
@@ -231,11 +231,18 @@ def cmd_scan(args, out):
         new_style = any(RAR_PART.match(os.path.basename(p)) for _, p in parts)
         expected = range(1, max(numbers) + 1) if new_style else range(0, max(numbers) + 1)
         missing = [n for n in expected if n not in numbers]
+        # The highest part says more follow: the next ones aren't here (yet). Only the next
+        # number is known; how many more there are is not.
+        more = new_style and ex.rar_more_volumes(parts[-1][1]) is True
+        if more:
+            missing.append(max(numbers) + 1)
+        busy = [n for n, p in parts if ex.in_use(p)]      # still being copied or downloaded
         size = sum(os.path.getsize(p) for _, p in parts)
         found_sets.append(first)
         out("rar_set", f"RAR set: {first} ({len(parts)} parts, {ex.human(size)})"
-                       + (f" - MISSING parts {missing}" if missing else ""),
-            first=first, parts=len(parts), size=size, missing=missing,
+                       + (f" - MISSING parts {missing}" if missing else "")
+                       + (f" - STILL BEING WRITTEN: parts {busy}" if busy else ""),
+            first=first, parts=len(parts), size=size, missing=missing, busy=busy, more_after=more,
             next=command_line(["rar", "inspect", first]))
     found_archives = 0
     for (folder, _, group), parts in sorted(others.items()):
@@ -244,20 +251,24 @@ def cmd_scan(args, out):
         first = sz.first_volume(parts[0][1])
         numbered = group == "volume" or any(sz.ZIP_SPLIT.match(os.path.basename(p)) for _, p in parts)
         missing = [n for n in range(1, max(numbers) + 1) if n not in numbers] if numbered else []
+        busy = [n for n, p in parts if ex.in_use(p)]
         size = sum(os.path.getsize(p) for _, p in parts)
         fmt = os.path.splitext(first)[1].lstrip(".").lower() or "archive"
         if group == "volume":
             fmt = os.path.splitext(os.path.splitext(first)[0])[1].lstrip(".").lower()
         found_archives += 1
         out("archive_set", f"Archive ({fmt}): {first} ({len(parts)} {'part' if len(parts) == 1 else 'parts'}, "
-                           f"{ex.human(size)})" + (f" - MISSING parts {missing}" if missing else ""),
-            first=first, format=fmt, parts=len(parts), size=size, missing=missing,
+                           f"{ex.human(size)})" + (f" - MISSING parts {missing}" if missing else "")
+                           + (" - STILL BEING WRITTEN" if busy else ""),
+            first=first, format=fmt, parts=len(parts), size=size, missing=missing, busy=busy,
             next=command_line(["archive", "inspect", first]))
     for path in sorted(isos):
         size = os.path.getsize(path)
         freed = iso.was_freed(path)
-        out("found_iso", f"ISO: {path} ({ex.human(size)})" + (" - already partly freed" if freed else ""),
-            path=path, size=size, was_freed=freed, next=command_line(["iso", "inspect", path]))
+        busy = ex.in_use(path)
+        out("found_iso", f"ISO: {path} ({ex.human(size)})" + (" - already partly freed" if freed else "")
+                         + (" - STILL BEING WRITTEN" if busy else ""),
+            path=path, size=size, was_freed=freed, busy=busy, next=command_line(["iso", "inspect", path]))
     return {"ok": True, "folder": root, "rar_sets": len(found_sets), "archives": found_archives, "isos": len(isos)}
 
 
@@ -897,6 +908,10 @@ def load_iso(path):
     path = os.path.abspath(path)
     if not os.path.isfile(path):
         raise Stop(2, f"ISO not found: {path}")
+    try:
+        ex.check_not_busy([path])
+    except ex.ExtractError as e:
+        raise Stop(2, str(e))
     try:
         img = udf.UDFImage(path)
     except (OSError, udf.UDFError) as e:
