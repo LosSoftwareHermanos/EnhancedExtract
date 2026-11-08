@@ -11,10 +11,10 @@
   <meta property="og:image" content="assets/media/shot-rar-running.jpg">
   <meta name="theme-color" content="#0b0c12">
   <link rel="icon" href="assets/media/logo.png" type="image/png">
-  <link rel="preload" href="assets/fonts/oxanium-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/oxanium-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/bai-jamjuree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/scenes/stage.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="assets/scenes/stage.css?v=20261108a">
+  <link rel="stylesheet" href="styles.css?v=20261108a">
   <script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
@@ -35,7 +35,7 @@
       <a href="#faq">FAQ</a>
     </nav>
     <div class="nav-actions">
-      <a class="btn btn-sm" href="https://github.com/gustavofring1483369/EnhancedExtract">
+      <a class="nav-gh" href="https://github.com/gustavofring1483369/EnhancedExtract">
         <svg class="icon-fill" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub
       </a>
       <a class="btn btn-sm" href="#download">Download</a>
@@ -45,29 +45,79 @@
   <main id="main">
     <!-- HERO: the sentence is the layout; the product's own controls sit around it -->
     <section class="hero wrap" aria-labelledby="hero-title">
-      <a class="oss-pill" href="#open-source"><span class="oss-pill-dot" aria-hidden="true"></span>Free and open source<b>MIT</b></a>
+      <a class="oss-line" href="#open-source">Free and open source, MIT License</a>
       <div class="hero-stage">
         <h1 class="hero-title lines" id="hero-title">
-          <span class="line"><span data-line style="--i:0">Big games<span class="slot cut" aria-hidden="true"><video src="assets/media/film-parts.mp4" poster="assets/media/film-parts.jpg" muted loop playsinline preload="metadata" data-autoplay></video></span></span></span>
+          <span class="line"><span data-line style="--i:0">Big games</span></span>
           <span class="line"><span data-line style="--i:1">small drives</span></span>
         </h1>
 
-        <div class="chip chip-a cut" data-ui>
-          <span class="chip-label">Space needed on D:</span>
-          <span class="chip-value"><b data-needed>9.87</b><small>GB</small></span>
+        <div class="hero-controls">
+          <label class="chip chip-c cut" data-ui>
+            <span class="chip-label">Delete parts as their files finish</span>
+            <span class="switch">
+              <input type="checkbox" role="switch" checked data-delete-toggle>
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+          <div class="chip chip-a cut" data-ui>
+            <span class="chip-label">Space needed on D:</span>
+            <span class="chip-value"><b data-needed>9.87</b><small>GB</small></span>
+          </div>
+          <div class="chip chip-b cut" data-ui>
+            <span class="chip-label">Free on D:</span>
+            <span class="chip-value"><b>12.00</b><small>GB</small><span class="state is-ok" data-fit>Fits</span></span>
+          </div>
         </div>
-        <div class="chip chip-b cut" data-ui>
-          <span class="chip-label">Free on D:</span>
-          <span class="chip-value"><b>12.00</b><small>GB</small><span class="state is-ok" data-fit>Fits</span></span>
-        </div>
-        <label class="chip chip-c cut" data-ui>
-          <span class="chip-label">Delete parts as their files finish</span>
-          <span class="switch">
-            <input type="checkbox" role="switch" checked data-delete-toggle>
-            <span class="switch-track" aria-hidden="true"></span>
-          </span>
-        </label>
       </div>
+
+      <!-- The job itself: the parts, the game coming out of them, and the drive both share -->
+      <figure class="viz" id="how" data-viz aria-labelledby="viz-title" aria-describedby="viz-desc">
+        <div class="viz-head">
+          <div class="viz-heading">
+            <p class="viz-eyebrow"><span class="viz-dot" aria-hidden="true"></span>Ashen Tide, 24 RAR parts, 47.30&nbsp;GB, on a drive with 12.00&nbsp;GB free</p>
+            <p class="viz-title" id="viz-title" data-viz-title>Each part goes the moment its files are on disk</p>
+          </div>
+          <div class="viz-controls">
+            <div class="seg" role="group" aria-label="Extract with">
+              <button type="button" aria-pressed="true" data-viz-mode="ee">EnhancedExtract</button>
+              <button type="button" aria-pressed="false" data-viz-mode="keep">A usual extractor</button>
+            </div>
+            <button class="icon-btn viz-replay" type="button" data-viz-replay aria-label="Run it again">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10a6 6 0 1 0 1.8-4.3M4 3.5v3h3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="viz-body" aria-hidden="true">
+          <div class="viz-set">
+            <div class="viz-cap"><span>Ashen Tide.part01–24.rar</span><b data-viz-arc>47.30 GB</b></div>
+            <div class="viz-parts" data-viz-parts><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="viz-read">
+            <div class="viz-free">
+              <div class="viz-cap"><span>Free on D:</span><span class="viz-flag" data-viz-flag>Fits</span></div>
+              <p class="viz-big"><b data-viz-free>12.00</b><small>GB</small></p>
+            </div>
+            <div class="viz-gauge">
+              <div class="viz-cap"><span>Game written</span><b data-viz-out>0.00 / 52.10 GB</b></div>
+              <div class="viz-bar"><span data-viz-files></span></div>
+            </div>
+            <div class="viz-gauge">
+              <div class="viz-cap"><span>Parts on disk</span><b data-viz-left>24 / 24</b></div>
+              <div class="viz-bar viz-bar-arc"><span data-viz-left-bar></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="viz-drive" aria-hidden="true">
+          <div class="viz-cap"><span>Drive D:, parts plus free space</span><span class="viz-legend"><i class="k-arc"></i>Parts<i class="k-game"></i>Game<i class="k-free"></i>Free</span></div>
+          <div class="viz-meter" data-viz-meter></div>
+        </div>
+
+        <ol class="viz-log" data-viz-log aria-hidden="true"></ol>
+        <p class="sr-only" id="viz-desc">With EnhancedExtract, each part is deleted once its files are on disk, so the 52.10 GB game fits beside the 47.30 GB set and 7.20 GB stays free. A usual extractor keeps every part until the end and runs out of space at 23 percent.</p>
+      </figure>
 
       <div class="hero-copy">
         <p class="lede">EnhancedExtract unpacks multi-part RAR game sets on a nearly full Windows drive, deleting each part once its files are safely on disk. ZIP, 7z, TAR and other common archives are supported too.</p>
@@ -96,7 +146,6 @@
         <p class="copied" aria-live="polite" data-copied></p>
       </div>
       <p class="meta"><a class="tlink" href="#download">Checksums and the CLI zip</a> <a class="tlink" href="#demo">Watch it run</a></p>
-      <p class="small-print release-note">Free and open source under the MIT License. No account, no trial. <a class="tlink" href="https://github.com/gustavofring1483369/EnhancedExtract">Read the source</a></p>
 
       <div class="demo-wrap" id="demo">
         <figure class="demo frame" data-demo data-reveal>
@@ -109,59 +158,6 @@
         </figure>
         <p class="caption">The real app UI running its demo engine with sample data, at 6× speed. Illustrates the workflow.</p>
       </div>
-    </section>
-
-    <!-- HOW IT WORKS: the app's progress bar, enlarged to span the page, and scrubbable -->
-    <section class="how field-yellow scene" id="how" data-scene="space-back" data-options='{"hold":2}' aria-labelledby="how-title">
-      <div class="scene-stage"><div class="wrap">
-        <div class="how-head">
-          <h2 id="how-title" class="h2" data-reveal>Watch the space come back</h2>
-          <p class="how-intro" data-reveal>An illustrative 24-part, 47&nbsp;GB set on a drive with 12&nbsp;GB free. Drag through the simulation.</p>
-        </div>
-
-        <div class="sim" data-ui data-sim>
-          <div class="stages" aria-hidden="true">
-            <div class="stage stage-verify"><span class="stage-word">Reads 47.30&nbsp;GB</span></div>
-            <div class="stage stage-extract">
-              <span class="stage-word">Writes 52.10&nbsp;GB, frees 47.30&nbsp;GB</span>
-              <div class="parts" data-parts></div>
-            </div>
-            <div class="stage stage-done"><span class="stage-word">Seconds</span></div>
-            <span class="playhead" data-playhead></span>
-          </div>
-
-          <div class="stage-notes">
-            <p class="note-verify"><b>First</b> every checksum is tested.</p>
-            <p class="note-extract"><b>Then</b> each part is unpacked, flushed and deleted.</p>
-            <p class="note-done"><b>Last</b> the journal goes.</p>
-          </div>
-
-          <div class="scrub">
-            <label for="scrub" class="scrub-label">Job progress</label>
-            <input id="scrub" type="range" min="0" max="1000" value="652" step="1" data-scrub>
-            <button class="btn btn-ink" type="button" data-play>Play</button>
-          </div>
-
-          <div class="readouts">
-            <div class="readout">
-              <span class="r-label" data-phase>Extracting</span>
-              <span class="r-big"><b data-pct>42</b>%</span>
-              <span class="r-sub"><span data-files>506</span> of 1,204 files, <span data-left>14</span> of 24 parts left</span>
-            </div>
-            <div class="readout">
-              <span class="r-label">Free on D: with EnhancedExtract</span>
-              <span class="r-big"><b data-ee>9.83</b> GB</span>
-              <span class="r-sub">Lowest point of the whole job: 5.23&nbsp;GB</span>
-            </div>
-            <div class="readout readout-usual" data-usual-box>
-              <span class="r-label">Free on D: the usual way</span>
-              <span class="r-big" data-usual>Disk full</span>
-              <span class="r-sub" data-usual-sub>Ran out at 23%. Every part stays until the end.</span>
-            </div>
-          </div>
-          <p class="sr-only" aria-live="polite" data-sim-live></p>
-        </div>
-      </div></div>
     </section>
 
     <!-- SAFETY: one paragraph does the work of a feature grid -->
@@ -194,15 +190,15 @@
       <div class="mosaic">
         <figure class="frame m-main" data-reveal>
           <img src="assets/media/shot-library.jpg" width="2560" height="1600" loading="lazy" alt="The Library: six RAR sets and one ISO in D:\Downloads with sizes and states, one extracting at 42%, one ISO installing, and Low Orbit flagged with part 4 missing.">
-          <figcaption>Library. Low Orbit is missing part 4.</figcaption>
+          <figcaption>Library, with Low Orbit missing part 4</figcaption>
         </figure>
         <figure class="frame m-side" data-reveal>
           <img src="assets/media/shot-iso-running.jpg" width="2560" height="1600" loading="lazy" alt="An ISO install in progress: setup reading the Vigil of Ostra ISO while the parts it has finished with are freed behind it.">
-          <figcaption>ISO install, freeing as it reads.</figcaption>
+          <figcaption>ISO install, freeing as it reads</figcaption>
         </figure>
         <figure class="frame m-side" data-reveal>
           <img src="assets/media/shot-jobs.jpg" width="2560" height="1600" loading="lazy" alt="The Jobs screen: running, finished, failed and stopped jobs with their logs.">
-          <figcaption>Jobs, with every log.</figcaption>
+          <figcaption>Jobs, with every log</figcaption>
         </figure>
       </div>
     </section>
@@ -261,8 +257,7 @@ python cli.py jobs wait --timeout 60</code></pre>
     <!-- OPEN SOURCE: free, MIT, built in the open -->
     <section class="oss wrap" id="open-source" aria-labelledby="oss-title">
       <div class="oss-head">
-        <p class="oss-kicker" data-reveal>Free and open source</p>
-        <h2 class="h2" id="oss-title" data-reveal>Free. Open source.<br>Read every line.</h2>
+        <h2 class="h2" id="oss-title" data-reveal>Free, and every line<br>is on GitHub</h2>
         <p class="body-lg" data-reveal>EnhancedExtract is MIT-licensed and built in the open. The engine that decides what gets deleted, the desktop app and the installer are all on GitHub, so you can check exactly what it does before you trust it with your downloads.</p>
         <div class="oss-actions" data-reveal>
           <a class="btn" href="https://github.com/gustavofring1483369/EnhancedExtract"><svg class="icon-fill" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>View the source</a>
@@ -445,11 +440,9 @@ python cli.py jobs wait --timeout 60</code></pre>
 
   <script src="assets/vendor/gsap.min.js"></script>
   <script src="assets/vendor/ScrollTrigger.min.js"></script>
-  <script src="assets/vendor/SplitText.min.js"></script>
-  <script src="assets/vendor/lenis.min.js"></script>
-  <script src="assets/scenes/stage.js"></script>
-  <script src="main.js"></script>
-  <script src="motion.js"></script>
-  <script type="module" src="backdrop.js"></script>
+  <script src="assets/scenes/stage.js?v=20261108a"></script>
+  <script src="main.js?v=20261108a"></script>
+  <script src="motion.js?v=20261108a"></script>
+  <script type="module" src="backdrop.js?v=20261108a"></script>
 </body>
 </html>
